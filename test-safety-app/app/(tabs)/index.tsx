@@ -950,7 +950,7 @@ export default function LiveMapScreen() {
               <Text style={styles.modalSubtitle}>📍 {selectedCamera.area}</Text>
               
               <View style={styles.cameraImageContainer}>
-                <Image 
+        <Image
                   source={{ uri: selectedCamera.imageUrl }}
                   style={styles.cameraImage}
                   resizeMode="contain"

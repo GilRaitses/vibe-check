@@ -25,9 +25,9 @@ cd test-safety-app
 **⚠️ Must be in `test-safety-app` directory - NOT the root directory!**
 
 ### **Install Dependencies**
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 ### **Start Development Server**
 ```bash
@@ -231,7 +231,7 @@ npx expo logs
 
 ## 🚀 **Quick Start**
 
-```bash
+   ```bash
 cd test-safety-app
 npm install
 npx expo start --clear
