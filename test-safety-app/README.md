@@ -59,6 +59,29 @@ npx expo start --clear
 - **Batch Analysis** - "🎯 Analyze All X Cameras" option for camera clusters
 - **Heat Map** - View color-coded risk overlays on map
 
+### **Progress Tracking**
+- **Detailed Progress Modal** - Shows 8-step analysis process in real-time
+  1. Processing Image (converting to base64)
+  2. Scene Analysis (getting description)
+  3. Cyclist Detection (detecting active cyclists)
+  4. Bicycle Detection (detecting bicycles for context)
+  5. AI Analysis (filtering active cyclists vs parked bikes)
+  6. Sidewalk Detection (detecting walkways)
+  7. Sidewalk Confirmation (confirming sidewalk presence)
+  8. Final Analysis (calculating safety score)
+- **Visual Indicators** - Progress bar, step numbers, color-coded status
+- **Cancel Option** - Stop long-running analysis if needed
+- **Settings Control** - Enable/disable detailed progress in Settings
+
+### **Timeout Management**
+- **Flexible Timeouts** - Increased timeouts for better reliability
+  - Image processing: 30 seconds
+  - AI detection: 45 seconds
+  - Question analysis: 40 seconds
+  - Scene description: 35 seconds
+- **Disable Timeouts** - Complete timeout removal for very slow connections
+- **Quick Toggles** - Instant timeout control from map interface
+
 ### **Navigation**
 - **Live Map Tab** - Camera clustering and selection interface
 - **Verify Tab** - Camera verification tools  
@@ -151,7 +174,13 @@ npx expo logs
 - ✅ Network resilience with comprehensive timeout handling
 - ✅ Region-based camera loading for performance
 
-### **Recent Enhancements**
+### **Latest Updates (2025-06-21)**
+- ✅ **Detailed Progress Tracking** - 8-step analysis progress with beautiful UI modal
+- ✅ **Enhanced Timeout Settings** - Configurable API timeouts (up to 45s) for slow connections
+- ✅ **Timeout Disable Option** - Complete timeout removal for very slow networks
+- ✅ **Map Stability Fix** - Resolved periodic map blanking/reloading issues
+- ✅ **Quick Settings Toggles** - Instant access to progress tracking and timeout controls
+- ✅ **Enhanced Settings Screen** - Comprehensive timeout and progress configuration
 - ✅ Smart cyclist vs parked bicycle detection using AI filtering
 - ✅ Batch analysis dashboard for camera clusters
 - ✅ Heat map visualization system

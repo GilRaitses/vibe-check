@@ -24,6 +24,17 @@ export interface BicycleDetectionResult {
   hasSidewalk: boolean;
 }
 
+export interface AnalysisProgress {
+  step: number;
+  totalSteps: number;
+  currentStep: string;
+  description: string;
+  completed: boolean;
+  error?: string;
+}
+
+export type ProgressCallback = (progress: AnalysisProgress) => void;
+
 class MoondreamService {
   private apiKey: string;
   private baseUrl: string;
@@ -37,18 +48,18 @@ class MoondreamService {
    * Convert image URI to base64 data URI format required by Moondream API
    * Includes image compression for better network performance
    */
-  private async imageUriToBase64(imageUri: string): Promise<string> {
+  private async imageUriToBase64(imageUri: string, disableTimeouts: boolean = false): Promise<string> {
     try {
       console.log('📸 [HACKATHON] Converting image to base64 with compression...');
       
-      // Add timeout to fetch request
+      // Add timeout to fetch request (unless disabled)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = disableTimeouts ? null : setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
       const response = await fetch(imageUri, {
         signal: controller.signal
       });
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.status}`);
@@ -83,36 +94,105 @@ class MoondreamService {
    * Detect people riding bicycles (cyclists) on sidewalks using Moondream API
    * Focuses on active cycling behavior rather than parked bikes
    */
-  async detectBicycles(imageUri: string): Promise<BicycleDetectionResult> {
+  async detectBicycles(imageUri: string, progressCallback?: ProgressCallback, disableTimeouts: boolean = false): Promise<BicycleDetectionResult> {
     try {
-      // Convert image to base64
-      const base64Image = await this.imageUriToBase64(imageUri);
+      const totalSteps = 8;
+      let currentStep = 0;
 
-      // Get scene description first
-      const sceneDescription = await this.getCaptionForContext(imageUri);
+      // Step 1: Convert image to base64
+      progressCallback?.({
+        step: ++currentStep,
+        totalSteps,
+        currentStep: 'Processing Image',
+        description: 'Converting image to base64 format...',
+        completed: false
+      });
+      const base64Image = await this.imageUriToBase64(imageUri, disableTimeouts);
 
+      // Step 2: Get scene description first (with fallback if it fails)
+      progressCallback?.({
+        step: ++currentStep,
+        totalSteps,
+        currentStep: 'Scene Analysis',
+        description: 'Getting scene description...',
+        completed: false
+      });
+      let sceneDescription = 'Street scene with pedestrian area'; // Default fallback
+      try {
+        sceneDescription = await this.getCaptionForContext(imageUri, disableTimeouts);
+      } catch (error) {
+        console.log('⚠️ [HACKATHON] Caption failed, continuing with default description');
+      }
+
+      // Step 3: Primary cyclist detection
+      progressCallback?.({
+        step: ++currentStep,
+        totalSteps,
+        currentStep: 'Cyclist Detection',
+        description: 'Detecting active cyclists...',
+        completed: false
+      });
       console.log('🚴 [HACKATHON] Detecting cyclists (people riding bikes) vs parked bicycles...');
 
       // Primary detection: Look for cyclists (people actively riding)
-      const cyclistResponse = await this.callDetectAPI(base64Image, 'cyclist');
-      const personOnBikeResponse = await this.callDetectAPI(base64Image, 'person on bicycle');
+      const cyclistResponse = await this.callDetectAPI(base64Image, 'cyclist', disableTimeouts);
+      const personOnBikeResponse = await this.callDetectAPI(base64Image, 'person on bicycle', disableTimeouts);
+      
+      // Step 4: Secondary bicycle detection
+      progressCallback?.({
+        step: ++currentStep,
+        totalSteps,
+        currentStep: 'Bicycle Detection',
+        description: 'Detecting bicycles for context...',
+        completed: false
+      });
       
       // Secondary detection: General bicycle detection for context
-      const bicycleResponse = await this.callDetectAPI(base64Image, 'bicycle');
-      const bikeResponse = await this.callDetectAPI(base64Image, 'bike');
+      const bicycleResponse = await this.callDetectAPI(base64Image, 'bicycle', disableTimeouts);
+      const bikeResponse = await this.callDetectAPI(base64Image, 'bike', disableTimeouts);
+
+      // Step 5: AI filtering for active cyclists
+      progressCallback?.({
+        step: ++currentStep,
+        totalSteps,
+        currentStep: 'AI Analysis',
+        description: 'Filtering active cyclists vs parked bikes...',
+        completed: false
+      });
 
       // Use AI to distinguish between parked bikes and active cyclists
-      const activeCyclists = await this.filterForActiveCyclists(imageUri, [
-        ...cyclistResponse.objects,
-        ...personOnBikeResponse.objects,
-        ...bicycleResponse.objects,
-        ...bikeResponse.objects
-      ]);
+      let activeCyclists: DetectedObject[] = [];
+      try {
+        activeCyclists = await this.filterForActiveCyclists(imageUri, [
+          ...cyclistResponse.objects,
+          ...personOnBikeResponse.objects,
+          ...bicycleResponse.objects,
+          ...bikeResponse.objects
+        ], disableTimeouts);
+      } catch (error) {
+        console.log('⚠️ [HACKATHON] Active cyclist filtering failed, using all detections as fallback');
+        // Fallback: use all bicycle detections (conservative approach)
+        activeCyclists = [
+          ...cyclistResponse.objects,
+          ...personOnBikeResponse.objects,
+          ...bicycleResponse.objects,
+          ...bikeResponse.objects
+        ];
+      }
+
+      // Step 6: Sidewalk detection
+      progressCallback?.({
+        step: ++currentStep,
+        totalSteps,
+        currentStep: 'Sidewalk Detection',
+        description: 'Detecting sidewalks and walkways...',
+        completed: false
+      });
 
       // Detect sidewalks for confirmation
-      const sidewalkResponse = await this.callDetectAPI(base64Image, 'sidewalk');
-      const pavement = await this.callDetectAPI(base64Image, 'pavement');
-      const walkway = await this.callDetectAPI(base64Image, 'walkway');
+      const sidewalkResponse = await this.callDetectAPI(base64Image, 'sidewalk', disableTimeouts);
+      const pavement = await this.callDetectAPI(base64Image, 'pavement', disableTimeouts);
+      const walkway = await this.callDetectAPI(base64Image, 'walkway', disableTimeouts);
 
       // Combine all sidewalk detections
       const allSidewalks = [
@@ -125,8 +205,31 @@ class MoondreamService {
       const uniqueCyclists = this.removeDuplicateDetections(activeCyclists);
       const uniqueSidewalks = this.removeDuplicateDetections(allSidewalks);
 
+      // Step 7: Sidewalk confirmation
+      progressCallback?.({
+        step: ++currentStep,
+        totalSteps,
+        currentStep: 'Sidewalk Confirmation',
+        description: 'Confirming sidewalk presence...',
+        completed: false
+      });
+
       // Check if scene likely contains a sidewalk using AI
-      const hasSidewalk = await this.confirmSidewalkPresence(imageUri, sceneDescription);
+      let hasSidewalk = true; // Default to true (conservative)
+      try {
+        hasSidewalk = await this.confirmSidewalkPresence(imageUri, sceneDescription, disableTimeouts);
+      } catch (error) {
+        console.log('⚠️ [HACKATHON] Sidewalk confirmation failed, assuming sidewalk present');
+      }
+
+      // Step 8: Final analysis
+      progressCallback?.({
+        step: ++currentStep,
+        totalSteps,
+        currentStep: 'Final Analysis',
+        description: 'Calculating safety score and confidence...',
+        completed: false
+      });
 
       // Calculate safety score based on active cyclist count (more severe than parked bikes)
       const safetyScore = this.calculateCyclistSafetyScore(uniqueCyclists.length);
@@ -135,6 +238,15 @@ class MoondreamService {
       const confidence = this.determineConfidence(uniqueCyclists.length, hasSidewalk);
 
       console.log(`🚴 [HACKATHON] Detected ${uniqueCyclists.length} active cyclists on sidewalk`);
+
+      // Complete progress
+      progressCallback?.({
+        step: totalSteps,
+        totalSteps,
+        currentStep: 'Complete',
+        description: `Analysis complete: ${uniqueCyclists.length} active cyclists detected`,
+        completed: true
+      });
 
       return {
         bicycles: uniqueCyclists, // Now represents active cyclists, not parked bikes
@@ -155,7 +267,7 @@ class MoondreamService {
   /**
    * Use AI to filter detections for active cyclists vs parked bicycles
    */
-  private async filterForActiveCyclists(imageUri: string, allDetections: DetectedObject[]): Promise<DetectedObject[]> {
+  private async filterForActiveCyclists(imageUri: string, allDetections: DetectedObject[], disableTimeouts: boolean = false): Promise<DetectedObject[]> {
     try {
       if (allDetections.length === 0) {
         return [];
@@ -165,7 +277,7 @@ class MoondreamService {
 
       // Ask AI to identify which detections show people actively riding
       const question = "In this image, are there any people actively riding bicycles or cycling? Describe what you see - are the bicycles being ridden by people, or are they parked/stationary? Focus on whether someone is currently on and riding the bicycle.";
-      const answer = await this.askQuestion(imageUri, question);
+      const answer = await this.askQuestion(imageUri, question, disableTimeouts);
 
       console.log(`🤖 [HACKATHON] AI cyclist analysis: "${answer}"`);
 
@@ -270,7 +382,7 @@ class MoondreamService {
   /**
    * Use AI to confirm if the image contains a sidewalk/pedestrian area
    */
-  private async confirmSidewalkPresence(imageUri: string, sceneDescription: string): Promise<boolean> {
+  private async confirmSidewalkPresence(imageUri: string, sceneDescription: string, disableTimeouts: boolean = false): Promise<boolean> {
     try {
       // Check scene description for sidewalk-related keywords
       const sidewalkKeywords = [
@@ -288,7 +400,7 @@ class MoondreamService {
 
       // Ask specific question about sidewalk presence
       const question = "Is there a sidewalk, pavement, or pedestrian walkway visible in this image? Answer yes or no.";
-      const answer = await this.askQuestion(imageUri, question);
+      const answer = await this.askQuestion(imageUri, question, disableTimeouts);
       
       return answer.toLowerCase().includes('yes');
     } catch (error) {
@@ -301,13 +413,13 @@ class MoondreamService {
   /**
    * Call Moondream detect API for a specific object type with timeout handling
    */
-  private async callDetectAPI(base64Image: string, objectType: string): Promise<MoondreamDetectionResult> {
+  private async callDetectAPI(base64Image: string, objectType: string, disableTimeouts: boolean = false): Promise<MoondreamDetectionResult> {
     try {
       console.log(`🤖 [HACKATHON] Calling Moondream API for ${objectType} detection...`);
       
-      // Add timeout to API request
+      // Add timeout to API request (unless disabled)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = disableTimeouts ? null : setTimeout(() => controller.abort(), 45000); // 45 second timeout
       
       const response = await fetch(`${this.baseUrl}/detect`, {
         method: 'POST',
@@ -323,7 +435,7 @@ class MoondreamService {
         signal: controller.signal
       });
       
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -420,14 +532,14 @@ class MoondreamService {
   /**
    * Ask Moondream a question about the image (for additional context)
    */
-  async askQuestion(imageUri: string, question: string): Promise<string> {
+  async askQuestion(imageUri: string, question: string, disableTimeouts: boolean = false): Promise<string> {
     try {
       console.log(`❓ [HACKATHON] Asking question: "${question}"`);
       const base64Image = await this.imageUriToBase64(imageUri);
 
-      // Add timeout to API request
+      // Add timeout to API request (unless disabled)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+      const timeoutId = disableTimeouts ? null : setTimeout(() => controller.abort(), 40000); // 40 second timeout
 
       const response = await fetch(`${this.baseUrl}/query`, {
         method: 'POST',
@@ -443,7 +555,7 @@ class MoondreamService {
         signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Moondream API error: ${response.status}`);
@@ -466,14 +578,14 @@ class MoondreamService {
   /**
    * Get image caption for additional context with timeout handling
    */
-  async getCaptionForContext(imageUri: string): Promise<string> {
+  async getCaptionForContext(imageUri: string, disableTimeouts: boolean = false): Promise<string> {
     try {
       console.log(`📝 [HACKATHON] Getting image caption...`);
       const base64Image = await this.imageUriToBase64(imageUri);
 
-      // Add timeout to API request
+      // Add timeout to API request (unless disabled)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+      const timeoutId = disableTimeouts ? null : setTimeout(() => controller.abort(), 35000); // 35 second timeout
 
       const response = await fetch(`${this.baseUrl}/caption`, {
         method: 'POST',
@@ -489,7 +601,7 @@ class MoondreamService {
         signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Moondream API error: ${response.status}`);

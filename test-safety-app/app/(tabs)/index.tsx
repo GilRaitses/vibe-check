@@ -13,8 +13,18 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useSafety } from '@/components/SafetyContext';
-import NYCCameraService, { NYCCamera, CameraCluster } from '@/services/nycCameraService';
-import MapView, { Marker, Region } from 'react-native-maps';
+import NYCCameraService, { NYCCamera, CameraCluster, HeatMapData as ServiceHeatMapData } from '@/services/nycCameraService';
+import MapView, { Marker, Region, Polygon } from 'react-native-maps';
+import AnalysisProgressModal from '@/components/AnalysisProgressModal';
+import { AnalysisProgress } from '@/services/moondreamService';
+
+interface HeatMapData {
+  id: string;
+  coordinates: Array<{latitude: number; longitude: number}>;
+  riskScore: number;
+  color: string;
+  opacity: number;
+}
 
 export default function LiveMapScreen() {
   const { blocks } = useSafety();
@@ -31,6 +41,25 @@ export default function LiveMapScreen() {
   const [selectedCamera, setSelectedCamera] = useState<NYCCamera | null>(null);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [autoAnalyzeEnabled, setAutoAnalyzeEnabled] = useState(false); // Disabled by default
+  
+  // Heat map state
+  const [heatMapData, setHeatMapData] = useState<HeatMapData[]>([]);
+  const [showHeatMap, setShowHeatMap] = useState(true); // Heat map enabled by default
+  
+  // Progressive analysis state
+  const [isProgressiveAnalyzing, setIsProgressiveAnalyzing] = useState(false);
+  const [progressiveProgress, setProgressiveProgress] = useState({ current: 0, total: 0 });
+  
+  // Detailed progress tracking state
+  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  
+  // Settings state (should be synced with settings screen)
+  const [appSettings, setAppSettings] = useState({
+    disableTimeouts: false,
+    detailedProgress: true,
+  });
+  
   const [mapRegion, setMapRegion] = useState<Region>({
     latitude: 40.7128,
     longitude: -74.0060,
@@ -40,7 +69,74 @@ export default function LiveMapScreen() {
 
   useEffect(() => {
     initializeApp();
+    
+    // Set up interval to refresh heat map data every 30 seconds
+    const heatMapInterval = setInterval(() => {
+      loadHeatMapData();
+    }, 30000);
+    
+    return () => {
+      clearInterval(heatMapInterval);
+      // Clean up region change timeout
+      if (regionChangeTimeout) {
+        clearTimeout(regionChangeTimeout);
+      }
+    };
   }, []);
+
+  const loadHeatMapData = () => {
+    try {
+      const heatData: ServiceHeatMapData[] = NYCCameraService.getHeatMapData();
+      console.log(`🔥 [HACKATHON] Loaded ${heatData.length} heat map regions from service`);
+      
+      if (heatData.length === 0) {
+        console.log(`⚠️ [HACKATHON] No heat map data available - cameras need to be analyzed first`);
+        setHeatMapData([]);
+        return;
+      }
+
+      // Convert service heat map data to our polygon format
+      const polygonData: HeatMapData[] = heatData.map((region, index) => {
+        const polygon = {
+          id: region.id,
+          coordinates: [
+            { latitude: region.bounds.south, longitude: region.bounds.west },
+            { latitude: region.bounds.south, longitude: region.bounds.east },
+            { latitude: region.bounds.north, longitude: region.bounds.east },
+            { latitude: region.bounds.north, longitude: region.bounds.west },
+          ],
+          riskScore: region.riskScore,
+          color: getHeatMapColor(region.riskScore),
+          opacity: 0.4,
+        };
+        
+        if (index === 0) {
+          console.log(`🔥 [HACKATHON] Sample polygon conversion:`, {
+            originalBounds: region.bounds,
+            polygonCoords: polygon.coordinates,
+            color: polygon.color,
+            riskScore: polygon.riskScore
+          });
+        }
+        
+        return polygon;
+      });
+      
+      console.log(`🔥 [HACKATHON] Converted to ${polygonData.length} polygon regions for map display`);
+      setHeatMapData(polygonData);
+      
+    } catch (error) {
+      console.error('❌ [HACKATHON] Failed to load heat map data:', error);
+    }
+  };
+
+  // Get heat map color based on risk score
+  const getHeatMapColor = (riskScore: number): string => {
+    if (riskScore >= 8) return '#34C759'; // Green - Safe
+    if (riskScore >= 6) return '#FFCC00'; // Yellow - Moderate
+    if (riskScore >= 4) return '#FF9500'; // Orange - Caution
+    return '#FF3B30'; // Red - High Risk
+  };
 
   const initializeApp = async () => {
     try {
@@ -55,6 +151,9 @@ export default function LiveMapScreen() {
       
       // Load initial camera clusters
       await loadCameraClusters(currentZoom);
+      
+      // Load initial heat map data
+      loadHeatMapData();
 
     } catch (err) {
       console.error('❌ [HACKATHON] Error initializing app:', err);
@@ -128,18 +227,47 @@ export default function LiveMapScreen() {
     }
   }, [currentZoom]);
 
+  const [regionChangeTimeout, setRegionChangeTimeout] = useState<NodeJS.Timeout | null>(null);
+
   const handleRegionChange = (region: Region) => {
     setMapRegion(region);
-    // Calculate zoom level from latitude delta
-    const zoomLevel = Math.max(1, Math.min(5, Math.round(5 - Math.log2(region.latitudeDelta * 100))));
     
-    // Load cameras only for the visible region
-    loadCameraClustersForRegion(zoomLevel, {
-      north: region.latitude + region.latitudeDelta / 2,
-      south: region.latitude - region.latitudeDelta / 2,
-      east: region.longitude + region.longitudeDelta / 2,
-      west: region.longitude - region.longitudeDelta / 2
-    });
+    // Clear previous timeout to debounce rapid region changes
+    if (regionChangeTimeout) {
+      clearTimeout(regionChangeTimeout);
+    }
+    
+    // Debounce region changes to prevent crashes during rapid zooming
+    const timeout = setTimeout(() => {
+      try {
+        // Calculate zoom level from latitude delta
+        const zoomLevel = Math.max(1, Math.min(5, Math.round(5 - Math.log2(region.latitudeDelta * 100))));
+        
+        // Prevent loading too many cameras when zoomed out
+        if (region.latitudeDelta > 0.5) {
+          console.log('🗺️ [HACKATHON] Zoomed out too far, keeping existing clusters to prevent blanking');
+          // Don't clear clusters - keep existing ones to prevent map blanking
+          return;
+        }
+        
+        console.log(`🗺️ [HACKATHON] Region changed - zoom level ${zoomLevel}, delta ${region.latitudeDelta.toFixed(4)}`);
+        
+        // Load cameras only for the visible region
+        loadCameraClustersForRegion(zoomLevel, {
+          north: region.latitude + region.latitudeDelta / 2,
+          south: region.latitude - region.latitudeDelta / 2,
+          east: region.longitude + region.longitudeDelta / 2,
+          west: region.longitude - region.longitudeDelta / 2
+        });
+        
+        // Refresh heat map when region changes (less frequently)
+        loadHeatMapData();
+      } catch (error) {
+        console.error('❌ [HACKATHON] Error in handleRegionChange:', error);
+      }
+    }, 500); // 500ms debounce
+    
+    setRegionChangeTimeout(timeout);
   };
 
   const handleClusterPress = (cluster: CameraCluster) => {
@@ -178,23 +306,61 @@ export default function LiveMapScreen() {
     setShowCameraModal(true);
   };
 
+  // Progress callback for detailed analysis tracking
+  const handleAnalysisProgress = (progress: AnalysisProgress) => {
+    setAnalysisProgress(progress);
+    
+    if (appSettings.detailedProgress) {
+      if (!showProgressModal && !progress.completed) {
+        setShowProgressModal(true);
+      }
+      
+      if (progress.completed || progress.error) {
+        // Keep modal open for 2 seconds to show completion
+        setTimeout(() => {
+          setShowProgressModal(false);
+          setAnalysisProgress(null);
+        }, 2000);
+      }
+    }
+  };
+
   const analyzeSpecificCamera = async (camera: NYCCamera) => {
     try {
       setIsAnalyzing(true);
       console.log(`🎯 [HACKATHON] Analyzing specific camera: ${camera.name}`);
+      console.log(`🎯 [HACKATHON] Camera location: ${camera.latitude}, ${camera.longitude}`);
 
-      const analysis = await NYCCameraService.analyzeCameraRisk(camera);
+      const analysis = await NYCCameraService.analyzeCameraRisk(
+        camera, 
+        appSettings.detailedProgress ? handleAnalysisProgress : undefined,
+        appSettings.disableTimeouts
+      );
+      console.log(`✅ [HACKATHON] Analysis completed for ${camera.name}:`, analysis);
       setLastAnalysis({ camera, analysis });
 
-              Alert.alert(
-          'Analysis Complete',
-          `Camera: ${camera.name}\n` +
-          `Location: ${camera.area}\n` +
-          `Risk Score: ${analysis.riskScore}/10\n` +
-          `Active Cyclists: ${analysis.bikeCount}\n` +
-          `Scene: ${analysis.sceneDescription}`,
-          [{ text: 'OK' }]
-        );
+      // Refresh heat map data after analysis
+      loadHeatMapData();
+
+      Alert.alert(
+        'Analysis Complete',
+        `Camera: ${camera.name}\n` +
+        `Location: ${camera.area}\n` +
+        `Risk Score: ${analysis.riskScore}/10\n` +
+        `Active Cyclists: ${analysis.bikeCount}\n` +
+        `Scene: ${analysis.sceneDescription}\n\n` +
+        `🔥 Heat Map: ${heatMapData.length} regions loaded`,
+        [
+          { 
+            text: 'Show Heat Map Debug', 
+            onPress: () => {
+              const heatData = NYCCameraService.getHeatMapData();
+              Alert.alert('Heat Map Debug', `Service has ${heatData.length} regions\nMap shows ${heatMapData.length} polygons\nHeat Map ${showHeatMap ? 'ON' : 'OFF'}`);
+            }
+          },
+          { text: 'OK' }
+        ]
+      );
 
     } catch (error) {
       console.error('❌ [HACKATHON] Analysis failed:', error);
@@ -230,8 +396,15 @@ export default function LiveMapScreen() {
       console.log(`📸 [HACKATHON] Analyzing nearest camera: ${nearestCamera.name}`);
 
       // Analyze the nearest camera
-      const analysis = await NYCCameraService.analyzeCameraRisk(nearestCamera);
+      const analysis = await NYCCameraService.analyzeCameraRisk(
+        nearestCamera,
+        appSettings.detailedProgress ? handleAnalysisProgress : undefined,
+        appSettings.disableTimeouts
+      );
       setLastAnalysis({ camera: nearestCamera, analysis });
+
+      // Refresh heat map data after analysis
+      loadHeatMapData();
 
       Alert.alert(
         'Analysis Complete',
@@ -292,6 +465,9 @@ export default function LiveMapScreen() {
         
         // Store the last batch result for heat map
         setLastAnalysis(batchResults[0]); // Show first result as "latest"
+        
+        // Refresh heat map data after batch analysis
+        loadHeatMapData();
       } else {
         Alert.alert('Analysis Failed', 'Could not analyze any cameras in this batch.');
       }
@@ -300,6 +476,95 @@ export default function LiveMapScreen() {
       Alert.alert('Batch Analysis Failed', 'Failed to analyze camera batch. Please try again.');
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const analyzeAreaProgressively = async () => {
+    if (!userLocation) {
+      Alert.alert('Location Required', 'Please enable location to analyze area');
+      return;
+    }
+
+    try {
+      setIsProgressiveAnalyzing(true);
+      console.log(`🗺️ [HACKATHON] Starting progressive area analysis...`);
+
+      // Get cameras in expanding radius around user location
+      const radiusSteps = [0.2, 0.5, 1.0]; // km - start small and expand
+      let allCameras: NYCCamera[] = [];
+      
+      for (const radius of radiusSteps) {
+        const cameras = await NYCCameraService.getCamerasNearLocation(
+          userLocation.coords.latitude,
+          userLocation.coords.longitude,
+          radius
+        );
+        
+        // Only add new cameras not already analyzed
+        const newCameras = cameras.filter(cam => 
+          !allCameras.some(existing => existing.id === cam.id)
+        );
+        
+        allCameras.push(...newCameras);
+        console.log(`📍 [HACKATHON] Found ${cameras.length} cameras within ${radius}km (${newCameras.length} new)`);
+      }
+
+      if (allCameras.length === 0) {
+        Alert.alert('No Cameras Found', 'No cameras found in your area for progressive analysis');
+        return;
+      }
+
+      // Limit to prevent overwhelming the API
+      const camerasToAnalyze = allCameras.slice(0, 10);
+      setProgressiveProgress({ current: 0, total: camerasToAnalyze.length });
+
+      console.log(`🎯 [HACKATHON] Starting progressive analysis of ${camerasToAnalyze.length} cameras`);
+
+      const results = [];
+      for (let i = 0; i < camerasToAnalyze.length; i++) {
+        const camera = camerasToAnalyze[i];
+        
+        try {
+          console.log(`📸 [HACKATHON] Progressive analysis ${i + 1}/${camerasToAnalyze.length}: ${camera.name}`);
+          setProgressiveProgress({ current: i + 1, total: camerasToAnalyze.length });
+          
+          const analysis = await NYCCameraService.analyzeCameraRisk(camera);
+          results.push({ camera, analysis });
+          
+          // Refresh heat map after each analysis to show progressive filling
+          loadHeatMapData();
+          
+          // Small delay to prevent overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+        } catch (error) {
+          console.error(`❌ [HACKATHON] Failed to analyze camera ${camera.name}:`, error);
+        }
+      }
+
+      // Final results
+      const avgRiskScore = results.length > 0 
+        ? Math.round(results.reduce((sum, r) => sum + r.analysis.riskScore, 0) / results.length)
+        : 0;
+      
+      const totalCyclists = results.reduce((sum, r) => sum + r.analysis.bikeCount, 0);
+
+      Alert.alert(
+        'Progressive Analysis Complete',
+        `Analyzed ${results.length}/${camerasToAnalyze.length} cameras in your area:\n\n` +
+        `🗺️ Average Risk Score: ${avgRiskScore}/10\n` +
+        `🚴 Total Active Cyclists: ${totalCyclists}\n` +
+        `🔥 Heat map filled progressively\n\n` +
+        `Check the heat map to see the analyzed area coverage!`,
+        [{ text: 'OK' }]
+      );
+
+    } catch (error) {
+      console.error('❌ [HACKATHON] Progressive analysis failed:', error);
+      Alert.alert('Progressive Analysis Failed', 'Could not complete area analysis');
+    } finally {
+      setIsProgressiveAnalyzing(false);
+      setProgressiveProgress({ current: 0, total: 0 });
     }
   };
 
@@ -343,6 +608,18 @@ export default function LiveMapScreen() {
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
+        {/* Heat Map Polygons */}
+        {showHeatMap && heatMapData.map((heatData) => (
+          <Polygon
+            key={heatData.id}
+            coordinates={heatData.coordinates}
+            fillColor={heatData.color}
+            strokeColor={heatData.color}
+            strokeWidth={1}
+          />
+        ))}
+
+        {/* Camera Clusters */}
         {clusters.map((cluster) => (
           <Marker
             key={cluster.id}
@@ -361,11 +638,14 @@ export default function LiveMapScreen() {
         ))}
       </MapView>
 
-      {/* Simple Status Overlay */}
+      {/* Status Overlay with Heat Map Info */}
       <View style={styles.statusOverlay}>
-        <Text style={styles.statusTitle}>🗽 NYC Traffic Cameras</Text>
+        <Text style={styles.statusTitle}>🗽 NYC Safety Analysis</Text>
         <Text style={styles.statusSubtitle}>
           {apiConnected ? `✅ ${clusters.length} Camera Groups` : '⚠️ API Disconnected'}
+        </Text>
+        <Text style={styles.statusSubtitle}>
+          🔥 Heat Map: {heatMapData.length} risk areas {showHeatMap ? '(visible)' : '(hidden)'}
         </Text>
         {userLocation && (
           <Text style={styles.locationText}>
@@ -374,27 +654,48 @@ export default function LiveMapScreen() {
         )}
       </View>
 
-      {/* Manual Analyze Button (only show if auto-analyze is disabled) */}
+      {/* Manual Analyze Buttons (only show if auto-analyze is disabled) */}
       {!autoAnalyzeEnabled && (
-        <TouchableOpacity 
-          style={[styles.analyzeButton, { opacity: isAnalyzing ? 0.7 : 1 }]}
-          onPress={analyzeNearestCamera}
-          disabled={isAnalyzing || !apiConnected || !userLocation}
-        >
-          {isAnalyzing ? (
-            <View style={styles.buttonContent}>
-              <ActivityIndicator size="small" color="#FFFFFF" />
-              <Text style={styles.analyzeButtonText}>Analyzing...</Text>
-            </View>
-          ) : (
-            <Text style={styles.analyzeButtonText}>
-              🎯 Analyze Nearest Camera
-            </Text>
-          )}
-        </TouchableOpacity>
+        <View style={styles.analyzeButtonContainer}>
+          <TouchableOpacity 
+            style={[styles.analyzeButton, { opacity: isAnalyzing || isProgressiveAnalyzing ? 0.7 : 1 }]}
+            onPress={analyzeNearestCamera}
+            disabled={isAnalyzing || isProgressiveAnalyzing || !apiConnected || !userLocation}
+          >
+            {isAnalyzing ? (
+              <View style={styles.buttonContent}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={styles.analyzeButtonText}>Analyzing...</Text>
+              </View>
+            ) : (
+              <Text style={styles.analyzeButtonText}>
+                🎯 Analyze Nearest Camera
+              </Text>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.progressiveButton, { opacity: isAnalyzing || isProgressiveAnalyzing ? 0.7 : 1 }]}
+            onPress={analyzeAreaProgressively}
+            disabled={isAnalyzing || isProgressiveAnalyzing || !apiConnected || !userLocation}
+          >
+            {isProgressiveAnalyzing ? (
+              <View style={styles.buttonContent}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={styles.progressiveButtonText}>
+                  Analyzing Area... {progressiveProgress.current}/{progressiveProgress.total}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.progressiveButtonText}>
+                🗺️ Analyze Area Progressively
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       )}
 
-      {/* Settings Toggle */}
+      {/* Settings Toggles */}
       <View style={styles.settingsOverlay}>
         <TouchableOpacity 
           style={styles.toggleButton}
@@ -403,6 +704,50 @@ export default function LiveMapScreen() {
           <Text style={styles.toggleButtonText}>
             {autoAnalyzeEnabled ? '🔄 Auto-Analyze: ON' : '⏸️ Auto-Analyze: OFF'}
           </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.toggleButton, { marginTop: 8 }]}
+          onPress={() => setShowHeatMap(!showHeatMap)}
+        >
+          <Text style={styles.toggleButtonText}>
+            {showHeatMap ? '🔥 Heat Map: ON' : '🔥 Heat Map: OFF'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.toggleButton, { marginTop: 8, backgroundColor: appSettings.detailedProgress ? '#34C759' : '#666666' }]}
+          onPress={() => setAppSettings(prev => ({ ...prev, detailedProgress: !prev.detailedProgress }))}
+        >
+          <Text style={[styles.toggleButtonText, { fontSize: 12 }]}>
+            {appSettings.detailedProgress ? '📊 Progress: ON' : '📊 Progress: OFF'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.toggleButton, { marginTop: 8, backgroundColor: appSettings.disableTimeouts ? '#FF9500' : '#666666' }]}
+          onPress={() => setAppSettings(prev => ({ ...prev, disableTimeouts: !prev.disableTimeouts }))}
+        >
+          <Text style={[styles.toggleButtonText, { fontSize: 12 }]}>
+            {appSettings.disableTimeouts ? '⏰ No Timeouts' : '⏰ Timeouts: ON'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.toggleButton, { marginTop: 8, backgroundColor: '#FF6B35' }]}
+          onPress={() => {
+            console.log(`🧪 [HACKATHON] MANUAL DEBUG: Checking heat map status...`);
+            const serviceData = NYCCameraService.getHeatMapData();
+            console.log(`🧪 [HACKATHON] Service data:`, serviceData);
+            console.log(`🧪 [HACKATHON] Map data:`, heatMapData);
+            Alert.alert(
+              'Heat Map Debug', 
+              `Service: ${serviceData.length} regions\n` +
+              `Map: ${heatMapData.length} polygons\n` +
+              `Visible: ${showHeatMap ? 'YES' : 'NO'}\n\n` +
+              (serviceData.length > 0 ? 
+                `Sample: ${serviceData[0].id}\nRisk: ${serviceData[0].riskScore}\nColor: ${serviceData[0].color}` : 
+                'No data - analyze cameras first!')
+            );
+          }}
+        >
+          <Text style={[styles.toggleButtonText, { fontSize: 12 }]}>🧪 Debug</Text>
         </TouchableOpacity>
       </View>
 
@@ -481,6 +826,17 @@ export default function LiveMapScreen() {
           </Text>
         </View>
       )}
+
+      {/* Analysis Progress Modal */}
+      <AnalysisProgressModal
+        visible={showProgressModal}
+        progress={analysisProgress}
+        onCancel={() => {
+          setShowProgressModal(false);
+          setAnalysisProgress(null);
+        }}
+        allowCancel={!analysisProgress?.completed && !analysisProgress?.error}
+      />
     </SafeAreaView>
   );
 }
@@ -693,10 +1049,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   analyzeButton: {
-    position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
     backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
@@ -737,5 +1089,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     marginBottom: 2,
+  },
+  analyzeButtonContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+  },
+  progressiveButton: {
+    backgroundColor: '#FF6B35',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  progressiveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

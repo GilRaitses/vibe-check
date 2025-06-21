@@ -1,5 +1,5 @@
 // NYC Traffic Camera Service for Risk Assessment
-import MoondreamService from './moondreamService';
+import MoondreamService, { ProgressCallback, AnalysisProgress } from './moondreamService';
 
 export interface NYCCamera {
   id: string;
@@ -242,7 +242,7 @@ class NYCCameraService {
   /**
    * Analyze a camera image for risk factors
    */
-  async analyzeCameraRisk(camera: NYCCamera): Promise<CameraRiskAnalysis> {
+  async analyzeCameraRisk(camera: NYCCamera, progressCallback?: ProgressCallback, disableTimeouts: boolean = false): Promise<CameraRiskAnalysis> {
     try {
       // Check if we have recent analysis
       const cached = this.analysisCache.get(camera.id);
@@ -257,7 +257,7 @@ class NYCCameraService {
       // Use rate-limited requests to avoid overwhelming the API
       console.log(`🤖 [HACKATHON] MOONDREAM API CALL #1: Active cyclist detection for camera ${camera.id}`);
       const bicycleResult = await this.queueRequest(() => 
-        MoondreamService.detectBicycles(camera.imageUrl)
+        MoondreamService.detectBicycles(camera.imageUrl, progressCallback, disableTimeouts)
       );
       console.log(`✅ [HACKATHON] Active cyclist detection completed:`, bicycleResult);
       
@@ -801,18 +801,24 @@ class NYCCameraService {
   }
 
   /**
-   * Update heat map with individual camera analysis
+   * Update heat map with individual camera analysis using Voronoi boundaries
    */
   async updateHeatMapWithIndividualAnalysis(camera: NYCCamera, analysis: CameraRiskAnalysis): Promise<void> {
     try {
-      const bounds = {
-        north: camera.latitude + 0.0005,
-        south: camera.latitude - 0.0005,
-        east: camera.longitude + 0.0005,
-        west: camera.longitude - 0.0005
-      };
+      console.log(`🔥 [HACKATHON] HEAT MAP UPDATE: Starting for camera ${camera.name} (${camera.id})`);
+      console.log(`🔥 [HACKATHON] Camera location: ${camera.latitude}, ${camera.longitude}`);
+      console.log(`🔥 [HACKATHON] Risk score: ${analysis.riskScore}/10`);
+      
+      // Get nearby cameras to calculate proper boundaries
+      console.log(`🔍 [HACKATHON] Finding nearby cameras within 500m...`);
+      const nearbyCameras = await this.getCamerasNearLocation(camera.latitude, camera.longitude, 0.5); // 500m radius
+      console.log(`🔍 [HACKATHON] Found ${nearbyCameras.length} nearby cameras (including self)`);
+      
+      const bounds = this.calculateVoronoiBounds(camera, nearbyCameras);
+      console.log(`📐 [HACKATHON] Calculated Voronoi bounds:`, bounds);
       
       const color = this.getRiskColor(analysis.riskScore);
+      console.log(`🎨 [HACKATHON] Risk color: ${color} for score ${analysis.riskScore}`);
       
       const heatMapData: HeatMapData = {
         id: `individual_${camera.id}`,
@@ -825,10 +831,96 @@ class NYCCameraService {
       };
       
       this.heatMapCache.set(heatMapData.id, heatMapData);
-      console.log(`🗺️ [HACKATHON] Heat map updated for ${camera.name} (Risk: ${analysis.riskScore})`);
+      console.log(`✅ [HACKATHON] Heat map data stored in cache with ID: ${heatMapData.id}`);
+      console.log(`📊 [HACKATHON] Heat map cache now has ${this.heatMapCache.size} entries`);
+      console.log(`🗺️ [HACKATHON] Heat map updated for ${camera.name} (Risk: ${analysis.riskScore}) with Voronoi bounds`);
+      
+      // Log all current heat map entries for debugging
+      console.log(`🔥 [HACKATHON] Current heat map cache contents:`);
+      Array.from(this.heatMapCache.entries()).forEach(([id, data]) => {
+        console.log(`  - ${id}: Risk ${data.riskScore}, Color ${data.color}, Bounds ${JSON.stringify(data.bounds)}`);
+      });
       
     } catch (error) {
       console.error('❌ [HACKATHON] Error updating individual heat map:', error);
+      console.error('❌ [HACKATHON] Error details:', error);
+    }
+  }
+
+  /**
+   * Calculate Voronoi cell boundaries for a camera based on nearby cameras
+   * Each camera gets the area that's closer to it than to any other camera
+   */
+  private calculateVoronoiBounds(targetCamera: NYCCamera, allCameras: NYCCamera[]): {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  } {
+    // Filter out the target camera and get only nearby ones
+    const otherCameras = allCameras.filter(cam => cam.id !== targetCamera.id);
+    
+    if (otherCameras.length === 0) {
+      // No nearby cameras, use default boundary
+      return {
+        north: targetCamera.latitude + 0.002,
+        south: targetCamera.latitude - 0.002,
+        east: targetCamera.longitude + 0.002,
+        west: targetCamera.longitude - 0.002
+      };
+    }
+
+    // Find the closest camera in each direction to determine boundaries
+    const maxDistance = 0.003; // Maximum boundary distance (~300m)
+    const minDistance = 0.0005; // Minimum boundary distance (~50m)
+    
+    // Calculate distances to all other cameras
+    const distances = otherCameras.map(cam => ({
+      camera: cam,
+      distance: this.calculateDistance(
+        targetCamera.latitude, targetCamera.longitude,
+        cam.latitude, cam.longitude
+      ),
+      direction: this.getDirection(targetCamera, cam)
+    }));
+
+    // Find closest camera in each cardinal direction
+    const north = distances.filter(d => d.direction === 'north').sort((a, b) => a.distance - b.distance)[0];
+    const south = distances.filter(d => d.direction === 'south').sort((a, b) => a.distance - b.distance)[0];
+    const east = distances.filter(d => d.direction === 'east').sort((a, b) => a.distance - b.distance)[0];
+    const west = distances.filter(d => d.direction === 'west').sort((a, b) => a.distance - b.distance)[0];
+
+    // Calculate boundary as halfway point to nearest camera, with min/max limits
+    const bounds = {
+      north: targetCamera.latitude + Math.min(maxDistance, Math.max(minDistance, 
+        north ? (north.camera.latitude - targetCamera.latitude) / 2 : maxDistance)),
+      south: targetCamera.latitude - Math.min(maxDistance, Math.max(minDistance,
+        south ? (targetCamera.latitude - south.camera.latitude) / 2 : maxDistance)),
+      east: targetCamera.longitude + Math.min(maxDistance, Math.max(minDistance,
+        east ? (east.camera.longitude - targetCamera.longitude) / 2 : maxDistance)),
+      west: targetCamera.longitude - Math.min(maxDistance, Math.max(minDistance,
+        west ? (targetCamera.longitude - west.camera.longitude) / 2 : maxDistance))
+    };
+
+    console.log(`📐 [HACKATHON] Voronoi bounds for ${targetCamera.name}:`, {
+      size: `${((bounds.north - bounds.south) * 111000).toFixed(0)}m x ${((bounds.east - bounds.west) * 111000).toFixed(0)}m`,
+      nearestCameras: distances.slice(0, 3).map(d => `${d.camera.name}: ${d.distance.toFixed(0)}m ${d.direction}`)
+    });
+
+    return bounds;
+  }
+
+  /**
+   * Get the general direction from camera A to camera B
+   */
+  private getDirection(from: NYCCamera, to: NYCCamera): 'north' | 'south' | 'east' | 'west' {
+    const latDiff = to.latitude - from.latitude;
+    const lngDiff = to.longitude - from.longitude;
+
+    if (Math.abs(latDiff) > Math.abs(lngDiff)) {
+      return latDiff > 0 ? 'north' : 'south';
+    } else {
+      return lngDiff > 0 ? 'east' : 'west';
     }
   }
 
@@ -847,7 +939,22 @@ class NYCCameraService {
    * Get all heat map data for visualization
    */
   getHeatMapData(): HeatMapData[] {
-    return Array.from(this.heatMapCache.values());
+    const data = Array.from(this.heatMapCache.values());
+    console.log(`🔥 [HACKATHON] getHeatMapData() called - returning ${data.length} heat map regions`);
+    
+    if (data.length > 0) {
+      console.log(`🔥 [HACKATHON] Heat map data being returned:`, data.map(d => ({
+        id: d.id,
+        riskScore: d.riskScore,
+        color: d.color,
+        bounds: d.bounds,
+        analysisType: d.analysisType
+      })));
+    } else {
+      console.log(`⚠️ [HACKATHON] Heat map cache is empty - no analysis data available`);
+    }
+    
+    return data;
   }
 
   /**

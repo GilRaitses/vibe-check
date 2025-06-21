@@ -19,6 +19,8 @@ export default function SettingsScreen() {
     highQualityAnalysis: false,
     backgroundUpdates: true,
     dataUsageOptimized: true,
+    disableTimeouts: false,
+    detailedProgress: true,
   });
 
   const [cacheInfo, setCacheInfo] = useState({
@@ -113,6 +115,36 @@ export default function SettingsScreen() {
               onValueChange={() => toggleSetting('backgroundUpdates')}
               trackColor={{ false: '#767577', true: '#4A90E2' }}
               thumbColor={settings.backgroundUpdates ? '#FFFFFF' : '#f4f3f4'}
+            />
+          </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Disable API timeouts</Text>
+              <Text style={styles.settingDescription}>
+                Remove time limits for slower connections (may cause hanging)
+              </Text>
+            </View>
+            <Switch
+              value={settings.disableTimeouts}
+              onValueChange={() => toggleSetting('disableTimeouts')}
+              trackColor={{ false: '#767577', true: '#FF9500' }}
+              thumbColor={settings.disableTimeouts ? '#FFFFFF' : '#f4f3f4'}
+            />
+          </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Detailed progress tracking</Text>
+              <Text style={styles.settingDescription}>
+                Show step-by-step progress during analysis
+              </Text>
+            </View>
+            <Switch
+              value={settings.detailedProgress}
+              onValueChange={() => toggleSetting('detailedProgress')}
+              trackColor={{ false: '#767577', true: '#4A90E2' }}
+              thumbColor={settings.detailedProgress ? '#FFFFFF' : '#f4f3f4'}
             />
           </View>
         </View>
