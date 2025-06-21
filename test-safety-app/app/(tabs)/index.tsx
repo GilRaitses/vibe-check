@@ -40,7 +40,7 @@ export default function LiveMapScreen() {
   const [clusters, setClusters] = useState<CameraCluster[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<NYCCamera | null>(null);
   const [showCameraModal, setShowCameraModal] = useState(false);
-  const [autoAnalyzeEnabled, setAutoAnalyzeEnabled] = useState(false); // Disabled by default
+  const [autoAnalyzeEnabled, setAutoAnalyzeEnabled] = useState(true); // Auto-start enabled by default
   
   // Heat map state
   const [heatMapData, setHeatMapData] = useState<HeatMapData[]>([]);
@@ -59,6 +59,12 @@ export default function LiveMapScreen() {
     disableTimeouts: false,
     detailedProgress: true,
   });
+  
+  // Auto-analysis state
+  const [autoAnalysisQueue, setAutoAnalysisQueue] = useState<NYCCamera[]>([]);
+  const [currentAutoAnalysis, setCurrentAutoAnalysis] = useState<NYCCamera | null>(null);
+  const [autoAnalysisProgress, setAutoAnalysisProgress] = useState({ current: 0, total: 0 });
+  const [isAutoAnalyzing, setIsAutoAnalyzing] = useState(false);
   
   const [mapRegion, setMapRegion] = useState<Region>({
     latitude: 40.7128,
@@ -310,7 +316,7 @@ export default function LiveMapScreen() {
   const handleAnalysisProgress = (progress: AnalysisProgress) => {
     setAnalysisProgress(progress);
     
-    if (appSettings.detailedProgress) {
+    if (appSettings.detailedProgress && !isAutoAnalyzing) {
       if (!showProgressModal && !progress.completed) {
         setShowProgressModal(true);
       }
@@ -324,6 +330,78 @@ export default function LiveMapScreen() {
       }
     }
   };
+
+  // Auto-analysis functionality
+  const startAutoAnalysis = async () => {
+    if (isAutoAnalyzing || !userLocation) return;
+    
+    console.log('🤖 [HACKATHON] Starting auto-analysis of nearby cameras...');
+    setIsAutoAnalyzing(true);
+    
+    try {
+      // Get cameras near user location (within 2km)
+      const nearbyCameras = await NYCCameraService.getCamerasNearLocation(
+        userLocation.coords.latitude,
+        userLocation.coords.longitude,
+        2 // 2km radius
+      );
+      
+      console.log(`🤖 [HACKATHON] Found ${nearbyCameras.length} cameras for auto-analysis`);
+      
+      // Limit to 10 cameras for reasonable analysis time
+      const camerasToAnalyze = nearbyCameras.slice(0, 10);
+      setAutoAnalysisQueue(camerasToAnalyze);
+      setAutoAnalysisProgress({ current: 0, total: camerasToAnalyze.length });
+      
+      // Start analyzing cameras one by one
+      for (let i = 0; i < camerasToAnalyze.length; i++) {
+        const camera = camerasToAnalyze[i];
+        setCurrentAutoAnalysis(camera);
+        setAutoAnalysisProgress({ current: i + 1, total: camerasToAnalyze.length });
+        
+        console.log(`🤖 [HACKATHON] Auto-analyzing camera ${i + 1}/${camerasToAnalyze.length}: ${camera.name}`);
+        
+        try {
+          const analysis = await NYCCameraService.analyzeCameraRisk(
+            camera,
+            undefined, // No progress callback for auto-analysis
+            appSettings.disableTimeouts
+          );
+          
+          setLastAnalysis({ camera, analysis });
+          
+          // Update heat map
+          loadHeatMapData();
+          
+          // Wait 3 seconds between analyses to be respectful to API
+          if (i < camerasToAnalyze.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+          
+        } catch (error) {
+          console.error(`❌ [HACKATHON] Auto-analysis failed for camera ${camera.name}:`, error);
+          // Continue with next camera even if this one fails
+        }
+      }
+      
+      console.log('✅ [HACKATHON] Auto-analysis completed');
+      
+    } catch (error) {
+      console.error('❌ [HACKATHON] Auto-analysis failed:', error);
+    } finally {
+      setIsAutoAnalyzing(false);
+      setCurrentAutoAnalysis(null);
+      setAutoAnalysisQueue([]);
+      setAutoAnalysisProgress({ current: 0, total: 0 });
+    }
+  };
+
+  // Start auto-analysis when enabled
+  useEffect(() => {
+    if (autoAnalyzeEnabled && userLocation && apiConnected && !isAutoAnalyzing) {
+      startAutoAnalysis();
+    }
+  }, [autoAnalyzeEnabled, userLocation, apiConnected]);
 
   const analyzeSpecificCamera = async (camera: NYCCamera) => {
     try {
@@ -654,8 +732,8 @@ export default function LiveMapScreen() {
         )}
       </View>
 
-      {/* Manual Analyze Buttons (only show if auto-analyze is disabled) */}
-      {!autoAnalyzeEnabled && (
+      {/* Manual Analyze Buttons (only show if auto-analyze is disabled and not auto-analyzing) */}
+      {!autoAnalyzeEnabled && !isAutoAnalyzing && (
         <View style={styles.analyzeButtonContainer}>
           <TouchableOpacity 
             style={[styles.analyzeButton, { opacity: isAnalyzing || isProgressiveAnalyzing ? 0.7 : 1 }]}
@@ -669,7 +747,7 @@ export default function LiveMapScreen() {
               </View>
             ) : (
               <Text style={styles.analyzeButtonText}>
-                🎯 Analyze Nearest Camera
+                🎯 Analyze Nearest
               </Text>
             )}
           </TouchableOpacity>
@@ -683,71 +761,51 @@ export default function LiveMapScreen() {
               <View style={styles.buttonContent}>
                 <ActivityIndicator size="small" color="#FFFFFF" />
                 <Text style={styles.progressiveButtonText}>
-                  Analyzing Area... {progressiveProgress.current}/{progressiveProgress.total}
+                  Area... {progressiveProgress.current}/{progressiveProgress.total}
                 </Text>
               </View>
             ) : (
               <Text style={styles.progressiveButtonText}>
-                🗺️ Analyze Area Progressively
+                🗺️ Analyze Area
               </Text>
             )}
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Settings Toggles */}
+      {/* Settings Toggles - Compact */}
       <View style={styles.settingsOverlay}>
         <TouchableOpacity 
-          style={styles.toggleButton}
+          style={[styles.toggleButton, { backgroundColor: autoAnalyzeEnabled ? '#34C759' : '#666666' }]}
           onPress={() => setAutoAnalyzeEnabled(!autoAnalyzeEnabled)}
         >
           <Text style={styles.toggleButtonText}>
-            {autoAnalyzeEnabled ? '🔄 Auto-Analyze: ON' : '⏸️ Auto-Analyze: OFF'}
+            {autoAnalyzeEnabled ? '🔄' : '⏸️'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.toggleButton, { marginTop: 8 }]}
+          style={[styles.toggleButton, { marginTop: 8, backgroundColor: showHeatMap ? '#FF6B35' : '#666666' }]}
           onPress={() => setShowHeatMap(!showHeatMap)}
         >
           <Text style={styles.toggleButtonText}>
-            {showHeatMap ? '🔥 Heat Map: ON' : '🔥 Heat Map: OFF'}
+            🔥
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.toggleButton, { marginTop: 8, backgroundColor: appSettings.detailedProgress ? '#34C759' : '#666666' }]}
           onPress={() => setAppSettings(prev => ({ ...prev, detailedProgress: !prev.detailedProgress }))}
         >
-          <Text style={[styles.toggleButtonText, { fontSize: 12 }]}>
-            {appSettings.detailedProgress ? '📊 Progress: ON' : '📊 Progress: OFF'}
+          <Text style={styles.toggleButtonText}>
+            📊
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.toggleButton, { marginTop: 8, backgroundColor: appSettings.disableTimeouts ? '#FF9500' : '#666666' }]}
           onPress={() => setAppSettings(prev => ({ ...prev, disableTimeouts: !prev.disableTimeouts }))}
         >
-          <Text style={[styles.toggleButtonText, { fontSize: 12 }]}>
-            {appSettings.disableTimeouts ? '⏰ No Timeouts' : '⏰ Timeouts: ON'}
+          <Text style={styles.toggleButtonText}>
+            ⏰
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.toggleButton, { marginTop: 8, backgroundColor: '#FF6B35' }]}
-          onPress={() => {
-            console.log(`🧪 [HACKATHON] MANUAL DEBUG: Checking heat map status...`);
-            const serviceData = NYCCameraService.getHeatMapData();
-            console.log(`🧪 [HACKATHON] Service data:`, serviceData);
-            console.log(`🧪 [HACKATHON] Map data:`, heatMapData);
-            Alert.alert(
-              'Heat Map Debug', 
-              `Service: ${serviceData.length} regions\n` +
-              `Map: ${heatMapData.length} polygons\n` +
-              `Visible: ${showHeatMap ? 'YES' : 'NO'}\n\n` +
-              (serviceData.length > 0 ? 
-                `Sample: ${serviceData[0].id}\nRisk: ${serviceData[0].riskScore}\nColor: ${serviceData[0].color}` : 
-                'No data - analyze cameras first!')
-            );
-          }}
-        >
-          <Text style={[styles.toggleButtonText, { fontSize: 12 }]}>🧪 Debug</Text>
         </TouchableOpacity>
       </View>
 
@@ -813,7 +871,11 @@ export default function LiveMapScreen() {
         <View style={styles.resultOverlay}>
           <TouchableOpacity 
             style={styles.resultCloseButton}
-            onPress={() => setLastAnalysis(null)}
+            onPress={() => {
+              console.log('🎯 [HACKATHON] Closing latest analysis result');
+              setLastAnalysis(null);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={styles.resultCloseButtonText}>✕</Text>
           </TouchableOpacity>
@@ -822,8 +884,47 @@ export default function LiveMapScreen() {
             📹 {lastAnalysis.camera.name}
           </Text>
           <Text style={styles.resultText}>
-                            Risk: {lastAnalysis.analysis.riskScore}/10 • Cyclists: {lastAnalysis.analysis.bikeCount}
+            Risk: {lastAnalysis.analysis.riskScore}/10 • Cyclists: {lastAnalysis.analysis.bikeCount}
           </Text>
+        </View>
+      )}
+
+      {/* Auto-Analysis Progress Bar - Moved to top area */}
+      {isAutoAnalyzing && (
+        <View style={styles.autoAnalysisBar}>
+          <View style={styles.autoAnalysisContent}>
+            <Text style={styles.autoAnalysisText}>
+              🤖 {currentAutoAnalysis?.name?.substring(0, 25) || 'Loading...'}
+            </Text>
+            <Text style={styles.autoAnalysisProgress}>
+              {autoAnalysisProgress.current}/{autoAnalysisProgress.total}
+            </Text>
+          </View>
+          <View style={styles.autoProgressTrack}>
+            <View 
+              style={[
+                styles.autoProgressFill,
+                { 
+                  width: autoAnalysisProgress.total > 0 
+                    ? `${(autoAnalysisProgress.current / autoAnalysisProgress.total) * 100}%` 
+                    : '0%' 
+                }
+              ]}
+            />
+          </View>
+          <TouchableOpacity 
+            style={styles.autoAnalysisStop}
+            onPress={() => {
+              console.log('🛑 [HACKATHON] Stopping auto-analysis');
+              setAutoAnalyzeEnabled(false);
+              setIsAutoAnalyzing(false);
+              setCurrentAutoAnalysis(null);
+              setAutoAnalysisQueue([]);
+              setAutoAnalysisProgress({ current: 0, total: 0 });
+            }}
+          >
+            <Text style={styles.autoAnalysisStopText}>Stop</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -871,13 +972,17 @@ const styles = StyleSheet.create({
   },
   toggleButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 25,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   toggleButtonText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   modalContainer: {
@@ -961,16 +1066,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   resultCloseButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: '#000000',
+    fontSize: 18,
     fontWeight: 'bold',
   },
   loadingContainer: {
@@ -1050,13 +1161,13 @@ const styles = StyleSheet.create({
   },
   analyzeButton: {
     backgroundColor: '#007AFF',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   buttonContent: {
     flexDirection: 'row',
@@ -1066,13 +1177,13 @@ const styles = StyleSheet.create({
   },
   analyzeButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   resultOverlay: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 200,
     left: 20,
     right: 20,
     backgroundColor: 'rgba(0, 100, 0, 0.9)',
@@ -1092,7 +1203,7 @@ const styles = StyleSheet.create({
   },
   analyzeButtonContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 150,
     left: 20,
     right: 20,
   },
@@ -1114,5 +1225,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  autoAnalysisBar: {
+    position: 'absolute',
+    top: 180,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  autoAnalysisContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  autoAnalysisText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+  },
+  autoAnalysisProgress: {
+    color: '#4A90E2',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 12,
+  },
+  autoProgressTrack: {
+    height: 4,
+    backgroundColor: '#333333',
+    borderRadius: 2,
+    marginBottom: 8,
+  },
+  autoProgressFill: {
+    height: '100%',
+    backgroundColor: '#4A90E2',
+    borderRadius: 2,
+  },
+  autoAnalysisStop: {
+    position: 'absolute',
+    top: 8,
+    right: 12,
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  autoAnalysisStopText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
