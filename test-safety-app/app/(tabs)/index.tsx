@@ -8,6 +8,8 @@ import {
   Dimensions,
   Alert,
   SafeAreaView,
+  ScrollView,
+  Modal,
 } from 'react-native';
 import MapView, { Marker, Heatmap, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -16,10 +18,19 @@ import NYCCameraService, { NYCCamera, CameraRiskAnalysis, HeatMapRegion } from '
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+interface CameraProcessingState {
+  camera: NYCCamera;
+  status: 'pending' | 'analyzing' | 'completed' | 'error';
+  analysis?: CameraRiskAnalysis;
+  startTime?: Date;
+  completionTime?: Date;
+}
+
 interface MapState {
   region: Region;
   userLocation: Location.LocationObject | null;
   cameras: NYCCamera[];
+  processingCameras: Map<string, CameraProcessingState>;
   heatMapData: Array<{
     latitude: number;
     longitude: number;
@@ -27,7 +38,9 @@ interface MapState {
   }>;
   isAnalyzing: boolean;
   showHeatMap: boolean;
+  showDataPanel: boolean;
   analysisProgress: string;
+  completedAnalyses: CameraRiskAnalysis[];
 }
 
 export default function LiveMapScreen() {
@@ -41,10 +54,13 @@ export default function LiveMapScreen() {
     },
     userLocation: null,
     cameras: [],
+    processingCameras: new Map(),
     heatMapData: [],
     isAnalyzing: false,
     showHeatMap: true,
+    showDataPanel: false,
     analysisProgress: '',
+    completedAnalyses: [],
   });
 
   useEffect(() => {
@@ -92,7 +108,9 @@ export default function LiveMapScreen() {
     setMapState(prev => ({ 
       ...prev, 
       isAnalyzing: true,
-      analysisProgress: 'Finding nearby cameras...'
+      analysisProgress: 'Finding nearby NYC CCTV cameras...',
+      processingCameras: new Map(),
+      completedAnalyses: []
     }));
 
     try {
@@ -103,18 +121,29 @@ export default function LiveMapScreen() {
         setMapState(prev => ({ 
           ...prev, 
           isAnalyzing: false,
-          analysisProgress: 'No cameras found in this area'
+          analysisProgress: 'No NYC CCTV cameras found in this area'
         }));
         return;
       }
 
+      // Initialize processing states for all cameras
+      const processingMap = new Map<string, CameraProcessingState>();
+      nearbyCameras.forEach(camera => {
+        processingMap.set(camera.id, {
+          camera,
+          status: 'pending',
+          startTime: new Date()
+        });
+      });
+
       setMapState(prev => ({ 
         ...prev, 
-        analysisProgress: `Analyzing ${nearbyCameras.length} cameras with AI...`
+        processingCameras: processingMap,
+        analysisProgress: `Found ${nearbyCameras.length} NYC CCTV cameras. Starting AI analysis...`
       }));
 
-      // Analyze cameras in batches to avoid overwhelming the API
-      const batchSize = 3;
+      // Analyze cameras in batches with real-time updates
+      const batchSize = 2;
       const heatMapPoints: Array<{ latitude: number; longitude: number; weight: number }> = [];
 
       for (let i = 0; i < nearbyCameras.length; i += batchSize) {
@@ -122,19 +151,61 @@ export default function LiveMapScreen() {
         
         setMapState(prev => ({ 
           ...prev, 
-          analysisProgress: `Analyzing cameras ${i + 1}-${Math.min(i + batchSize, nearbyCameras.length)} of ${nearbyCameras.length}...`
+          analysisProgress: `Analyzing CCTV cameras ${i + 1}-${Math.min(i + batchSize, nearbyCameras.length)} of ${nearbyCameras.length}...`
         }));
 
+        // Update status to analyzing for current batch
+        batch.forEach(camera => {
+          setMapState(prev => {
+            const newProcessingMap = new Map(prev.processingCameras);
+            const currentState = newProcessingMap.get(camera.id);
+            if (currentState) {
+              newProcessingMap.set(camera.id, {
+                ...currentState,
+                status: 'analyzing'
+              });
+            }
+            return { ...prev, processingCameras: newProcessingMap };
+          });
+        });
+
+        // Process batch in parallel
         const analysisPromises = batch.map(camera => 
           NYCCameraService.analyzeCameraRisk(camera)
+            .then(analysis => ({ camera, analysis, success: true }))
+            .catch(error => ({ camera, error, success: false }))
         );
 
         const results = await Promise.allSettled(analysisPromises);
         
-        results.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            const analysis = result.value;
+                  results.forEach((result, index) => {
             const camera = batch[index];
+            
+            if (result.status === 'fulfilled' && result.value.success && 'analysis' in result.value) {
+              const analysis = result.value.analysis;
+            
+            // Update processing state to completed
+            setMapState(prev => {
+              const newProcessingMap = new Map(prev.processingCameras);
+              const currentState = newProcessingMap.get(camera.id);
+              if (currentState) {
+                newProcessingMap.set(camera.id, {
+                  ...currentState,
+                  status: 'completed',
+                  analysis,
+                  completionTime: new Date()
+                });
+              }
+              
+              // Add to completed analyses for data panel
+              const newCompletedAnalyses = [...prev.completedAnalyses, analysis];
+              
+              return { 
+                ...prev, 
+                processingCameras: newProcessingMap,
+                completedAnalyses: newCompletedAnalyses
+              };
+            });
             
             // Convert risk score to heat map weight (invert: lower risk = higher weight)
             const weight = (11 - analysis.riskScore) / 10; // 0.1 to 1.0
@@ -143,6 +214,20 @@ export default function LiveMapScreen() {
               latitude: camera.latitude,
               longitude: camera.longitude,
               weight: weight
+            });
+          } else {
+            // Update processing state to error
+            setMapState(prev => {
+              const newProcessingMap = new Map(prev.processingCameras);
+              const currentState = newProcessingMap.get(camera.id);
+              if (currentState) {
+                newProcessingMap.set(camera.id, {
+                  ...currentState,
+                  status: 'error',
+                  completionTime: new Date()
+                });
+              }
+              return { ...prev, processingCameras: newProcessingMap };
             });
           }
         });
@@ -153,16 +238,16 @@ export default function LiveMapScreen() {
           heatMapData: [...heatMapPoints]
         }));
 
-        // Small delay between batches to be respectful to the API
+        // Small delay between batches
         if (i + batchSize < nearbyCameras.length) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
 
       setMapState(prev => ({ 
         ...prev, 
         isAnalyzing: false,
-        analysisProgress: `Analysis complete! Found ${heatMapPoints.length} data points.`
+        analysisProgress: `Analysis complete! Processed ${heatMapPoints.length} CCTV cameras with AI.`
       }));
 
     } catch (error) {
@@ -188,6 +273,10 @@ export default function LiveMapScreen() {
     setMapState(prev => ({ ...prev, showHeatMap: !prev.showHeatMap }));
   };
 
+  const toggleDataPanel = () => {
+    setMapState(prev => ({ ...prev, showDataPanel: !prev.showDataPanel }));
+  };
+
   const refreshAnalysis = () => {
     if (mapState.userLocation) {
       analyzeNearbyArea(
@@ -197,12 +286,38 @@ export default function LiveMapScreen() {
     }
   };
 
+  const getCameraMarkerColor = (cameraId: string): string => {
+    const processingState = mapState.processingCameras.get(cameraId);
+    if (!processingState) return '#CCCCCC'; // Default gray
+    
+    switch (processingState.status) {
+      case 'pending': return '#FFA500'; // Orange
+      case 'analyzing': return '#00BFFF'; // Deep sky blue
+      case 'completed': return '#00FF00'; // Green
+      case 'error': return '#FF0000'; // Red
+      default: return '#CCCCCC';
+    }
+  };
+
+  const getCameraStatusText = (cameraId: string): string => {
+    const processingState = mapState.processingCameras.get(cameraId);
+    if (!processingState) return 'Ready';
+    
+    switch (processingState.status) {
+      case 'pending': return 'Queued';
+      case 'analyzing': return 'Analyzing...';
+      case 'completed': return `Risk: ${processingState.analysis?.riskScore}/10`;
+      case 'error': return 'Failed';
+      default: return 'Unknown';
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>🗽 NYC Safety Map</Text>
-        <Text style={styles.subtitle}>Live AI Analysis from Traffic Cameras</Text>
+        <Text style={styles.title}>🗽 NYC CCTV Safety Analysis</Text>
+        <Text style={styles.subtitle}>Real-time AI processing of traffic cameras</Text>
       </View>
 
       {/* Map */}
@@ -230,19 +345,35 @@ export default function LiveMapScreen() {
             />
           )}
 
-          {/* Camera Markers */}
+          {/* Processing Camera Markers */}
+          {Array.from(mapState.processingCameras.values()).map((processingState) => (
+            <Marker
+              key={`processing-${processingState.camera.id}`}
+              coordinate={{
+                latitude: processingState.camera.latitude,
+                longitude: processingState.camera.longitude,
+              }}
+              title={`${processingState.camera.name} - ${getCameraStatusText(processingState.camera.id)}`}
+              description={`${processingState.camera.borough} - ${processingState.camera.roadway}`}
+              pinColor={getCameraMarkerColor(processingState.camera.id)}
+            />
+          ))}
+
+          {/* Regular Camera Markers (not being processed) */}
           {mapState.cameras
             .filter(camera => {
-              // Only show cameras in current view
+              // Only show cameras in current view and not being processed
               const { region } = mapState;
-              return (
+              const inView = (
                 camera.latitude >= region.latitude - region.latitudeDelta / 2 &&
                 camera.latitude <= region.latitude + region.latitudeDelta / 2 &&
                 camera.longitude >= region.longitude - region.longitudeDelta / 2 &&
                 camera.longitude <= region.longitude + region.longitudeDelta / 2
               );
+              const notProcessing = !mapState.processingCameras.has(camera.id);
+              return inView && notProcessing;
             })
-            .slice(0, 20) // Limit markers for performance
+            .slice(0, 15) // Limit markers for performance
             .map((camera) => (
               <Marker
                 key={camera.id}
@@ -252,7 +383,7 @@ export default function LiveMapScreen() {
                 }}
                 title={camera.name}
                 description={`${camera.borough} - ${camera.roadway}`}
-                pinColor="#4A90E2"
+                pinColor="#CCCCCC"
               />
             ))}
 
@@ -286,12 +417,24 @@ export default function LiveMapScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[
+              styles.controlButton,
+              { backgroundColor: mapState.showDataPanel ? '#FF6600' : '#666666' }
+            ]}
+            onPress={toggleDataPanel}
+          >
+            <Text style={styles.controlButtonText}>
+              {mapState.showDataPanel ? '📊 Data ON' : '📊 Data OFF'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.controlButton, { backgroundColor: '#00AA00' }]}
             onPress={refreshAnalysis}
             disabled={mapState.isAnalyzing}
           >
             <Text style={styles.controlButtonText}>
-              {mapState.isAnalyzing ? '⏳ Analyzing...' : '🔄 Refresh'}
+              {mapState.isAnalyzing ? '⏳ Processing...' : '🔄 Refresh'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -307,34 +450,96 @@ export default function LiveMapScreen() {
         ) : (
           <View style={styles.infoPanel}>
             <Text style={styles.infoTitle}>
-              📊 Data: {mapState.cameras.length} cameras • {mapState.heatMapData.length} analyzed
+              📊 NYC CCTV: {mapState.cameras.length} total • {mapState.completedAnalyses.length} analyzed • {mapState.heatMapData.length} mapped
             </Text>
             <Text style={styles.infoText}>
-              Tap anywhere on the map to analyze that area with AI
+              Tap anywhere on the map to analyze NYC traffic cameras in that area
             </Text>
           </View>
         )}
       </View>
 
+      {/* Data Panel Modal */}
+      <Modal
+        visible={mapState.showDataPanel}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={toggleDataPanel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.dataPanel}>
+            <View style={styles.dataPanelHeader}>
+              <Text style={styles.dataPanelTitle}>🔍 Live CCTV Analysis Data</Text>
+              <TouchableOpacity onPress={toggleDataPanel} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.dataPanelContent}>
+              {mapState.completedAnalyses.length === 0 ? (
+                <Text style={styles.noDataText}>No analysis data yet. Tap on the map to start processing CCTV cameras.</Text>
+              ) : (
+                mapState.completedAnalyses.map((analysis, index) => (
+                  <View key={`analysis-${index}`} style={styles.analysisCard}>
+                    <Text style={styles.analysisCardTitle}>
+                      📹 Camera {analysis.cameraId.slice(-8)}
+                    </Text>
+                    <Text style={styles.analysisCardSubtitle}>
+                      Analyzed: {analysis.lastAnalyzed.toLocaleTimeString()}
+                    </Text>
+                    
+                    <View style={styles.riskScoreContainer}>
+                      <Text style={[
+                        styles.riskScore,
+                        { color: analysis.riskScore >= 7 ? '#00FF00' : analysis.riskScore >= 4 ? '#FFAA00' : '#FF0000' }
+                      ]}>
+                        Risk Score: {analysis.riskScore}/10
+                      </Text>
+                      <Text style={styles.confidenceText}>
+                        Confidence: {analysis.confidence}
+                      </Text>
+                    </View>
+
+                    <View style={styles.detectionCounts}>
+                      <Text style={styles.countText}>🚴‍♀️ Bikes: {analysis.bikeCount}</Text>
+                      <Text style={styles.countText}>🚛 Trucks: {analysis.truckCount}</Text>
+                      <Text style={styles.countText}>🚶‍♂️ Pedestrians: {analysis.pedestrianCount}</Text>
+                    </View>
+
+                    <Text style={styles.trafficDensity}>
+                      🚦 Traffic: {analysis.trafficDensity}
+                    </Text>
+                    
+                    <Text style={styles.sceneDescription}>
+                      📝 Scene: {analysis.sceneDescription}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Legend */}
       <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Risk Level:</Text>
+        <Text style={styles.legendTitle}>Camera Status & Risk Level:</Text>
         <View style={styles.legendItems}>
           <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#FFA500' }]} />
+            <Text style={styles.legendText}>Queued</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#00BFFF' }]} />
+            <Text style={styles.legendText}>Analyzing</Text>
+          </View>
+          <View style={styles.legendItem}>
             <View style={[styles.legendColor, { backgroundColor: '#00FF00' }]} />
-            <Text style={styles.legendText}>Low</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: '#FFFF00' }]} />
-            <Text style={styles.legendText}>Medium</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: '#FF6600' }]} />
-            <Text style={styles.legendText}>High</Text>
+            <Text style={styles.legendText}>Safe</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendColor, { backgroundColor: '#FF0000' }]} />
-            <Text style={styles.legendText}>Danger</Text>
+            <Text style={styles.legendText}>High Risk</Text>
           </View>
         </View>
       </View>
@@ -356,13 +561,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#333333',
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#CCCCCC',
     textAlign: 'center',
     marginTop: 4,
@@ -378,12 +583,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     right: 20,
-    gap: 10,
+    gap: 8,
   },
   controlButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -392,7 +597,7 @@ const styles = StyleSheet.create({
   },
   controlButtonText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   statusPanel: {
@@ -411,33 +616,130 @@ const styles = StyleSheet.create({
     color: '#4A90E2',
     fontSize: 14,
     fontWeight: '500',
+    flex: 1,
   },
   infoPanel: {
     alignItems: 'center',
   },
   infoTitle: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   infoText: {
     color: '#CCCCCC',
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  dataPanel: {
+    backgroundColor: '#1A1A1A',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: screenHeight * 0.7,
+  },
+  dataPanelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
+  },
+  dataPanelTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  dataPanelContent: {
+    flex: 1,
+    padding: 16,
+  },
+  noDataText: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 40,
+    lineHeight: 20,
+  },
+  analysisCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  analysisCardTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  analysisCardSubtitle: {
+    color: '#CCCCCC',
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  riskScoreContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  riskScore: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  confidenceText: {
+    color: '#CCCCCC',
+    fontSize: 12,
+  },
+  detectionCounts: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+  },
+  countText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+  },
+  trafficDensity: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  sceneDescription: {
+    color: '#CCCCCC',
+    fontSize: 11,
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
   legend: {
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 20,
     borderTopWidth: 1,
     borderTopColor: '#333333',
   },
   legendTitle: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   legendItems: {
     flexDirection: 'row',
@@ -449,12 +751,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   legendText: {
     color: '#CCCCCC',
-    fontSize: 10,
+    fontSize: 9,
   },
 });
