@@ -7,8 +7,8 @@ export interface NYCCamera {
   latitude: number;
   longitude: number;
   imageUrl: string;
-  borough: string;
-  roadway: string;
+  area: string;
+  isOnline: boolean;
 }
 
 export interface CameraRiskAnalysis {
@@ -38,55 +38,131 @@ export interface HeatMapRegion {
 }
 
 class NYCCameraService {
-  private readonly API_BASE = 'https://nyctmc.org/api';
+  private readonly NYC_TMC_API = 'https://nyctmc.org/api/cameras';
   private cameraCache: Map<string, NYCCamera> = new Map();
   private analysisCache: Map<string, CameraRiskAnalysis> = new Map();
   private lastFetch: Date | null = null;
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  
+  // Rate limiting for Moondream API
+  private requestQueue: Array<() => Promise<any>> = [];
+  private isProcessingQueue = false;
+  private readonly REQUEST_DELAY = 2000; // 2 seconds between requests
+  private readonly MAX_CONCURRENT = 1; // Only 1 request at a time
+  private activeRequests = 0;
 
   /**
-   * Fetch all NYC traffic cameras
+   * Add request to queue with rate limiting
+   */
+  private async queueRequest<T>(requestFn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push(async () => {
+        try {
+          console.log(`⏳ [HACKATHON] Processing queued Moondream request (${this.activeRequests} active, ${this.requestQueue.length} in queue)`);
+          const result = await requestFn();
+          console.log(`✅ [HACKATHON] Moondream request completed successfully`);
+          resolve(result);
+        } catch (error) {
+          console.error(`❌ [HACKATHON] Moondream request failed:`, error);
+          reject(error);
+        }
+      });
+      
+      console.log(`📝 [HACKATHON] Added request to queue (queue size: ${this.requestQueue.length})`);
+      this.processQueue();
+    });
+  }
+
+  /**
+   * Process the request queue with rate limiting
+   */
+  private async processQueue() {
+    if (this.isProcessingQueue || this.activeRequests >= this.MAX_CONCURRENT) {
+      return;
+    }
+
+    this.isProcessingQueue = true;
+
+    while (this.requestQueue.length > 0 && this.activeRequests < this.MAX_CONCURRENT) {
+      const request = this.requestQueue.shift();
+      if (request) {
+        this.activeRequests++;
+        
+        try {
+          await request();
+        } catch (error) {
+          console.error('Queued request failed:', error);
+        }
+        
+        this.activeRequests--;
+        
+        // Wait before processing next request
+        if (this.requestQueue.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, this.REQUEST_DELAY));
+        }
+      }
+    }
+
+    this.isProcessingQueue = false;
+  }
+
+  /**
+   * Fetch all NYC traffic cameras from the official NYC TMC API
    */
   async fetchCameras(): Promise<NYCCamera[]> {
     try {
       // Check cache first
       if (this.lastFetch && Date.now() - this.lastFetch.getTime() < this.CACHE_DURATION) {
+        console.log('📋 Using cached camera data');
         return Array.from(this.cameraCache.values());
       }
 
-      const response = await fetch(`${this.API_BASE}/camera`);
-      if (!response.ok) {
-        throw new Error(`NYC API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const cameras: NYCCamera[] = [];
-
-      // Parse the camera data
-      for (const camera of data.cameras || []) {
-        if (camera.latitude && camera.longitude && camera.url) {
-          const nycCamera: NYCCamera = {
-            id: camera.id || camera.name,
-            name: camera.name || `Camera ${camera.id}`,
-            latitude: parseFloat(camera.latitude),
-            longitude: parseFloat(camera.longitude),
-            imageUrl: camera.url,
-            borough: camera.borough || 'Unknown',
-            roadway: camera.roadway || 'Unknown'
-          };
-          cameras.push(nycCamera);
-          this.cameraCache.set(nycCamera.id, nycCamera);
+      console.log('🔍 Fetching NYC traffic cameras from TMC API...');
+      
+      const response = await fetch(this.NYC_TMC_API, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'NYC-Safety-App/1.0'
         }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const rawData = await response.json();
+      console.log(`✅ Received ${rawData.length} cameras from NYC TMC API`);
+
+      // Transform the data to our format
+      const cameras: NYCCamera[] = rawData.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        imageUrl: item.imageUrl,
+        area: item.area,
+        isOnline: item.isOnline === 'true' || item.isOnline === true
+      })).filter((camera: NYCCamera) => 
+        camera.latitude && 
+        camera.longitude && 
+        camera.isOnline &&
+        camera.imageUrl
+      );
+
+      // Cache the cameras
+      this.cameraCache.clear();
+      cameras.forEach(camera => {
+        this.cameraCache.set(camera.id, camera);
+      });
 
       this.lastFetch = new Date();
-      console.log(`Fetched ${cameras.length} NYC traffic cameras`);
+      console.log(`✅ Successfully loaded ${cameras.length} online NYC traffic cameras`);
       return cameras;
 
     } catch (error) {
-      console.error('Error fetching NYC cameras:', error);
-      // Return cached data if available
-      return Array.from(this.cameraCache.values());
+      console.error('❌ Error fetching NYC cameras:', error);
+      throw error; // Re-throw the error instead of using fallbacks
     }
   }
 
@@ -120,26 +196,55 @@ class NYCCameraService {
         return cached;
       }
 
-      // Use Moondream to analyze the camera image
-      const bicycleResult = await MoondreamService.detectBicycles(camera.imageUrl);
+      console.log(`🔍 [HACKATHON] Starting AI analysis for camera: ${camera.name} (${camera.area})`);
+      console.log(`📸 [HACKATHON] Camera image URL: ${camera.imageUrl}`);
+      console.log(`📍 [HACKATHON] Camera location: ${camera.latitude}, ${camera.longitude}`);
+
+      // Use rate-limited requests to avoid overwhelming the API
+      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #1: Bicycle detection for camera ${camera.id}`);
+      const bicycleResult = await this.queueRequest(() => 
+        MoondreamService.detectBicycles(camera.imageUrl)
+      );
+      console.log(`✅ [HACKATHON] Bicycle detection completed:`, bicycleResult);
       
-      // Detect trucks and traffic
+      // Detect trucks and traffic with rate limiting
       const truckQuestion = "How many trucks, delivery vehicles, or large vehicles do you see in this image?";
-      const truckAnswer = await MoondreamService.askQuestion(camera.imageUrl, truckQuestion);
+      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #2: Truck detection for camera ${camera.id}`);
+      console.log(`❓ [HACKATHON] Question: "${truckQuestion}"`);
+      const truckAnswer = await this.queueRequest(() => 
+        MoondreamService.askQuestion(camera.imageUrl, truckQuestion)
+      );
+      console.log(`✅ [HACKATHON] Truck detection answer: "${truckAnswer}"`);
       
       const pedestrianQuestion = "How many pedestrians or people walking do you see in this image?";
-      const pedestrianAnswer = await MoondreamService.askQuestion(camera.imageUrl, pedestrianQuestion);
+      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #3: Pedestrian detection for camera ${camera.id}`);
+      console.log(`❓ [HACKATHON] Question: "${pedestrianQuestion}"`);
+      const pedestrianAnswer = await this.queueRequest(() => 
+        MoondreamService.askQuestion(camera.imageUrl, pedestrianQuestion)
+      );
+      console.log(`✅ [HACKATHON] Pedestrian detection answer: "${pedestrianAnswer}"`);
       
       const trafficQuestion = "How would you describe the traffic density: light, moderate, or heavy?";
-      const trafficAnswer = await MoondreamService.askQuestion(camera.imageUrl, trafficQuestion);
+      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #4: Traffic density analysis for camera ${camera.id}`);
+      console.log(`❓ [HACKATHON] Question: "${trafficQuestion}"`);
+      const trafficAnswer = await this.queueRequest(() => 
+        MoondreamService.askQuestion(camera.imageUrl, trafficQuestion)
+      );
+      console.log(`✅ [HACKATHON] Traffic density answer: "${trafficAnswer}"`);
 
       // Extract counts from AI responses
       const truckCount = this.extractNumberFromResponse(truckAnswer);
       const pedestrianCount = this.extractNumberFromResponse(pedestrianAnswer);
       const bikeCount = bicycleResult.totalCount;
 
+      console.log(`🧮 [HACKATHON] Extracted counts from AI responses:`);
+      console.log(`  🚛 Trucks: ${truckCount}`);
+      console.log(`  🚴 Bicycles: ${bikeCount}`);
+      console.log(`  🚶 Pedestrians: ${pedestrianCount}`);
+
       // Determine traffic density
       const trafficDensity = this.parseTrafficDensity(trafficAnswer);
+      console.log(`🚦 [HACKATHON] Parsed traffic density: ${trafficDensity}`);
 
       // Calculate risk score (1-10, lower = more risky)
       const riskScore = this.calculateRiskScore({
@@ -149,6 +254,9 @@ class NYCCameraService {
         trafficDensity,
         hasSidewalk: bicycleResult.hasSidewalk
       });
+
+      console.log(`⚠️ [HACKATHON] Calculated risk score: ${riskScore}/10 (1=high risk, 10=low risk)`);
+      console.log(`🛤️ [HACKATHON] Sidewalk condition: ${bicycleResult.hasSidewalk ? 'clear' : 'unsafe'}`);
 
       const analysis: CameraRiskAnalysis = {
         cameraId: camera.id,
@@ -162,6 +270,9 @@ class NYCCameraService {
         lastAnalyzed: new Date(),
         sceneDescription: bicycleResult.sceneDescription
       };
+
+      console.log(`📊 [HACKATHON] FINAL ANALYSIS RESULT for ${camera.name}:`, analysis);
+      console.log(`🎯 [HACKATHON] Analysis completed for camera ${camera.id} - Risk Score: ${riskScore}`);
 
       // Cache the analysis
       this.analysisCache.set(camera.id, analysis);

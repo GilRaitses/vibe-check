@@ -87,8 +87,7 @@ export default function LiveMapScreen() {
         }
       }));
 
-      // Start analyzing cameras near user location
-      analyzeNearbyArea(location.coords.latitude, location.coords.longitude);
+      console.log(`📍 [HACKATHON] User location loaded: ${location.coords.latitude}, ${location.coords.longitude}`);
 
     } catch (error) {
       console.error('Error getting location:', error);
@@ -97,10 +96,12 @@ export default function LiveMapScreen() {
 
   const loadCamerasInBackground = async () => {
     try {
+      console.log(`📹 [HACKATHON] Loading NYC camera positions...`);
       const cameras = await NYCCameraService.fetchCameras();
+      console.log(`✅ [HACKATHON] Loaded ${cameras.length} camera positions for map display`);
       setMapState(prev => ({ ...prev, cameras }));
     } catch (error) {
-      console.error('Error loading cameras:', error);
+      console.error('❌ [HACKATHON] Error loading cameras:', error);
     }
   };
 
@@ -114,8 +115,9 @@ export default function LiveMapScreen() {
     }));
 
     try {
-      // Get cameras in the vicinity
-      const nearbyCameras = await NYCCameraService.getCamerasNearLocation(latitude, longitude, 2);
+      // Get cameras in the vicinity (limit to reasonable number)
+      const allNearbyCameras = await NYCCameraService.getCamerasNearLocation(latitude, longitude, 2);
+      const nearbyCameras = allNearbyCameras.slice(0, 10); // Limit to 10 cameras max
       
       if (nearbyCameras.length === 0) {
         setMapState(prev => ({ 
@@ -124,6 +126,10 @@ export default function LiveMapScreen() {
           analysisProgress: 'No NYC CCTV cameras found in this area'
         }));
         return;
+      }
+
+      if (allNearbyCameras.length > 10) {
+        console.log(`Found ${allNearbyCameras.length} cameras, analyzing closest 10 to avoid API limits`);
       }
 
       // Initialize processing states for all cameras
@@ -265,8 +271,8 @@ export default function LiveMapScreen() {
   };
 
   const onMapPress = (event: any) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    analyzeNearbyArea(latitude, longitude);
+    // Map press no longer triggers analysis - user must tap on camera markers
+    console.log(`🗺️ [HACKATHON] User tapped map at: ${event.nativeEvent.coordinate.latitude}, ${event.nativeEvent.coordinate.longitude}`);
   };
 
   const toggleHeatMap = () => {
@@ -277,13 +283,89 @@ export default function LiveMapScreen() {
     setMapState(prev => ({ ...prev, showDataPanel: !prev.showDataPanel }));
   };
 
-  const refreshAnalysis = () => {
-    if (mapState.userLocation) {
-      analyzeNearbyArea(
-        mapState.userLocation.coords.latitude,
-        mapState.userLocation.coords.longitude
-      );
+  const analyzeSingleCamera = async (camera: NYCCamera) => {
+    console.log(`🎯 [HACKATHON] User tapped on camera: ${camera.name} (${camera.area})`);
+    console.log(`📸 [HACKATHON] Starting on-demand analysis for camera ${camera.id}`);
+    
+    // Update processing state to show this camera is being analyzed
+    setMapState(prev => {
+      const newProcessingMap = new Map(prev.processingCameras);
+      newProcessingMap.set(camera.id, {
+        camera,
+        status: 'analyzing',
+        startTime: new Date()
+      });
+      return { 
+        ...prev, 
+        processingCameras: newProcessingMap,
+        isAnalyzing: true,
+        analysisProgress: `Analyzing ${camera.name} with Moondream AI...`
+      };
+    });
+
+    try {
+      const analysis = await NYCCameraService.analyzeCameraRisk(camera);
+      
+      // Update processing state to completed
+      setMapState(prev => {
+        const newProcessingMap = new Map(prev.processingCameras);
+        newProcessingMap.set(camera.id, {
+          camera,
+          status: 'completed',
+          analysis,
+          startTime: prev.processingCameras.get(camera.id)?.startTime,
+          completionTime: new Date()
+        });
+        
+        // Add to heat map
+        const riskWeight = (11 - analysis.riskScore) / 10; // Convert to 0.1-1.0 scale, inverted (higher risk = higher weight)
+        const newHeatMapPoint = {
+          latitude: camera.latitude,
+          longitude: camera.longitude,
+          weight: Math.max(0.1, riskWeight) // Ensure minimum visibility
+        };
+
+        return { 
+          ...prev, 
+          processingCameras: newProcessingMap,
+          isAnalyzing: false,
+          analysisProgress: `Analysis completed for ${camera.name}`,
+          completedAnalyses: [...prev.completedAnalyses, analysis],
+          heatMapData: [...prev.heatMapData, newHeatMapPoint]
+        };
+      });
+      
+    } catch (error) {
+      console.error(`❌ [HACKATHON] Failed to analyze camera ${camera.id}:`, error);
+      
+      // Update processing state to error
+      setMapState(prev => {
+        const newProcessingMap = new Map(prev.processingCameras);
+        newProcessingMap.set(camera.id, {
+          camera,
+          status: 'error',
+          startTime: prev.processingCameras.get(camera.id)?.startTime,
+          completionTime: new Date()
+        });
+        
+        return { 
+          ...prev, 
+          processingCameras: newProcessingMap,
+          isAnalyzing: false,
+          analysisProgress: `Analysis failed for ${camera.name}`
+        };
+      });
     }
+  };
+
+  const refreshAnalysis = () => {
+    // Clear all previous analyses
+    setMapState(prev => ({
+      ...prev,
+      processingCameras: new Map(),
+      completedAnalyses: [],
+      analysisProgress: 'Tap on any camera to analyze it with AI'
+    }));
   };
 
   const getCameraMarkerColor = (cameraId: string): string => {
@@ -354,8 +436,13 @@ export default function LiveMapScreen() {
                 longitude: processingState.camera.longitude,
               }}
               title={`${processingState.camera.name} - ${getCameraStatusText(processingState.camera.id)}`}
-              description={`${processingState.camera.borough} - ${processingState.camera.roadway}`}
+              description={`${processingState.camera.area} - ${processingState.camera.name}`}
               pinColor={getCameraMarkerColor(processingState.camera.id)}
+              onPress={() => {
+                if (processingState.status === 'pending' || processingState.status === 'error') {
+                  analyzeSingleCamera(processingState.camera);
+                }
+              }}
             />
           ))}
 
@@ -382,8 +469,9 @@ export default function LiveMapScreen() {
                   longitude: camera.longitude,
                 }}
                 title={camera.name}
-                description={`${camera.borough} - ${camera.roadway}`}
+                description={`${camera.area} - ${camera.name}`}
                 pinColor="#CCCCCC"
+                onPress={() => analyzeSingleCamera(camera)}
               />
             ))}
 
@@ -453,7 +541,7 @@ export default function LiveMapScreen() {
               📊 NYC CCTV: {mapState.cameras.length} total • {mapState.completedAnalyses.length} analyzed • {mapState.heatMapData.length} mapped
             </Text>
             <Text style={styles.infoText}>
-              Tap anywhere on the map to analyze NYC traffic cameras in that area
+              Tap on any camera marker to analyze it with Moondream AI
             </Text>
           </View>
         )}
