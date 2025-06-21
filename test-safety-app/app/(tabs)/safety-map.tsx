@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Alert } from 'react-native';
-import MappableMapComponent from '@/components/MappableMap';
+import { StyleSheet, View, Text } from 'react-native';
+import FallbackMapComponent from '@/components/FallbackMap';
 import { useSafety } from '@/components/SafetyContext';
 
 export default function SafetyMapScreen() {
@@ -14,7 +14,7 @@ export default function SafetyMapScreen() {
 
   return (
     <View style={styles.container}>
-      <MappableMapComponent onLocationUpdate={handleLocationUpdate} />
+      <FallbackMapComponent onLocationUpdate={handleLocationUpdate} />
       
       {/* Location Info Panel */}
       {currentLocation && (

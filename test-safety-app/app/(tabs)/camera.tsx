@@ -1,22 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Image, ActivityIndicator, Alert, Dimensions } from 'react-native';
-import { Camera } from 'expo-camera';
-import * as tf from '@tensorflow/tfjs';
-import * as tfReactNative from '@tensorflow/tfjs-react-native';
-import * as FileSystem from 'expo-file-system';
-import { bundleResourceIO } from '@tensorflow/tfjs-react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Image, Alert, Dimensions, Button } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useSafety } from '@/components/SafetyContext';
-import { MappableLocation } from '@mappable/mappable-react-native';
+import * as Location from 'expo-location';
 
 const { width: screenWidth } = Dimensions.get('window');
 const imageWidth = screenWidth * 0.9;
 const imageHeight = 400;
-
-interface Detection {
-  bbox: [number, number, number, number]; // [x, y, width, height]
-  class: string;
-  score: number;
-}
 
 interface Block {
   id: number;
@@ -27,35 +17,33 @@ interface Block {
 
 export default function CameraScreen() {
   const { blocks, updateBlockSafety } = useSafety();
-  const [hasPermission, setHasPermission] = React.useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [bikeCount, setBikeCount] = useState<number | null>(null);
-  const [detections, setDetections] = useState<Detection[]>([]);
-  const [currentLocation, setCurrentLocation] = useState<any>(null);
   const [nearestBlock, setNearestBlock] = useState<Block | null>(null);
-  const cameraRef = useRef<Camera | null>(null);
+  const cameraRef = useRef<CameraView | null>(null);
 
-  React.useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-      // Prepare TensorFlow.js
-      await tf.ready();
-      await tfReactNative.setBackend('rn-webgl');
-      // Get current location
+  useEffect(() => {
+    if (!permission) {
+      requestPermission();
+    }
+    if (permission?.granted) {
       getCurrentLocation();
-    })();
-  }, []);
+    }
+  }, [permission]);
 
-  // Get current location using Mappable
+  // Get current location using expo-location
   const getCurrentLocation = async () => {
     try {
-      const permission = await MappableLocation.requestPermission();
-      if (permission === 'granted') {
-        const location = await MappableLocation.getCurrentPosition();
-        setCurrentLocation(location);
-        findNearestBlock(location);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        const locationData = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        };
+        findNearestBlock(locationData);
       }
     } catch (error) {
       console.error('Error getting location:', error);
@@ -104,112 +92,59 @@ export default function CameraScreen() {
   };
 
   const takePicture = async () => {
-    setBikeCount(null);
     setCapturedPhoto(null);
-    setIsProcessing(false);
-    setDetections([]);
     if (cameraRef.current) {
       const photo = await cameraRef.current.takePictureAsync();
       setCapturedPhoto(photo.uri);
-      setIsProcessing(true);
-      setTimeout(() => runBikeDetection(photo.uri), 500); // Give time for image to render
     }
   };
 
-  // Load COCO-SSD model from tfjs repo
-  const loadModel = async () => {
-    // Use coco-ssd from tfjs-models
-    const cocoSsd = await import('@tensorflow-models/coco-ssd');
-    const model = await cocoSsd.load();
-    return model;
-  };
-
-  // Run bike detection on the captured image
-  const runBikeDetection = async (uri: string) => {
-    try {
-      const model = await loadModel();
-      // Get image as tensor
-      const imgB64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-      const imgBuffer = tf.util.encodeString(imgB64, 'base64').buffer;
-      const raw = new Uint8Array(imgBuffer);
-      const imageTensor = tfReactNative.decodeJpeg(raw);
-      // Run detection
-      const predictions = await model.detect(imageTensor);
-      // Filter for bikes and store detections
-      const bikeDetections = predictions.filter((p: any) => p.class === 'bicycle');
-      setDetections(bikeDetections);
-      setBikeCount(bikeDetections.length);
-    } catch (err) {
-      Alert.alert('Detection Error', 'Could not run bike detection.');
-      setBikeCount(null);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Save detection results to update map
-  const saveToMap = () => {
-    if (bikeCount !== null) {
-      if (nearestBlock) {
-        updateBlockSafety(nearestBlock.id, bikeCount);
-        const safetyScore = Math.max(1, 10 - bikeCount);
-        Alert.alert(
-          'Safety Score Updated',
-          `Bikes detected: ${bikeCount}\nUpdated Block ${nearestBlock.id} (nearest to you)\nNew safety score: ${safetyScore}/10\n\nCheck the Safety Map to see the update!`
-        );
-      } else {
-        // Fallback to random block if location not available
-        const randomBlockId = Math.floor(Math.random() * 3) + 1;
-        updateBlockSafety(randomBlockId, bikeCount);
-        const safetyScore = Math.max(1, 10 - bikeCount);
-        Alert.alert(
-          'Safety Score Updated',
-          `Bikes detected: ${bikeCount}\nUpdated Block ${randomBlockId}\nNew safety score: ${safetyScore}/10\n\nCheck the Safety Map to see the update!`
-        );
-      }
-    }
-  };
-
-  // Render bounding boxes
-  const renderBoundingBoxes = () => {
-    return detections.map((detection, index) => {
-      const [x, y, width, height] = detection.bbox;
-      const scaleX = imageWidth / 640; // Assuming model input size of 640x640
-      const scaleY = imageHeight / 640;
-      
-      return (
-        <View
-          key={index}
-          style={{
-            position: 'absolute',
-            left: x * scaleX,
-            top: y * scaleY,
-            width: width * scaleX,
-            height: height * scaleY,
-            borderWidth: 2,
-            borderColor: '#FF0000',
-            backgroundColor: 'transparent',
-          }}
-        />
+  // Simulate bike detection for demo
+  const simulateBikeDetection = () => {
+    const randomBikeCount = Math.floor(Math.random() * 5) + 1;
+    if (nearestBlock) {
+      updateBlockSafety(nearestBlock.id, randomBikeCount);
+      const safetyScore = Math.max(1, 10 - randomBikeCount);
+      Alert.alert(
+        'Demo: Safety Score Updated',
+        `Simulated bikes detected: ${randomBikeCount}\nUpdated Block ${nearestBlock.id} (nearest to you)\nNew safety score: ${safetyScore}/10\n\nCheck the Safety Map to see the update!`
       );
-    });
+    } else {
+      // Fallback to random block if location not available
+      const randomBlockId = Math.floor(Math.random() * 3) + 1;
+      updateBlockSafety(randomBlockId, randomBikeCount);
+      const safetyScore = Math.max(1, 10 - randomBikeCount);
+      Alert.alert(
+        'Demo: Safety Score Updated',
+        `Simulated bikes detected: ${randomBikeCount}\nUpdated Block ${randomBlockId}\nNew safety score: ${safetyScore}/10\n\nCheck the Safety Map to see the update!`
+      );
+    }
   };
 
-  if (hasPermission === null) {
-    return <View style={styles.container}><Text>Requesting camera permission...</Text></View>;
+  if (!permission) {
+    // Camera permissions are still loading.
+    return <View />;
   }
-  if (hasPermission === false) {
-    return <View style={styles.container}><Text>No access to camera</Text></View>;
+
+  if (!permission.granted) {
+    // Camera permissions are not granted yet.
+    return (
+      <View style={styles.container}>
+        <Text style={{ textAlign: 'center' }}>
+          We need your permission to show the camera
+        </Text>
+        <Button onPress={requestPermission} title="grant permission" />
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
       {!capturedPhoto ? (
-        <Camera style={styles.camera} ref={ref => (cameraRef.current = ref)} />
+        <CameraView style={styles.camera} ref={cameraRef} />
       ) : (
         <View style={styles.imageContainer}>
           <Image source={{ uri: capturedPhoto }} style={styles.camera} />
-          {renderBoundingBoxes()}
         </View>
       )}
       
@@ -221,15 +156,15 @@ export default function CameraScreen() {
         </View>
       )}
       
-      <TouchableOpacity style={styles.button} onPress={takePicture} disabled={isProcessing}>
-        <Text style={styles.buttonText}>{isProcessing ? 'Processing...' : 'Take Picture'}</Text>
+      <TouchableOpacity style={styles.button} onPress={takePicture}>
+        <Text style={styles.buttonText}>Take Picture</Text>
       </TouchableOpacity>
-      {isProcessing && <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 16 }} />}
-      {bikeCount !== null && !isProcessing && (
+      
+      {capturedPhoto && (
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultText}>Detected bikes: {bikeCount}</Text>
-          <TouchableOpacity style={styles.saveButton} onPress={saveToMap}>
-            <Text style={styles.saveButtonText}>Update Map</Text>
+          <Text style={styles.resultText}>Photo captured! (Demo mode)</Text>
+          <TouchableOpacity style={styles.saveButton} onPress={simulateBikeDetection}>
+            <Text style={styles.saveButtonText}>Simulate Bike Detection</Text>
           </TouchableOpacity>
         </View>
       )}
