@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   ScrollView,
   Modal,
+  Image,
 } from 'react-native';
 import MapView, { Marker, Heatmap, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -39,6 +40,8 @@ interface MapState {
   isAnalyzing: boolean;
   showHeatMap: boolean;
   showDataPanel: boolean;
+  showDevMode: boolean;
+  selectedCameraForDev: NYCCamera | null;
   analysisProgress: string;
   completedAnalyses: CameraRiskAnalysis[];
 }
@@ -59,6 +62,8 @@ export default function LiveMapScreen() {
     isAnalyzing: false,
     showHeatMap: true,
     showDataPanel: false,
+    showDevMode: false,
+    selectedCameraForDev: null,
     analysisProgress: '',
     completedAnalyses: [],
   });
@@ -99,172 +104,14 @@ export default function LiveMapScreen() {
       console.log(`📹 [HACKATHON] Loading NYC camera positions...`);
       const cameras = await NYCCameraService.fetchCameras();
       console.log(`✅ [HACKATHON] Loaded ${cameras.length} camera positions for map display`);
+      console.log(`🚫 [HACKATHON] NO AUTOMATIC ANALYSIS - All analysis is user-triggered only`);
       setMapState(prev => ({ ...prev, cameras }));
     } catch (error) {
       console.error('❌ [HACKATHON] Error loading cameras:', error);
     }
   };
 
-  const analyzeNearbyArea = async (latitude: number, longitude: number) => {
-    setMapState(prev => ({ 
-      ...prev, 
-      isAnalyzing: true,
-      analysisProgress: 'Finding nearby NYC CCTV cameras...',
-      processingCameras: new Map(),
-      completedAnalyses: []
-    }));
-
-    try {
-      // Get cameras in the vicinity (limit to reasonable number)
-      const allNearbyCameras = await NYCCameraService.getCamerasNearLocation(latitude, longitude, 2);
-      const nearbyCameras = allNearbyCameras.slice(0, 10); // Limit to 10 cameras max
-      
-      if (nearbyCameras.length === 0) {
-        setMapState(prev => ({ 
-          ...prev, 
-          isAnalyzing: false,
-          analysisProgress: 'No NYC CCTV cameras found in this area'
-        }));
-        return;
-      }
-
-      if (allNearbyCameras.length > 10) {
-        console.log(`Found ${allNearbyCameras.length} cameras, analyzing closest 10 to avoid API limits`);
-      }
-
-      // Initialize processing states for all cameras
-      const processingMap = new Map<string, CameraProcessingState>();
-      nearbyCameras.forEach(camera => {
-        processingMap.set(camera.id, {
-          camera,
-          status: 'pending',
-          startTime: new Date()
-        });
-      });
-
-      setMapState(prev => ({ 
-        ...prev, 
-        processingCameras: processingMap,
-        analysisProgress: `Found ${nearbyCameras.length} NYC CCTV cameras. Starting AI analysis...`
-      }));
-
-      // Analyze cameras in batches with real-time updates
-      const batchSize = 2;
-      const heatMapPoints: Array<{ latitude: number; longitude: number; weight: number }> = [];
-
-      for (let i = 0; i < nearbyCameras.length; i += batchSize) {
-        const batch = nearbyCameras.slice(i, i + batchSize);
-        
-        setMapState(prev => ({ 
-          ...prev, 
-          analysisProgress: `Analyzing CCTV cameras ${i + 1}-${Math.min(i + batchSize, nearbyCameras.length)} of ${nearbyCameras.length}...`
-        }));
-
-        // Update status to analyzing for current batch
-        batch.forEach(camera => {
-          setMapState(prev => {
-            const newProcessingMap = new Map(prev.processingCameras);
-            const currentState = newProcessingMap.get(camera.id);
-            if (currentState) {
-              newProcessingMap.set(camera.id, {
-                ...currentState,
-                status: 'analyzing'
-              });
-            }
-            return { ...prev, processingCameras: newProcessingMap };
-          });
-        });
-
-        // Process batch in parallel
-        const analysisPromises = batch.map(camera => 
-          NYCCameraService.analyzeCameraRisk(camera)
-            .then(analysis => ({ camera, analysis, success: true }))
-            .catch(error => ({ camera, error, success: false }))
-        );
-
-        const results = await Promise.allSettled(analysisPromises);
-        
-                  results.forEach((result, index) => {
-            const camera = batch[index];
-            
-            if (result.status === 'fulfilled' && result.value.success && 'analysis' in result.value) {
-              const analysis = result.value.analysis;
-            
-            // Update processing state to completed
-            setMapState(prev => {
-              const newProcessingMap = new Map(prev.processingCameras);
-              const currentState = newProcessingMap.get(camera.id);
-              if (currentState) {
-                newProcessingMap.set(camera.id, {
-                  ...currentState,
-                  status: 'completed',
-                  analysis,
-                  completionTime: new Date()
-                });
-              }
-              
-              // Add to completed analyses for data panel
-              const newCompletedAnalyses = [...prev.completedAnalyses, analysis];
-              
-              return { 
-                ...prev, 
-                processingCameras: newProcessingMap,
-                completedAnalyses: newCompletedAnalyses
-              };
-            });
-            
-            // Convert risk score to heat map weight (invert: lower risk = higher weight)
-            const weight = (11 - analysis.riskScore) / 10; // 0.1 to 1.0
-            
-            heatMapPoints.push({
-              latitude: camera.latitude,
-              longitude: camera.longitude,
-              weight: weight
-            });
-          } else {
-            // Update processing state to error
-            setMapState(prev => {
-              const newProcessingMap = new Map(prev.processingCameras);
-              const currentState = newProcessingMap.get(camera.id);
-              if (currentState) {
-                newProcessingMap.set(camera.id, {
-                  ...currentState,
-                  status: 'error',
-                  completionTime: new Date()
-                });
-              }
-              return { ...prev, processingCameras: newProcessingMap };
-            });
-          }
-        });
-
-        // Update heat map progressively
-        setMapState(prev => ({ 
-          ...prev, 
-          heatMapData: [...heatMapPoints]
-        }));
-
-        // Small delay between batches
-        if (i + batchSize < nearbyCameras.length) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        }
-      }
-
-      setMapState(prev => ({ 
-        ...prev, 
-        isAnalyzing: false,
-        analysisProgress: `Analysis complete! Processed ${heatMapPoints.length} CCTV cameras with AI.`
-      }));
-
-    } catch (error) {
-      console.error('Error analyzing area:', error);
-      setMapState(prev => ({ 
-        ...prev, 
-        isAnalyzing: false,
-        analysisProgress: 'Analysis failed. Try again.'
-      }));
-    }
-  };
+  // Note: Removed analyzeNearbyArea function - all analysis is now on-demand via camera marker taps
 
   const onRegionChangeComplete = (region: Region) => {
     setMapState(prev => ({ ...prev, region }));
@@ -283,9 +130,14 @@ export default function LiveMapScreen() {
     setMapState(prev => ({ ...prev, showDataPanel: !prev.showDataPanel }));
   };
 
+  const toggleDevMode = () => {
+    setMapState(prev => ({ ...prev, showDevMode: !prev.showDevMode }));
+  };
+
   const analyzeSingleCamera = async (camera: NYCCamera) => {
     console.log(`🎯 [HACKATHON] User tapped on camera: ${camera.name} (${camera.area})`);
     console.log(`📸 [HACKATHON] Starting on-demand analysis for camera ${camera.id}`);
+    console.log(`🔗 [HACKATHON] Camera image URL: ${camera.imageUrl}`);
     
     // Update processing state to show this camera is being analyzed
     setMapState(prev => {
@@ -299,7 +151,8 @@ export default function LiveMapScreen() {
         ...prev, 
         processingCameras: newProcessingMap,
         isAnalyzing: true,
-        analysisProgress: `Analyzing ${camera.name} with Moondream AI...`
+        analysisProgress: `Analyzing ${camera.name} with Moondream AI...`,
+        selectedCameraForDev: camera
       };
     });
 
@@ -440,7 +293,14 @@ export default function LiveMapScreen() {
               pinColor={getCameraMarkerColor(processingState.camera.id)}
               onPress={() => {
                 if (processingState.status === 'pending' || processingState.status === 'error') {
-                  analyzeSingleCamera(processingState.camera);
+                  Alert.alert(
+                    `Retry Analysis: ${processingState.camera.name}`,
+                    `Do you want to retry analyzing this camera (${processingState.camera.area}) with Moondream AI?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Retry', onPress: () => analyzeSingleCamera(processingState.camera) }
+                    ]
+                  );
                 }
               }}
             />
@@ -449,18 +309,11 @@ export default function LiveMapScreen() {
           {/* Regular Camera Markers (not being processed) */}
           {mapState.cameras
             .filter(camera => {
-              // Only show cameras in current view and not being processed
-              const { region } = mapState;
-              const inView = (
-                camera.latitude >= region.latitude - region.latitudeDelta / 2 &&
-                camera.latitude <= region.latitude + region.latitudeDelta / 2 &&
-                camera.longitude >= region.longitude - region.longitudeDelta / 2 &&
-                camera.longitude <= region.longitude + region.longitudeDelta / 2
-              );
+              // Show all cameras, not just those in view (for debugging)
               const notProcessing = !mapState.processingCameras.has(camera.id);
-              return inView && notProcessing;
+              return notProcessing;
             })
-            .slice(0, 15) // Limit markers for performance
+            .slice(0, 50) // Show more markers for better visibility
             .map((camera) => (
               <Marker
                 key={camera.id}
@@ -471,7 +324,16 @@ export default function LiveMapScreen() {
                 title={camera.name}
                 description={`${camera.area} - ${camera.name}`}
                 pinColor="#CCCCCC"
-                onPress={() => analyzeSingleCamera(camera)}
+                onPress={() => {
+                  Alert.alert(
+                    `Analyze Camera: ${camera.name}`,
+                    `Do you want to analyze this camera (${camera.area}) with Moondream AI? This will use API credits.`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Analyze', onPress: () => analyzeSingleCamera(camera) }
+                    ]
+                  );
+                }}
               />
             ))}
 
@@ -517,6 +379,18 @@ export default function LiveMapScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[
+              styles.controlButton,
+              { backgroundColor: mapState.showDevMode ? '#FF00FF' : '#666666' }
+            ]}
+            onPress={toggleDevMode}
+          >
+            <Text style={styles.controlButtonText}>
+              {mapState.showDevMode ? '🔬 Dev ON' : '🔬 Dev OFF'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.controlButton, { backgroundColor: '#00AA00' }]}
             onPress={refreshAnalysis}
             disabled={mapState.isAnalyzing}
@@ -541,7 +415,7 @@ export default function LiveMapScreen() {
               📊 NYC CCTV: {mapState.cameras.length} total • {mapState.completedAnalyses.length} analyzed • {mapState.heatMapData.length} mapped
             </Text>
             <Text style={styles.infoText}>
-              Tap on any camera marker to analyze it with Moondream AI
+              Tap any gray camera marker → Confirm in dialog → AI analysis starts
             </Text>
           </View>
         )}
@@ -603,6 +477,101 @@ export default function LiveMapScreen() {
                     </Text>
                   </View>
                 ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Development Mode Modal */}
+      <Modal
+        visible={mapState.showDevMode}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={toggleDevMode}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.devPanel}>
+            <View style={styles.dataPanelHeader}>
+              <Text style={styles.dataPanelTitle}>🔬 Development Mode</Text>
+              <TouchableOpacity onPress={toggleDevMode} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.dataPanelContent}>
+              {mapState.selectedCameraForDev ? (
+                <View style={styles.devCameraView}>
+                  <Text style={styles.devCameraTitle}>
+                    📹 {mapState.selectedCameraForDev.name}
+                  </Text>
+                  <Text style={styles.devCameraSubtitle}>
+                    📍 {mapState.selectedCameraForDev.area}
+                  </Text>
+                  <Text style={styles.devCameraUrl}>
+                    🔗 {mapState.selectedCameraForDev.imageUrl}
+                  </Text>
+                  
+                  <View style={styles.devImageContainer}>
+                    <Image
+                      source={{ uri: mapState.selectedCameraForDev.imageUrl }}
+                      style={styles.devCameraImage}
+                      resizeMode="contain"
+                    />
+                    {/* TODO: Add bounding boxes overlay here */}
+                  </View>
+
+                  {/* Analysis Status */}
+                  <View style={styles.devAnalysisStatus}>
+                    <Text style={styles.devStatusTitle}>Analysis Status:</Text>
+                    {mapState.isAnalyzing ? (
+                      <View style={styles.devAnalyzing}>
+                        <ActivityIndicator size="small" color="#4A90E2" />
+                        <Text style={styles.devAnalyzingText}>Running Moondream AI...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.devStatusText}>
+                        {getCameraStatusText(mapState.selectedCameraForDev.id)}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Detection Results */}
+                  {mapState.processingCameras.get(mapState.selectedCameraForDev.id)?.analysis && (
+                    <View style={styles.devResults}>
+                      <Text style={styles.devResultsTitle}>🎯 Detection Results:</Text>
+                      {(() => {
+                        const analysis = mapState.processingCameras.get(mapState.selectedCameraForDev.id)?.analysis;
+                        if (!analysis) return null;
+                        return (
+                          <View>
+                            <Text style={styles.devResultText}>🚴 Bicycles: {analysis.bikeCount}</Text>
+                            <Text style={styles.devResultText}>🚛 Trucks: {analysis.truckCount}</Text>
+                            <Text style={styles.devResultText}>🚶 Pedestrians: {analysis.pedestrianCount}</Text>
+                            <Text style={styles.devResultText}>🚦 Traffic: {analysis.trafficDensity}</Text>
+                            <Text style={styles.devResultText}>🛤️ Sidewalk: {analysis.sidewalkCondition}</Text>
+                            <Text style={styles.devResultText}>⚠️ Risk Score: {analysis.riskScore}/10</Text>
+                            <Text style={styles.devResultText}>🎯 Confidence: {analysis.confidence}</Text>
+                            <Text style={styles.devSceneText}>📝 Scene: {analysis.sceneDescription}</Text>
+                          </View>
+                        );
+                      })()}
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.devNoCamera}>
+                  <Text style={styles.devNoCameraText}>
+                    🔬 Development Mode Active
+                  </Text>
+                  <Text style={styles.devNoCameraSubtext}>
+                    Tap on any camera marker to see:
+                    • Live camera image
+                    • AI detection process
+                    • Bounding boxes (coming soon)
+                    • Detailed analysis results
+                  </Text>
+                </View>
               )}
             </ScrollView>
           </View>
@@ -846,5 +815,110 @@ const styles = StyleSheet.create({
   legendText: {
     color: '#CCCCCC',
     fontSize: 9,
+  },
+  // Development Mode Styles
+  devPanel: {
+    backgroundColor: '#1A1A1A',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: screenHeight * 0.8,
+  },
+  devCameraView: {
+    padding: 16,
+  },
+  devCameraTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  devCameraSubtitle: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  devCameraUrl: {
+    color: '#4A90E2',
+    fontSize: 10,
+    marginBottom: 16,
+    fontFamily: 'monospace',
+  },
+  devImageContainer: {
+    backgroundColor: '#000000',
+    borderRadius: 8,
+    marginBottom: 16,
+    minHeight: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  devCameraImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+  },
+  devAnalysisStatus: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+  },
+  devStatusTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  devAnalyzing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  devAnalyzingText: {
+    color: '#4A90E2',
+    fontSize: 14,
+  },
+  devStatusText: {
+    color: '#CCCCCC',
+    fontSize: 14,
+  },
+  devResults: {
+    padding: 12,
+    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  devResultsTitle: {
+    color: '#00FF00',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  devResultText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  devSceneText: {
+    color: '#CCCCCC',
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  devNoCamera: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  devNoCameraText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  devNoCameraSubtext: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });
