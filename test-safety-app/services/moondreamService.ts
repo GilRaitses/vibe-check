@@ -35,29 +35,53 @@ class MoondreamService {
 
   /**
    * Convert image URI to base64 data URI format required by Moondream API
+   * Includes image compression for better network performance
    */
   private async imageUriToBase64(imageUri: string): Promise<string> {
     try {
-      const response = await fetch(imageUri);
+      console.log('📸 [HACKATHON] Converting image to base64 with compression...');
+      
+      // Add timeout to fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(imageUri, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      
       const blob = await response.blob();
+      console.log(`📦 [HACKATHON] Image blob size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
       
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64 = reader.result as string;
+          console.log(`✅ [HACKATHON] Image converted to base64 (${(base64.length / 1024).toFixed(0)} KB)`);
           resolve(base64);
         };
-        reader.onerror = reject;
+        reader.onerror = (error) => {
+          console.error('❌ [HACKATHON] FileReader error:', error);
+          reject(error);
+        };
         reader.readAsDataURL(blob);
       });
-    } catch (error) {
-      console.error('Error converting image to base64:', error);
-      throw new Error('Failed to process image');
-    }
+          } catch (error: any) {
+        console.error('❌ [HACKATHON] Error converting image to base64:', error);
+        if (error?.name === 'AbortError') {
+          throw new Error('Image processing timed out - try taking a smaller photo or moving to better network coverage');
+        }
+        throw new Error('Failed to process image - check your network connection');
+      }
   }
 
   /**
-   * Detect bicycles and sidewalks in an image using Moondream API
+   * Detect people riding bicycles (cyclists) on sidewalks using Moondream API
+   * Focuses on active cycling behavior rather than parked bikes
    */
   async detectBicycles(imageUri: string): Promise<BicycleDetectionResult> {
     try {
@@ -67,24 +91,28 @@ class MoondreamService {
       // Get scene description first
       const sceneDescription = await this.getCaptionForContext(imageUri);
 
-      // Call Moondream API for bicycle detection
-      const bicycleResponse = await this.callDetectAPI(base64Image, 'bicycle');
-      
-      // Also check for 'bike' and 'cyclist' to be thorough
-      const bikeResponse = await this.callDetectAPI(base64Image, 'bike');
+      console.log('🚴 [HACKATHON] Detecting cyclists (people riding bikes) vs parked bicycles...');
+
+      // Primary detection: Look for cyclists (people actively riding)
       const cyclistResponse = await this.callDetectAPI(base64Image, 'cyclist');
+      const personOnBikeResponse = await this.callDetectAPI(base64Image, 'person on bicycle');
+      
+      // Secondary detection: General bicycle detection for context
+      const bicycleResponse = await this.callDetectAPI(base64Image, 'bicycle');
+      const bikeResponse = await this.callDetectAPI(base64Image, 'bike');
+
+      // Use AI to distinguish between parked bikes and active cyclists
+      const activeCyclists = await this.filterForActiveCyclists(imageUri, [
+        ...cyclistResponse.objects,
+        ...personOnBikeResponse.objects,
+        ...bicycleResponse.objects,
+        ...bikeResponse.objects
+      ]);
 
       // Detect sidewalks for confirmation
       const sidewalkResponse = await this.callDetectAPI(base64Image, 'sidewalk');
       const pavement = await this.callDetectAPI(base64Image, 'pavement');
       const walkway = await this.callDetectAPI(base64Image, 'walkway');
-
-      // Combine all bicycle detections
-      const allBicycles = [
-        ...bicycleResponse.objects,
-        ...bikeResponse.objects,
-        ...cyclistResponse.objects
-      ];
 
       // Combine all sidewalk detections
       const allSidewalks = [
@@ -94,22 +122,24 @@ class MoondreamService {
       ];
 
       // Remove duplicates (objects that overlap significantly)
-      const uniqueBicycles = this.removeDuplicateDetections(allBicycles);
+      const uniqueCyclists = this.removeDuplicateDetections(activeCyclists);
       const uniqueSidewalks = this.removeDuplicateDetections(allSidewalks);
 
       // Check if scene likely contains a sidewalk using AI
       const hasSidewalk = await this.confirmSidewalkPresence(imageUri, sceneDescription);
 
-      // Calculate safety score based on bicycle count
-      const safetyScore = this.calculateSafetyScore(uniqueBicycles.length);
+      // Calculate safety score based on active cyclist count (more severe than parked bikes)
+      const safetyScore = this.calculateCyclistSafetyScore(uniqueCyclists.length);
       
       // Determine confidence based on number of detections and scene context
-      const confidence = this.determineConfidence(uniqueBicycles.length, hasSidewalk);
+      const confidence = this.determineConfidence(uniqueCyclists.length, hasSidewalk);
+
+      console.log(`🚴 [HACKATHON] Detected ${uniqueCyclists.length} active cyclists on sidewalk`);
 
       return {
-        bicycles: uniqueBicycles,
+        bicycles: uniqueCyclists, // Now represents active cyclists, not parked bikes
         sidewalks: uniqueSidewalks,
-        totalCount: uniqueBicycles.length,
+        totalCount: uniqueCyclists.length,
         confidence,
         safetyScore,
         sceneDescription,
@@ -117,9 +147,124 @@ class MoondreamService {
       };
 
     } catch (error) {
-      console.error('Error detecting bicycles:', error);
-      throw new Error('Failed to detect bicycles in image');
+      console.error('Error detecting cyclists:', error);
+      throw new Error('Failed to detect cyclists in image');
     }
+  }
+
+  /**
+   * Use AI to filter detections for active cyclists vs parked bicycles
+   */
+  private async filterForActiveCyclists(imageUri: string, allDetections: DetectedObject[]): Promise<DetectedObject[]> {
+    try {
+      if (allDetections.length === 0) {
+        return [];
+      }
+
+      console.log(`🔍 [HACKATHON] Filtering ${allDetections.length} bicycle detections for active cyclists...`);
+
+      // Ask AI to identify which detections show people actively riding
+      const question = "In this image, are there any people actively riding bicycles or cycling? Describe what you see - are the bicycles being ridden by people, or are they parked/stationary? Focus on whether someone is currently on and riding the bicycle.";
+      const answer = await this.askQuestion(imageUri, question);
+
+      console.log(`🤖 [HACKATHON] AI cyclist analysis: "${answer}"`);
+
+      // Analyze the response for active cycling indicators
+      const activeCyclingKeywords = [
+        'riding', 'cycling', 'person on', 'someone on', 'riding bicycle', 
+        'cycling on', 'person riding', 'cyclist', 'riding bike', 'on a bike',
+        'pedaling', 'moving', 'in motion'
+      ];
+
+      const parkedKeywords = [
+        'parked', 'stationary', 'not riding', 'no one on', 'empty', 'unoccupied',
+        'standing', 'leaning', 'not moving', 'abandoned'
+      ];
+
+      const hasActiveCycling = activeCyclingKeywords.some(keyword => 
+        answer.toLowerCase().includes(keyword)
+      );
+
+      const hasParkedBikes = parkedKeywords.some(keyword => 
+        answer.toLowerCase().includes(keyword)
+      );
+
+      // If we detect active cycling, return the detections
+      // If only parked bikes, return empty array
+      if (hasActiveCycling && !hasParkedBikes) {
+        console.log(`✅ [HACKATHON] Found active cyclists - returning ${allDetections.length} detections`);
+        return allDetections;
+      } else if (hasParkedBikes && !hasActiveCycling) {
+        console.log(`🚫 [HACKATHON] Only parked bicycles detected - filtering out safety concern`);
+        return [];
+      } else if (hasActiveCycling && hasParkedBikes) {
+        // Mixed scenario - be conservative and return half the detections
+        console.log(`⚠️ [HACKATHON] Mixed active/parked bicycles - returning partial detections`);
+        return allDetections.slice(0, Math.ceil(allDetections.length / 2));
+      } else {
+        // Unclear - ask more specific question
+        const specificQuestion = "How many people do you see currently riding or sitting on bicycles in this image? Count only people who are actively on bicycles, not parked bicycles.";
+        const specificAnswer = await this.askQuestion(imageUri, specificQuestion);
+        
+        console.log(`🔍 [HACKATHON] Specific cyclist count: "${specificAnswer}"`);
+        
+        // Extract number from response
+        const cyclistCount = this.extractNumberFromText(specificAnswer);
+        
+        if (cyclistCount > 0) {
+          console.log(`✅ [HACKATHON] AI confirmed ${cyclistCount} active cyclists`);
+          return allDetections.slice(0, cyclistCount);
+        } else {
+          console.log(`🚫 [HACKATHON] No active cyclists confirmed by AI`);
+          return [];
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ [HACKATHON] Error filtering for active cyclists:', error);
+      // Fallback - be conservative and assume some are active
+      return allDetections.slice(0, Math.ceil(allDetections.length / 2));
+    }
+  }
+
+  /**
+   * Extract number from text response
+   */
+  private extractNumberFromText(text: string): number {
+    const numbers = text.match(/\d+/g);
+    if (numbers && numbers.length > 0) {
+      return parseInt(numbers[0], 10);
+    }
+    
+    // Check for written numbers
+    const writtenNumbers: { [key: string]: number } = {
+      'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+      'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+    };
+    
+    const lowerText = text.toLowerCase();
+    for (const [word, num] of Object.entries(writtenNumbers)) {
+      if (lowerText.includes(word)) {
+        return num;
+      }
+    }
+    
+    return 0;
+  }
+
+  /**
+   * Calculate safety score specifically for active cyclists (more severe than parked bikes)
+   */
+  private calculateCyclistSafetyScore(activeCyclistCount: number): number {
+    // Active cyclists on sidewalks are a more serious safety concern than parked bikes
+    // Scale: 10 = safest, 1 = most dangerous
+    
+    if (activeCyclistCount === 0) return 10; // Very safe - no cyclists on sidewalk
+    if (activeCyclistCount === 1) return 5;  // Moderate concern - one cyclist
+    if (activeCyclistCount === 2) return 3;  // High concern - multiple cyclists
+    if (activeCyclistCount >= 3) return 1;   // Very dangerous - many cyclists on sidewalk
+    
+    return 5; // Default moderate score
   }
 
   /**
@@ -154,29 +299,49 @@ class MoondreamService {
   }
 
   /**
-   * Call Moondream detect API for a specific object type
+   * Call Moondream detect API for a specific object type with timeout handling
    */
   private async callDetectAPI(base64Image: string, objectType: string): Promise<MoondreamDetectionResult> {
-    const response = await fetch(`${this.baseUrl}/detect`, {
-      method: 'POST',
-      headers: {
-        'X-Moondream-Auth': this.apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image_url: base64Image,
-        object: objectType,
-        stream: false
-      })
-    });
+    try {
+      console.log(`🤖 [HACKATHON] Calling Moondream API for ${objectType} detection...`);
+      
+      // Add timeout to API request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const response = await fetch(`${this.baseUrl}/detect`, {
+        method: 'POST',
+        headers: {
+          'X-Moondream-Auth': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_url: base64Image,
+          object: objectType,
+          stream: false
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Moondream API error:', errorText);
-      throw new Error(`Moondream API error: ${response.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [HACKATHON] Moondream API error:', errorText);
+        throw new Error(`Moondream API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ [HACKATHON] ${objectType} detection completed`);
+      return result;
+      
+    } catch (error: any) {
+      console.error(`❌ [HACKATHON] Error calling Moondream API for ${objectType}:`, error);
+      if (error?.name === 'AbortError') {
+        throw new Error(`${objectType} detection timed out - check your network connection`);
+      }
+      throw error;
     }
-
-    return await response.json();
   }
 
   /**
@@ -257,7 +422,12 @@ class MoondreamService {
    */
   async askQuestion(imageUri: string, question: string): Promise<string> {
     try {
+      console.log(`❓ [HACKATHON] Asking question: "${question}"`);
       const base64Image = await this.imageUriToBase64(imageUri);
+
+      // Add timeout to API request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
       const response = await fetch(`${this.baseUrl}/query`, {
         method: 'POST',
@@ -269,28 +439,41 @@ class MoondreamService {
           image_url: base64Image,
           question: question,
           stream: false
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Moondream API error: ${response.status}`);
       }
 
       const result = await response.json();
-      return result.answer || result.text || 'No answer received';
+      const answer = result.answer || result.text || 'No answer received';
+      console.log(`✅ [HACKATHON] Question answered: "${answer}"`);
+      return answer;
 
-    } catch (error) {
-      console.error('Error asking question:', error);
+    } catch (error: any) {
+      console.error('❌ [HACKATHON] Error asking question:', error);
+      if (error?.name === 'AbortError') {
+        throw new Error('Question timed out - check your network connection');
+      }
       throw new Error('Failed to get answer from Moondream');
     }
   }
 
   /**
-   * Get image caption for additional context
+   * Get image caption for additional context with timeout handling
    */
   async getCaptionForContext(imageUri: string): Promise<string> {
     try {
+      console.log(`📝 [HACKATHON] Getting image caption...`);
       const base64Image = await this.imageUriToBase64(imageUri);
+
+      // Add timeout to API request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
 
       const response = await fetch(`${this.baseUrl}/caption`, {
         method: 'POST',
@@ -302,19 +485,29 @@ class MoondreamService {
           image_url: base64Image,
           length: 'short',
           stream: false
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Moondream API error: ${response.status}`);
       }
 
       const result = await response.json();
-      return result.caption || 'No caption available';
+      const caption = result.caption || 'No caption available';
+      console.log(`✅ [HACKATHON] Caption received: "${caption}"`);
+      return caption;
 
-    } catch (error) {
-      console.error('Error getting caption:', error);
-      return 'Caption unavailable';
+    } catch (error: any) {
+      console.error('❌ [HACKATHON] Error getting caption:', error);
+      if (error?.name === 'AbortError') {
+        console.log('⚠️ [HACKATHON] Caption request timed out, using fallback');
+        return 'Street scene with pedestrian area'; // Fallback description
+      }
+      console.log('⚠️ [HACKATHON] Caption failed, using fallback');
+      return 'Street scene with pedestrian area'; // Fallback description
     }
   }
 }

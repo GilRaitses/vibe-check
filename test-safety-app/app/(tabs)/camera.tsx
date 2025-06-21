@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Image, Alert, Dimensions, ActivityIndicator, Modal } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Image, Alert, Dimensions, ActivityIndicator, Modal, Pressable } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useSafety } from '@/components/SafetyContext';
 import * as Location from 'expo-location';
@@ -80,6 +80,7 @@ export default function CameraScreen() {
   const [detectionResult, setDetectionResult] = useState<BicycleDetectionResult | null>(null);
   const [showVerificationOverlay, setShowVerificationOverlay] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [showContextPanel, setShowContextPanel] = useState(false);
   
   // Custom modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -164,9 +165,10 @@ export default function CameraScreen() {
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: 0.6, // Reduced quality for better network performance
         base64: false,
         exif: false,
+        skipProcessing: false, // Allow processing for compression
       });
 
       if (photo) {
@@ -180,6 +182,7 @@ export default function CameraScreen() {
         // Start analyzing with Moondream
         setIsAnalyzing(true);
         try {
+          console.log('🔍 [HACKATHON] Starting camera image analysis...');
           const result = await MoondreamService.detectBicycles(photo.uri);
           setDetectionResult(result);
           setIsAnalyzing(false);
@@ -188,9 +191,9 @@ export default function CameraScreen() {
             // Show verification overlay
             setShowVerificationOverlay(true);
           } else {
-            // No bicycles detected, show context about what was detected
+            // No active cyclists detected, show context about what was detected
             const message = result.hasSidewalk 
-              ? `✅ Sidewalk/pavement detected!\n\n🚴‍♀️ No bicycles found on the sidewalk.\n\nScene: ${result.sceneDescription}\n\nThis indicates a safe area for pedestrians.`
+              ? `✅ Sidewalk/pavement detected!\n\n🚴‍♀️ No people riding bicycles found on the sidewalk.\n\nScene: ${result.sceneDescription}\n\nThis indicates a safe area for pedestrians.`
               : `❓ No clear sidewalk detected in this image.\n\nScene: ${result.sceneDescription}\n\nTry pointing the camera at a sidewalk or pedestrian area.`;
             
             showCustomAlert(
@@ -198,7 +201,7 @@ export default function CameraScreen() {
               message,
               [
                 {
-                  text: 'Add Bicycles Manually',
+                  text: 'Add Cyclists Manually',
                   onPress: () => setShowVerificationOverlay(true)
                 },
                 {
@@ -208,12 +211,28 @@ export default function CameraScreen() {
               ]
             );
           }
-        } catch (error) {
+        } catch (error: any) {
           setIsAnalyzing(false);
-          console.error('Error analyzing image:', error);
+          console.error('❌ [HACKATHON] Error analyzing camera image:', error);
+          
+          // Show user-friendly error message based on error type
+          let errorTitle = 'Analysis Failed';
+          let errorMessage = 'Could not analyze the image. You can still manually mark bicycles.';
+          
+          if (error?.message?.includes('timed out')) {
+            errorTitle = '⏱️ Network Timeout';
+            errorMessage = 'The analysis took too long. This usually happens with poor network connection.\n\n📶 Try moving to better network coverage and retaking the photo.';
+          } else if (error?.message?.includes('network') || error?.message?.includes('connection')) {
+            errorTitle = '📶 Network Error';
+            errorMessage = 'Could not connect to analysis service.\n\nPlease check your internet connection and try again.';
+          } else if (error?.message?.includes('process image')) {
+            errorTitle = '📸 Image Processing Error';
+            errorMessage = 'Could not process the image.\n\nTry taking a new photo with better lighting.';
+          }
+          
           showCustomAlert(
-            'Analysis Failed',
-            'Could not analyze the image. You can still manually mark bicycles.',
+            errorTitle,
+            errorMessage,
             [
               {
                 text: 'Manual Marking',
@@ -230,7 +249,8 @@ export default function CameraScreen() {
                   setShowVerificationOverlay(true);
                 }
               },
-              { text: 'Cancel', onPress: () => setCapturedPhoto(null), style: 'cancel' }
+              { text: 'Retake Photo', onPress: () => setCapturedPhoto(null) },
+              { text: 'Cancel', onPress: () => setCapturedPhoto(null) }
             ]
           );
         }
@@ -266,7 +286,7 @@ export default function CameraScreen() {
     // Show results
     showCustomAlert(
       'Safety Assessment Complete',
-      `Detected ${totalBicycles} bicycle(s) on sidewalk.\nSafety Score: ${safetyScore}/10\n\nThis location has been updated on the safety map.`,
+      `Detected ${totalBicycles} active cyclist(s) on sidewalk.\nSafety Score: ${safetyScore}/10\n\nThis location has been updated on the safety map.`,
       [
         { text: 'Take Another Photo', onPress: resetCamera },
         { text: 'View on Map', onPress: () => {
@@ -278,11 +298,24 @@ export default function CameraScreen() {
   };
 
   const resetCamera = () => {
+    console.log('🔄 [HACKATHON] Resetting camera state...');
     setCapturedPhoto(null);
     setDetectionResult(null);
     setShowVerificationOverlay(false);
     setIsAnalyzing(false);
     setImageSize({ width: 0, height: 0 });
+    setShowContextPanel(false);
+    console.log('✅ [HACKATHON] Camera state reset complete');
+  };
+
+  const forceResetCamera = () => {
+    console.log('🚨 [HACKATHON] Force resetting camera due to stuck state...');
+    resetCamera();
+    showCustomAlert(
+      'Camera Reset',
+      'Camera has been reset due to stuck state. You can now take a new photo.',
+      [{ text: 'OK', onPress: () => {} }]
+    );
   };
 
   if (!permission) {
@@ -322,32 +355,33 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Bicycle Safety Detection</Text>
-        <Text style={styles.subtitle}>
-          Point camera at sidewalk and take a photo to detect bicycles
-        </Text>
-        <View style={styles.scoreContainer}>
-          <Text style={styles.scoreIcon}>📍</Text>
-          <Text style={styles.scoreText}>
-            Current safety score: {nearestBlock?.score || 5}/10
-          </Text>
-        </View>
-      </View>
-
-      {/* Camera View */}
-      <View style={styles.cameraContainer}>
+      {/* Full Screen Camera View */}
+      <View style={styles.fullScreenCameraContainer}>
         {capturedPhoto ? (
-          <View style={styles.previewContainer}>
+          <Pressable 
+            style={styles.previewContainer}
+            onPress={() => {
+              // Single tap does nothing, but allows double tap detection
+            }}
+            onLongPress={forceResetCamera}
+            delayLongPress={1000}
+          >
             <Image source={{ uri: capturedPhoto }} style={styles.preview} />
             {isAnalyzing && (
               <View style={styles.analyzingOverlay}>
                 <ActivityIndicator size="large" color="#00AA00" />
                 <Text style={styles.analyzingText}>Analyzing with Moondream AI...</Text>
+                <Text style={styles.analyzingSubtext}>Long press to force reset if stuck</Text>
               </View>
             )}
-          </View>
+            {!isAnalyzing && (
+              <View style={styles.previewInstructions}>
+                <Text style={styles.previewInstructionsText}>
+                  Long press image to force reset if stuck
+                </Text>
+              </View>
+            )}
+          </Pressable>
         ) : (
           <CameraView 
             ref={cameraRef}
@@ -357,12 +391,30 @@ export default function CameraScreen() {
         )}
       </View>
 
-      {/* Controls */}
-      <View style={styles.controls}>
+      {/* Top Controls Overlay */}
+      <View style={styles.topOverlay}>
+        <TouchableOpacity 
+          style={styles.infoButton}
+          onPress={() => setShowContextPanel(!showContextPanel)}
+        >
+          <Text style={styles.infoButtonText}>
+            {showContextPanel ? '✕' : 'ℹ️'}
+          </Text>
+        </TouchableOpacity>
+        <Text style={styles.scoreOverlay}>
+          📍 Safety: {nearestBlock?.score || 5}/10
+        </Text>
+      </View>
+
+      {/* Bottom Controls Overlay */}
+      <View style={styles.bottomOverlay}>
         {capturedPhoto ? (
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.secondaryButton} onPress={resetCamera}>
-              <Text style={styles.secondaryButtonText}>Retake</Text>
+            <TouchableOpacity style={styles.retakeButton} onPress={resetCamera}>
+              <Text style={styles.retakeButtonText}>↻ Retake</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.clearButton} onPress={resetCamera}>
+              <Text style={styles.clearButtonText}>✕ Clear</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -372,16 +424,32 @@ export default function CameraScreen() {
         )}
       </View>
 
-      {/* Instructions */}
-      <View style={styles.instructions}>
-        <Text style={styles.instructionsTitle}>🚴‍♀️ How it works:</Text>
-        <Text style={styles.instructionsText}>
-          • Point camera at sidewalk or pedestrian area{'\n'}
-          • AI detects bicycles and sidewalks automatically{'\n'}
-          • Verify results and add missed detections{'\n'}
-          • Safety score updates based on bicycle count
-        </Text>
-      </View>
+      {/* Collapsible Context Panel */}
+      {showContextPanel && (
+        <View style={styles.contextPanel}>
+          <View style={styles.contextHeader}>
+            <Text style={styles.contextTitle}>🚴‍♀️ Cyclist Safety Detection</Text>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowContextPanel(false)}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.contextSubtitle}>
+            Point camera at sidewalk to detect people riding bicycles
+          </Text>
+          <View style={styles.contextInstructions}>
+            <Text style={styles.contextInstructionsTitle}>How it works:</Text>
+            <Text style={styles.contextInstructionsText}>
+              • Point camera at sidewalk or pedestrian area{'\n'}
+              • AI detects people actively riding bicycles{'\n'}
+              • Ignores parked/stationary bicycles{'\n'}
+              • Safety score based on active cyclist count
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Custom Modal */}
       <CustomModal
@@ -399,6 +467,125 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  fullScreenCameraContainer: {
+    flex: 1,
+  },
+  topOverlay: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  infoButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoButtonText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+  },
+  scoreOverlay: {
+    fontSize: 16,
+    color: '#00FF00',
+    fontWeight: 'bold',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  bottomOverlay: {
+    position: 'absolute',
+    bottom: 50,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  retakeButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+  },
+  retakeButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  clearButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.9)', // Red background
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+  },
+  clearButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  contextPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '60%',
+    zIndex: 2,
+  },
+  contextHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  contextTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  contextSubtitle: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    marginBottom: 16,
+  },
+  contextInstructions: {
+    marginTop: 8,
+  },
+  contextInstructionsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  contextInstructionsText: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    lineHeight: 20,
   },
   header: {
     paddingTop: 60,
@@ -449,6 +636,7 @@ const styles = StyleSheet.create({
   preview: {
     flex: 1,
     width: '100%',
+    resizeMode: 'contain', // Maintain aspect ratio without cropping
   },
   capturedImage: {
     alignSelf: 'center',
@@ -468,6 +656,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 16,
+    textAlign: 'center',
+  },
+  analyzingSubtext: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  previewInstructions: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 8,
+    padding: 12,
+  },
+  previewInstructionsText: {
+    color: '#CCCCCC',
+    fontSize: 14,
     textAlign: 'center',
   },
   controls: {

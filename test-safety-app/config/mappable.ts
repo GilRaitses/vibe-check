@@ -1,7 +1,7 @@
 // Mappable Configuration
 export const MAPPABLE_CONFIG = {
   // Replace with your actual Mappable API key
-  API_KEY: 'YOUR_MAPPABLE_API_KEY_HERE',
+  API_KEY: 'pk_ipHBtxKBAAfqNcxvsELfZpMgQtNVdqrHbDoLCSBlVdRzZyEheedmZxmtXftBNVWb',
   
   // Default map settings
   DEFAULT_CENTER: {

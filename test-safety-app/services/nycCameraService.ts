@@ -11,6 +11,16 @@ export interface NYCCamera {
   isOnline: boolean;
 }
 
+export interface CameraCluster {
+  id: string;
+  latitude: number;
+  longitude: number;
+  cameraCount: number;
+  cameras: NYCCamera[];
+  region: string;
+  zoomLevel: number;
+}
+
 export interface CameraRiskAnalysis {
   cameraId: string;
   riskScore: number; // 1-10 scale (1 = high risk, 10 = low risk)
@@ -37,10 +47,43 @@ export interface HeatMapRegion {
   lastUpdated: Date;
 }
 
+export interface BatchAnalysisResult {
+  compositeImageUrl: string;
+  cameraIds: string[];
+  regionName: string;
+  totalBicycles: number;
+  totalTrucks: number;
+  totalPedestrians: number;
+  averageRiskScore: number;
+  confidence: 'high' | 'medium' | 'low';
+  sceneDescription: string;
+  analysisTimestamp: Date;
+  individualCameras: {
+    camera: NYCCamera;
+    analysis: CameraRiskAnalysis;
+  }[];
+}
+
+export interface HeatMapData {
+  id: string;
+  bounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  };
+  riskScore: number;
+  cameraCount: number;
+  lastAnalyzed: Date;
+  analysisType: 'individual' | 'batch';
+  color: string; // Heat map color based on risk
+}
+
 class NYCCameraService {
   private readonly NYC_TMC_API = 'https://nyctmc.org/api/cameras';
   private cameraCache: Map<string, NYCCamera> = new Map();
   private analysisCache: Map<string, CameraRiskAnalysis> = new Map();
+  private clusterCache: Map<string, CameraCluster[]> = new Map();
   private lastFetch: Date | null = null;
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   
@@ -50,6 +93,17 @@ class NYCCameraService {
   private readonly REQUEST_DELAY = 2000; // 2 seconds between requests
   private readonly MAX_CONCURRENT = 1; // Only 1 request at a time
   private activeRequests = 0;
+
+  // Clustering configuration
+  private readonly ZOOM_BREAKPOINTS = {
+    1: 0.5,   // Very zoomed out - large clusters (0.5 degree grid)
+    2: 0.2,   // Zoomed out - medium clusters (0.2 degree grid)
+    3: 0.1,   // Medium zoom - smaller clusters (0.1 degree grid)
+    4: 0.05,  // Zoomed in - very small clusters (0.05 degree grid)
+    5: 0.01   // Very zoomed in - individual cameras (0.01 degree grid)
+  };
+
+  private heatMapCache: Map<string, HeatMapData> = new Map();
 
   /**
    * Add request to queue with rate limiting
@@ -201,11 +255,11 @@ class NYCCameraService {
       console.log(`📍 [HACKATHON] Camera location: ${camera.latitude}, ${camera.longitude}`);
 
       // Use rate-limited requests to avoid overwhelming the API
-      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #1: Bicycle detection for camera ${camera.id}`);
+      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #1: Active cyclist detection for camera ${camera.id}`);
       const bicycleResult = await this.queueRequest(() => 
         MoondreamService.detectBicycles(camera.imageUrl)
       );
-      console.log(`✅ [HACKATHON] Bicycle detection completed:`, bicycleResult);
+      console.log(`✅ [HACKATHON] Active cyclist detection completed:`, bicycleResult);
       
       // Detect trucks and traffic with rate limiting
       const truckQuestion = "How many trucks, delivery vehicles, or large vehicles do you see in this image?";
@@ -239,7 +293,7 @@ class NYCCameraService {
 
       console.log(`🧮 [HACKATHON] Extracted counts from AI responses:`);
       console.log(`  🚛 Trucks: ${truckCount}`);
-      console.log(`  🚴 Bicycles: ${bikeCount}`);
+      console.log(`  🚴 Active Cyclists: ${bikeCount}`);
       console.log(`  🚶 Pedestrians: ${pedestrianCount}`);
 
       // Determine traffic density
@@ -276,6 +330,10 @@ class NYCCameraService {
 
       // Cache the analysis
       this.analysisCache.set(camera.id, analysis);
+      
+      // Update heat map with individual analysis
+      await this.updateHeatMapWithIndividualAnalysis(camera, analysis);
+      
       return analysis;
 
     } catch (error) {
@@ -426,7 +484,385 @@ class NYCCameraService {
   clearCache(): void {
     this.cameraCache.clear();
     this.analysisCache.clear();
+    this.clusterCache.clear();
     this.lastFetch = null;
+  }
+
+  /**
+   * Get camera clusters for a specific zoom level
+   */
+  async getCameraClusters(zoomLevel: number, bounds?: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  }): Promise<CameraCluster[]> {
+    try {
+      const cacheKey = `zoom_${zoomLevel}_${bounds ? JSON.stringify(bounds) : 'all'}`;
+      
+      // Check cache first
+      if (this.clusterCache.has(cacheKey)) {
+        console.log(`📋 [HACKATHON] Using cached clusters for zoom level ${zoomLevel}`);
+        return this.clusterCache.get(cacheKey)!;
+      }
+
+      console.log(`🔍 [HACKATHON] Generating camera clusters for zoom level ${zoomLevel}`);
+      
+      const allCameras = await this.fetchCameras();
+      let camerasToCluster = allCameras;
+
+      // Filter by bounds if provided
+      if (bounds) {
+        camerasToCluster = allCameras.filter(camera => 
+          camera.latitude >= bounds.south &&
+          camera.latitude <= bounds.north &&
+          camera.longitude >= bounds.west &&
+          camera.longitude <= bounds.east
+        );
+      }
+
+      const gridSize = this.ZOOM_BREAKPOINTS[zoomLevel as keyof typeof this.ZOOM_BREAKPOINTS] || 0.1;
+      const clusters = this.clusterCameras(camerasToCluster, gridSize, zoomLevel);
+
+      // Cache the result
+      this.clusterCache.set(cacheKey, clusters);
+      
+      console.log(`✅ [HACKATHON] Generated ${clusters.length} clusters for zoom level ${zoomLevel}`);
+      return clusters;
+
+    } catch (error) {
+      console.error('❌ [HACKATHON] Error generating camera clusters:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cluster cameras into groups based on grid size
+   */
+  private clusterCameras(cameras: NYCCamera[], gridSize: number, zoomLevel: number): CameraCluster[] {
+    const clusters: Map<string, CameraCluster> = new Map();
+
+    cameras.forEach(camera => {
+      // Calculate grid cell
+      const gridLat = Math.floor(camera.latitude / gridSize) * gridSize;
+      const gridLng = Math.floor(camera.longitude / gridSize) * gridSize;
+      const gridKey = `${gridLat}_${gridLng}`;
+
+      if (!clusters.has(gridKey)) {
+        clusters.set(gridKey, {
+          id: `cluster_${gridKey}_zoom${zoomLevel}`,
+          latitude: gridLat + (gridSize / 2), // Center of grid cell
+          longitude: gridLng + (gridSize / 2), // Center of grid cell
+          cameraCount: 0,
+          cameras: [],
+          region: this.getRegionName(gridLat + (gridSize / 2), gridLng + (gridSize / 2)),
+          zoomLevel
+        });
+      }
+
+      const cluster = clusters.get(gridKey)!;
+      cluster.cameras.push(camera);
+      cluster.cameraCount = cluster.cameras.length;
+
+      // Update cluster center to be average of all cameras in cluster
+      const avgLat = cluster.cameras.reduce((sum, cam) => sum + cam.latitude, 0) / cluster.cameras.length;
+      const avgLng = cluster.cameras.reduce((sum, cam) => sum + cam.longitude, 0) / cluster.cameras.length;
+      cluster.latitude = avgLat;
+      cluster.longitude = avgLng;
+    });
+
+    return Array.from(clusters.values());
+  }
+
+  /**
+   * Get region name based on coordinates (improved NYC detection)
+   */
+  private getRegionName(lat: number, lng: number): string {
+    // More accurate NYC region detection
+    console.log(`🗺️ [HACKATHON] Determining region for coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    
+    // Manhattan: Roughly between -74.02 to -73.93 longitude, 40.70 to 40.88 latitude
+    if (lat >= 40.70 && lat <= 40.88 && lng >= -74.02 && lng <= -73.93) {
+      console.log(`📍 [HACKATHON] Detected region: Manhattan`);
+      return 'Manhattan';
+    }
+    
+    // Brooklyn: South of Manhattan, east of -74.02
+    if (lat >= 40.57 && lat <= 40.74 && lng >= -74.05 && lng <= -73.83) {
+      console.log(`📍 [HACKATHON] Detected region: Brooklyn`);
+      return 'Brooklyn';
+    }
+    
+    // Queens: East of Manhattan/Brooklyn
+    if (lat >= 40.54 && lat <= 40.80 && lng >= -73.96 && lng <= -73.70) {
+      console.log(`📍 [HACKATHON] Detected region: Queens`);
+      return 'Queens';
+    }
+    
+    // Bronx: North of Manhattan
+    if (lat >= 40.79 && lat <= 40.92 && lng >= -73.93 && lng <= -73.77) {
+      console.log(`📍 [HACKATHON] Detected region: Bronx`);
+      return 'Bronx';
+    }
+    
+    // Staten Island: Southwest
+    if (lat >= 40.50 && lat <= 40.65 && lng >= -74.26 && lng <= -74.05) {
+      console.log(`📍 [HACKATHON] Detected region: Staten Island`);
+      return 'Staten Island';
+    }
+    
+    // Default fallback with more specific detection
+    if (lng < -74.0) {
+      console.log(`📍 [HACKATHON] Detected region: Manhattan (fallback - west of -74.0)`);
+      return 'Manhattan';
+    }
+    
+    console.log(`📍 [HACKATHON] Detected region: NYC Area (unknown)`);
+    return 'NYC Area';
+  }
+
+  /**
+   * Get individual camera details
+   */
+  async getCameraById(cameraId: string): Promise<NYCCamera | null> {
+    const allCameras = await this.fetchCameras();
+    return allCameras.find(camera => camera.id === cameraId) || null;
+  }
+
+  /**
+   * Create composite image from multiple camera feeds for batch analysis
+   */
+  async createCompositeImage(cameras: NYCCamera[]): Promise<string> {
+    try {
+      console.log(`🖼️ [HACKATHON] Creating composite image from ${cameras.length} cameras`);
+      
+      // For now, we'll create a simple grid layout
+      // In a real implementation, you'd use Canvas or Image manipulation library
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Calculate grid size (e.g., 2x2 for 4 cameras, 3x2 for 6 cameras)
+      const gridCols = Math.ceil(Math.sqrt(cameras.length));
+      const gridRows = Math.ceil(cameras.length / gridCols);
+      
+      const imageWidth = 320; // Individual image width
+      const imageHeight = 240; // Individual image height
+      
+      canvas.width = gridCols * imageWidth;
+      canvas.height = gridRows * imageHeight;
+      
+      // Load and draw each camera image
+      const imagePromises = cameras.map(async (camera, index) => {
+        return new Promise<void>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const col = index % gridCols;
+            const row = Math.floor(index / gridCols);
+            const x = col * imageWidth;
+            const y = row * imageHeight;
+            
+            ctx?.drawImage(img, x, y, imageWidth, imageHeight);
+            resolve();
+          };
+          img.onerror = reject;
+          img.src = camera.imageUrl;
+        });
+      });
+      
+      await Promise.all(imagePromises);
+      
+      // Convert canvas to base64
+      const compositeDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      console.log(`✅ [HACKATHON] Composite image created (${canvas.width}x${canvas.height})`);
+      
+      return compositeDataUrl;
+      
+    } catch (error) {
+      console.error('❌ [HACKATHON] Error creating composite image:', error);
+      throw new Error('Failed to create composite image');
+    }
+  }
+
+  /**
+   * Analyze multiple cameras as a batch using composite image
+   */
+  async analyzeCameraBatch(cameras: NYCCamera[]): Promise<BatchAnalysisResult> {
+    try {
+      console.log(`🎯 [HACKATHON] Starting batch analysis for ${cameras.length} cameras`);
+      
+      // Create composite image
+      const compositeImageUrl = await this.createCompositeImage(cameras);
+      
+      // Analyze composite image with Moondream
+      const batchAnalysis = await MoondreamService.detectBicycles(compositeImageUrl);
+      
+      // Also analyze individual cameras for detailed breakdown
+      const individualAnalyses = await Promise.all(
+        cameras.map(async (camera) => {
+          try {
+            const analysis = await this.analyzeCameraRisk(camera);
+            return { camera, analysis };
+          } catch (error) {
+            console.warn(`⚠️ [HACKATHON] Individual analysis failed for ${camera.name}:`, error);
+            // Return default analysis if individual fails
+            return {
+              camera,
+              analysis: {
+                cameraId: camera.id,
+                riskScore: 5,
+                truckCount: 0,
+                bikeCount: 0,
+                pedestrianCount: 0,
+                trafficDensity: 'medium' as const,
+                sidewalkCondition: 'clear' as const,
+                confidence: 'low' as const,
+                lastAnalyzed: new Date(),
+                sceneDescription: 'Individual analysis unavailable'
+              }
+            };
+          }
+        })
+      );
+      
+      // Calculate aggregate metrics
+      const totalBicycles = individualAnalyses.reduce((sum, item) => sum + item.analysis.bikeCount, 0);
+      const totalTrucks = individualAnalyses.reduce((sum, item) => sum + item.analysis.truckCount, 0);
+      const totalPedestrians = individualAnalyses.reduce((sum, item) => sum + item.analysis.pedestrianCount, 0);
+      const averageRiskScore = individualAnalyses.reduce((sum, item) => sum + item.analysis.riskScore, 0) / individualAnalyses.length;
+      
+      // Determine region name from camera locations
+      const regionName = this.getRegionName(
+        cameras.reduce((sum, cam) => sum + cam.latitude, 0) / cameras.length,
+        cameras.reduce((sum, cam) => sum + cam.longitude, 0) / cameras.length
+      );
+      
+      const result: BatchAnalysisResult = {
+        compositeImageUrl,
+        cameraIds: cameras.map(c => c.id),
+        regionName,
+        totalBicycles,
+        totalTrucks,
+        totalPedestrians,
+        averageRiskScore,
+        confidence: batchAnalysis.confidence,
+        sceneDescription: `Batch analysis of ${cameras.length} cameras in ${regionName}: ${batchAnalysis.sceneDescription}`,
+        analysisTimestamp: new Date(),
+        individualCameras: individualAnalyses
+      };
+      
+      // Update heat map with batch analysis
+      await this.updateHeatMapWithBatchAnalysis(cameras, result);
+      
+      console.log(`✅ [HACKATHON] Batch analysis completed for ${regionName}`);
+      return result;
+      
+    } catch (error) {
+      console.error('❌ [HACKATHON] Batch analysis failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update heat map data with batch analysis results
+   */
+  private async updateHeatMapWithBatchAnalysis(cameras: NYCCamera[], batchResult: BatchAnalysisResult): Promise<void> {
+    try {
+      // Calculate bounds for the camera group
+      const latitudes = cameras.map(c => c.latitude);
+      const longitudes = cameras.map(c => c.longitude);
+      
+      const bounds = {
+        north: Math.max(...latitudes) + 0.001, // Add small padding
+        south: Math.min(...latitudes) - 0.001,
+        east: Math.max(...longitudes) + 0.001,
+        west: Math.min(...longitudes) - 0.001
+      };
+      
+      // Generate heat map color based on risk score
+      const color = this.getRiskColor(batchResult.averageRiskScore);
+      
+      const heatMapData: HeatMapData = {
+        id: `batch_${batchResult.cameraIds.join('_')}`,
+        bounds,
+        riskScore: batchResult.averageRiskScore,
+        cameraCount: cameras.length,
+        lastAnalyzed: batchResult.analysisTimestamp,
+        analysisType: 'batch',
+        color
+      };
+      
+      this.heatMapCache.set(heatMapData.id, heatMapData);
+      console.log(`🗺️ [HACKATHON] Heat map updated for ${batchResult.regionName} (Risk: ${batchResult.averageRiskScore.toFixed(1)})`);
+      
+    } catch (error) {
+      console.error('❌ [HACKATHON] Error updating heat map:', error);
+    }
+  }
+
+  /**
+   * Update heat map with individual camera analysis
+   */
+  async updateHeatMapWithIndividualAnalysis(camera: NYCCamera, analysis: CameraRiskAnalysis): Promise<void> {
+    try {
+      const bounds = {
+        north: camera.latitude + 0.0005,
+        south: camera.latitude - 0.0005,
+        east: camera.longitude + 0.0005,
+        west: camera.longitude - 0.0005
+      };
+      
+      const color = this.getRiskColor(analysis.riskScore);
+      
+      const heatMapData: HeatMapData = {
+        id: `individual_${camera.id}`,
+        bounds,
+        riskScore: analysis.riskScore,
+        cameraCount: 1,
+        lastAnalyzed: analysis.lastAnalyzed,
+        analysisType: 'individual',
+        color
+      };
+      
+      this.heatMapCache.set(heatMapData.id, heatMapData);
+      console.log(`🗺️ [HACKATHON] Heat map updated for ${camera.name} (Risk: ${analysis.riskScore})`);
+      
+    } catch (error) {
+      console.error('❌ [HACKATHON] Error updating individual heat map:', error);
+    }
+  }
+
+  /**
+   * Get heat map color based on risk score
+   */
+  private getRiskColor(riskScore: number): string {
+    // Risk score is 1-10 (1 = high risk, 10 = low risk)
+    if (riskScore <= 3) return '#FF4444'; // High risk - Red
+    if (riskScore <= 5) return '#FF8800'; // Medium-high risk - Orange
+    if (riskScore <= 7) return '#FFDD00'; // Medium risk - Yellow
+    return '#44FF44'; // Low risk - Green
+  }
+
+  /**
+   * Get all heat map data for visualization
+   */
+  getHeatMapData(): HeatMapData[] {
+    return Array.from(this.heatMapCache.values());
+  }
+
+  /**
+   * Clear heat map data older than specified time
+   */
+  clearOldHeatMapData(maxAgeHours: number = 24): void {
+    const cutoffTime = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+    
+    for (const [id, data] of this.heatMapCache.entries()) {
+      if (data.lastAnalyzed < cutoffTime) {
+        this.heatMapCache.delete(id);
+      }
+    }
+    
+    console.log(`🧹 [HACKATHON] Cleaned old heat map data (${this.heatMapCache.size} entries remaining)`);
   }
 }
 
