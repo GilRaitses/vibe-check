@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, Text, Image, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { Camera } from 'expo-camera';
 import * as tf from '@tensorflow/tfjs';
@@ -6,6 +6,7 @@ import * as tfReactNative from '@tensorflow/tfjs-react-native';
 import * as FileSystem from 'expo-file-system';
 import { bundleResourceIO } from '@tensorflow/tfjs-react-native';
 import { useSafety } from '@/components/SafetyContext';
+import { MappableLocation } from '@mappable/mappable-react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
 const imageWidth = screenWidth * 0.9;
@@ -17,13 +18,22 @@ interface Detection {
   score: number;
 }
 
+interface Block {
+  id: number;
+  lat: number;
+  lng: number;
+  score: number;
+}
+
 export default function CameraScreen() {
-  const { updateBlockSafety } = useSafety();
+  const { blocks, updateBlockSafety } = useSafety();
   const [hasPermission, setHasPermission] = React.useState<boolean | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [bikeCount, setBikeCount] = useState<number | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<any>(null);
+  const [nearestBlock, setNearestBlock] = useState<Block | null>(null);
   const cameraRef = useRef<Camera | null>(null);
 
   React.useEffect(() => {
@@ -33,8 +43,65 @@ export default function CameraScreen() {
       // Prepare TensorFlow.js
       await tf.ready();
       await tfReactNative.setBackend('rn-webgl');
+      // Get current location
+      getCurrentLocation();
     })();
   }, []);
+
+  // Get current location using Mappable
+  const getCurrentLocation = async () => {
+    try {
+      const permission = await MappableLocation.requestPermission();
+      if (permission === 'granted') {
+        const location = await MappableLocation.getCurrentPosition();
+        setCurrentLocation(location);
+        findNearestBlock(location);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+    }
+  };
+
+  // Find the nearest block to the user's location
+  const findNearestBlock = (location: any) => {
+    if (!location || !blocks.length) return;
+
+    let nearestBlock = blocks[0];
+    let minDistance = calculateDistance(
+      location.latitude,
+      location.longitude,
+      blocks[0].lat,
+      blocks[0].lng
+    );
+
+    blocks.forEach(block => {
+      const distance = calculateDistance(
+        location.latitude,
+        location.longitude,
+        block.lat,
+        block.lng
+      );
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestBlock = block;
+      }
+    });
+
+    setNearestBlock(nearestBlock);
+  };
+
+  // Calculate distance between two points using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
 
   const takePicture = async () => {
     setBikeCount(null);
@@ -83,14 +150,23 @@ export default function CameraScreen() {
   // Save detection results to update map
   const saveToMap = () => {
     if (bikeCount !== null) {
-      // For demo purposes, update a random block
-      const randomBlockId = Math.floor(Math.random() * 3) + 1;
-      updateBlockSafety(randomBlockId, bikeCount);
-      const safetyScore = Math.max(1, 10 - bikeCount);
-      Alert.alert(
-        'Safety Score Updated',
-        `Bikes detected: ${bikeCount}\nUpdated Block ${randomBlockId}\nNew safety score: ${safetyScore}/10\n\nCheck the Safety Map to see the update!`
-      );
+      if (nearestBlock) {
+        updateBlockSafety(nearestBlock.id, bikeCount);
+        const safetyScore = Math.max(1, 10 - bikeCount);
+        Alert.alert(
+          'Safety Score Updated',
+          `Bikes detected: ${bikeCount}\nUpdated Block ${nearestBlock.id} (nearest to you)\nNew safety score: ${safetyScore}/10\n\nCheck the Safety Map to see the update!`
+        );
+      } else {
+        // Fallback to random block if location not available
+        const randomBlockId = Math.floor(Math.random() * 3) + 1;
+        updateBlockSafety(randomBlockId, bikeCount);
+        const safetyScore = Math.max(1, 10 - bikeCount);
+        Alert.alert(
+          'Safety Score Updated',
+          `Bikes detected: ${bikeCount}\nUpdated Block ${randomBlockId}\nNew safety score: ${safetyScore}/10\n\nCheck the Safety Map to see the update!`
+        );
+      }
     }
   };
 
@@ -136,6 +212,15 @@ export default function CameraScreen() {
           {renderBoundingBoxes()}
         </View>
       )}
+      
+      {/* Location Info */}
+      {nearestBlock && (
+        <View style={styles.locationInfo}>
+          <Text style={styles.locationText}>Nearest Block: {nearestBlock.id}</Text>
+          <Text style={styles.locationText}>Current Safety: {nearestBlock.score}/10</Text>
+        </View>
+      )}
+      
       <TouchableOpacity style={styles.button} onPress={takePicture} disabled={isProcessing}>
         <Text style={styles.buttonText}>{isProcessing ? 'Processing...' : 'Take Picture'}</Text>
       </TouchableOpacity>
@@ -168,6 +253,19 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
     marginBottom: 20,
+  },
+  locationInfo: {
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   button: {
     backgroundColor: '#007AFF',
