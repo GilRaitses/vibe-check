@@ -1,12 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Image, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Image, Alert, Dimensions, ActivityIndicator, Modal } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useSafety } from '@/components/SafetyContext';
 import * as Location from 'expo-location';
 import MoondreamService, { BicycleDetectionResult, DetectedObject } from '@/services/moondreamService';
 import BicycleDetectionOverlay from '@/components/BicycleDetectionOverlay';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const imageWidth = screenWidth * 0.9;
 const imageHeight = 400;
 
@@ -17,6 +17,60 @@ interface Block {
   score: number;
 }
 
+interface CustomModalProps {
+  visible: boolean;
+  title: string;
+  message: string;
+  buttons: Array<{
+    text: string;
+    onPress: () => void;
+    style?: 'default' | 'cancel' | 'destructive';
+  }>;
+  onClose: () => void;
+}
+
+const CustomModal: React.FC<CustomModalProps> = ({ visible, title, message, buttons, onClose }) => {
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>{title}</Text>
+          <Text style={styles.modalMessage}>{message}</Text>
+          <View style={styles.modalButtonContainer}>
+            {buttons.map((button, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.modalButton,
+                  button.style === 'cancel' && styles.modalButtonCancel,
+                  button.style === 'destructive' && styles.modalButtonDestructive,
+                ]}
+                onPress={() => {
+                  button.onPress();
+                  onClose();
+                }}
+              >
+                <Text style={[
+                  styles.modalButtonText,
+                  button.style === 'cancel' && styles.modalButtonTextCancel,
+                  button.style === 'destructive' && styles.modalButtonTextDestructive,
+                ]}>
+                  {button.text}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function CameraScreen() {
   const { blocks, updateBlockSafety } = useSafety();
   const [permission, requestPermission] = useCameraPermissions();
@@ -26,7 +80,29 @@ export default function CameraScreen() {
   const [detectionResult, setDetectionResult] = useState<BicycleDetectionResult | null>(null);
   const [showVerificationOverlay, setShowVerificationOverlay] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  
+  // Custom modal state
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalButtons, setModalButtons] = useState<Array<{
+    text: string;
+    onPress: () => void;
+    style?: 'default' | 'cancel' | 'destructive';
+  }>>([]);
+  
   const cameraRef = useRef<CameraView | null>(null);
+
+  const showCustomAlert = (title: string, message: string, buttons: Array<{
+    text: string;
+    onPress: () => void;
+    style?: 'default' | 'cancel' | 'destructive';
+  }>) => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalButtons(buttons);
+    setModalVisible(true);
+  };
 
   useEffect(() => {
     if (!permission) {
@@ -42,7 +118,11 @@ export default function CameraScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Location permission is required for safety mapping.');
+        showCustomAlert(
+          'Permission Denied',
+          'Location permission is required for safety mapping.',
+          [{ text: 'OK', onPress: () => {} }]
+        );
         return;
       }
 
@@ -64,13 +144,21 @@ export default function CameraScreen() {
       }
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('Location Error', 'Could not get current location.');
+      showCustomAlert(
+        'Location Error',
+        'Could not get current location.',
+        [{ text: 'OK', onPress: () => {} }]
+      );
     }
   };
 
   const takePicture = async () => {
     if (!cameraRef.current) {
-      Alert.alert('Error', 'Camera not ready');
+      showCustomAlert(
+        'Error',
+        'Camera not ready',
+        [{ text: 'OK', onPress: () => {} }]
+      );
       return;
     }
 
@@ -101,12 +189,11 @@ export default function CameraScreen() {
             setShowVerificationOverlay(true);
           } else {
             // No bicycles detected, show context about what was detected
-            const sidewalkCount = result.sidewalks.length;
             const message = result.hasSidewalk 
               ? `✅ Sidewalk/pavement detected!\n\n🚴‍♀️ No bicycles found on the sidewalk.\n\nScene: ${result.sceneDescription}\n\nThis indicates a safe area for pedestrians.`
               : `❓ No clear sidewalk detected in this image.\n\nScene: ${result.sceneDescription}\n\nTry pointing the camera at a sidewalk or pedestrian area.`;
             
-            Alert.alert(
+            showCustomAlert(
               result.hasSidewalk ? 'Safe Sidewalk Detected!' : 'No Sidewalk Detected',
               message,
               [
@@ -124,7 +211,7 @@ export default function CameraScreen() {
         } catch (error) {
           setIsAnalyzing(false);
           console.error('Error analyzing image:', error);
-          Alert.alert(
+          showCustomAlert(
             'Analysis Failed',
             'Could not analyze the image. You can still manually mark bicycles.',
             [
@@ -143,14 +230,18 @@ export default function CameraScreen() {
                   setShowVerificationOverlay(true);
                 }
               },
-              { text: 'Cancel', onPress: () => setCapturedPhoto(null) }
+              { text: 'Cancel', onPress: () => setCapturedPhoto(null), style: 'cancel' }
             ]
           );
         }
       }
     } catch (error) {
       console.error('Error taking picture:', error);
-      Alert.alert('Error', 'Failed to take picture');
+      showCustomAlert(
+        'Error',
+        'Failed to take picture',
+        [{ text: 'OK', onPress: () => {} }]
+      );
     }
   };
 
@@ -173,7 +264,7 @@ export default function CameraScreen() {
     }
 
     // Show results
-    Alert.alert(
+    showCustomAlert(
       'Safety Assessment Complete',
       `Detected ${totalBicycles} bicycle(s) on sidewalk.\nSafety Score: ${safetyScore}/10\n\nThis location has been updated on the safety map.`,
       [
@@ -209,11 +300,14 @@ export default function CameraScreen() {
     );
   }
 
-  // Show verification overlay
   if (showVerificationOverlay && capturedPhoto && detectionResult) {
     return (
       <View style={styles.container}>
-        <Image source={{ uri: capturedPhoto }} style={styles.capturedImage} />
+        <Image 
+          source={{ uri: capturedPhoto }} 
+          style={[styles.capturedImage, { width: imageSize.width, height: imageSize.height }]}
+          resizeMode="contain"
+        />
         <BicycleDetectionOverlay
           imageWidth={imageSize.width}
           imageHeight={imageSize.height}
@@ -226,72 +320,77 @@ export default function CameraScreen() {
     );
   }
 
-  // Show captured photo with analysis
-  if (capturedPhoto) {
-    return (
-      <View style={styles.container}>
-        <Image source={{ uri: capturedPhoto }} style={styles.capturedImage} />
-        
-        {isAnalyzing && (
-          <View style={styles.analysisOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
-            <Text style={styles.analysisText}>Analyzing image with Moondream AI...</Text>
-            <Text style={styles.analysisSubtext}>Detecting bicycles on sidewalk</Text>
-          </View>
-        )}
-
-        {!isAnalyzing && (
-          <View style={styles.resultsOverlay}>
-            <TouchableOpacity style={styles.button} onPress={resetCamera}>
-              <Text style={styles.buttonText}>Take Another Photo</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
-  }
-
-  // Camera view
   return (
     <View style={styles.container}>
-      <CameraView 
-        style={styles.camera} 
-        facing="back"
-        ref={cameraRef}
-      >
-        <View style={styles.overlay}>
-          {/* Instructions */}
-          <View style={styles.instructionsContainer}>
-            <Text style={styles.instructionsTitle}>Bicycle Safety Detection</Text>
-            <Text style={styles.instructionsText}>
-              Point camera at sidewalk and take a photo to detect bicycles
-            </Text>
-            {nearestBlock && (
-              <Text style={styles.locationText}>
-                📍 Current safety score: {nearestBlock.score}/10
-              </Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Bicycle Safety Detection</Text>
+        <Text style={styles.subtitle}>
+          Point camera at sidewalk and take a photo to detect bicycles
+        </Text>
+        <View style={styles.scoreContainer}>
+          <Text style={styles.scoreIcon}>📍</Text>
+          <Text style={styles.scoreText}>
+            Current safety score: {nearestBlock?.score || 5}/10
+          </Text>
+        </View>
+      </View>
+
+      {/* Camera View */}
+      <View style={styles.cameraContainer}>
+        {capturedPhoto ? (
+          <View style={styles.previewContainer}>
+            <Image source={{ uri: capturedPhoto }} style={styles.preview} />
+            {isAnalyzing && (
+              <View style={styles.analyzingOverlay}>
+                <ActivityIndicator size="large" color="#00AA00" />
+                <Text style={styles.analyzingText}>Analyzing with Moondream AI...</Text>
+              </View>
             )}
           </View>
+        ) : (
+          <CameraView 
+            ref={cameraRef}
+            style={styles.camera}
+            facing="back"
+          />
+        )}
+      </View>
 
-          {/* Camera controls */}
-          <View style={styles.controlsContainer}>
-            <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-              <View style={styles.captureButtonInner} />
+      {/* Controls */}
+      <View style={styles.controls}>
+        {capturedPhoto ? (
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={styles.secondaryButton} onPress={resetCamera}>
+              <Text style={styles.secondaryButtonText}>Retake</Text>
             </TouchableOpacity>
           </View>
+        ) : (
+          <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
+            <View style={styles.captureButtonInner} />
+          </TouchableOpacity>
+        )}
+      </View>
 
-          {/* Info panel */}
-          <View style={styles.infoPanel}>
-            <Text style={styles.infoPanelTitle}>🚴‍♀️ How it works:</Text>
-            <Text style={styles.infoPanelText}>
-              • AI detects bicycles on sidewalks{'\n'}
-              • You verify and add missed detections{'\n'}
-              • Safety score updates based on bicycle count{'\n'}
-              • Data helps create safer walking routes
-            </Text>
-          </View>
-        </View>
-      </CameraView>
+      {/* Instructions */}
+      <View style={styles.instructions}>
+        <Text style={styles.instructionsTitle}>🚴‍♀️ How it works:</Text>
+        <Text style={styles.instructionsText}>
+          • Point camera at sidewalk or pedestrian area{'\n'}
+          • AI detects bicycles and sidewalks automatically{'\n'}
+          • Verify results and add missed detections{'\n'}
+          • Safety score updates based on bicycle count
+        </Text>
+      </View>
+
+      {/* Custom Modal */}
+      <CustomModal
+        visible={modalVisible}
+        title={modalTitle}
+        message={modalMessage}
+        buttons={modalButtons}
+        onClose={() => setModalVisible(false)}
+      />
     </View>
   );
 }
@@ -299,52 +398,80 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#000000',
   },
-  message: {
-    textAlign: 'center',
-    paddingBottom: 10,
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
     fontSize: 16,
+    color: '#CCCCCC',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  scoreText: {
+    fontSize: 16,
+    color: '#00FF00',
+    fontWeight: 'bold',
+  },
+  cameraContainer: {
+    flex: 1,
+    margin: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   camera: {
     flex: 1,
   },
-  overlay: {
+  previewContainer: {
     flex: 1,
-    backgroundColor: 'transparent',
+    position: 'relative',
   },
-  instructionsContainer: {
+  preview: {
+    flex: 1,
+    width: '100%',
+  },
+  capturedImage: {
+    alignSelf: 'center',
+  },
+  analyzingOverlay: {
     position: 'absolute',
-    top: 60,
-    left: 20,
-    right: 20,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 16,
-    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  instructionsTitle: {
+  analyzingText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginTop: 16,
+    textAlign: 'center',
   },
-  instructionsText: {
-    color: '#CCCCCC',
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  locationText: {
-    color: '#00FF00',
-    fontSize: 12,
-    marginTop: 8,
-    fontWeight: 'bold',
-  },
-  controlsContainer: {
-    position: 'absolute',
-    bottom: 100,
-    left: 0,
-    right: 0,
+  controls: {
+    paddingVertical: 30,
     alignItems: 'center',
   },
   captureButton: {
@@ -363,73 +490,110 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
   },
-  infoPanel: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 12,
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: '#666666',
     borderRadius: 8,
   },
-  infoPanelTitle: {
+  secondaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
   },
-  infoPanelText: {
-    color: '#CCCCCC',
-    fontSize: 11,
-    lineHeight: 14,
-  },
-  capturedImage: {
-    flex: 1,
-    width: '100%',
-    resizeMode: 'contain',
-  },
-  analysisOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  instructions: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  analysisText: {
-    color: '#FFFFFF',
+  instructionsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 20,
-    textAlign: 'center',
+    color: '#FFFFFF',
+    marginBottom: 8,
   },
-  analysisSubtext: {
-    color: '#CCCCCC',
+  instructionsText: {
     fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
+    color: '#CCCCCC',
+    lineHeight: 20,
   },
-  resultsOverlay: {
-    position: 'absolute',
-    bottom: 50,
-    left: 20,
-    right: 20,
-    alignItems: 'center',
+  message: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   button: {
     backgroundColor: '#007AFF',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 200,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignSelf: 'center',
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Custom Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    maxWidth: screenWidth * 0.9,
+    width: '100%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#333333',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  modalButtonContainer: {
+    flexDirection: 'column',
+    gap: 10,
+  },
+  modalButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#8E8E93',
+  },
+  modalButtonDestructive: {
+    backgroundColor: '#FF3B30',
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalButtonTextCancel: {
+    color: '#FFFFFF',
+  },
+  modalButtonTextDestructive: {
+    color: '#FFFFFF',
   },
 }); 
