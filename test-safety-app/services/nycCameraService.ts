@@ -1,6 +1,21 @@
 // NYC Traffic Camera Service for Risk Assessment
 import MoondreamService, { ProgressCallback, AnalysisProgress } from './moondreamService';
 
+// Manhattan outline coordinates (approximate boundary)
+const MANHATTAN_BOUNDARY = [
+  { latitude: 40.8776, longitude: -73.9102 }, // North tip (Inwood)
+  { latitude: 40.8776, longitude: -73.9442 }, // NW corner
+  { latitude: 40.8485, longitude: -73.9442 }, // West side upper
+  { latitude: 40.8007, longitude: -73.9735 }, // West side middle
+  { latitude: 40.7589, longitude: -73.9896 }, // West side lower
+  { latitude: 40.7505, longitude: -74.0134 }, // SW corner (Battery Park)
+  { latitude: 40.7047, longitude: -74.0134 }, // South tip
+  { latitude: 40.7047, longitude: -73.9734 }, // SE corner
+  { latitude: 40.7285, longitude: -73.9734 }, // East side lower
+  { latitude: 40.7831, longitude: -73.9441 }, // East side upper
+  { latitude: 40.8776, longitude: -73.9102 }, // Back to north tip
+];
+
 export interface NYCCamera {
   id: string;
   name: string;
@@ -75,8 +90,26 @@ export interface HeatMapData {
   riskScore: number;
   cameraCount: number;
   lastAnalyzed: Date;
-  analysisType: 'individual' | 'batch';
+  analysisType: 'individual' | 'batch' | 'territory';
   color: string; // Heat map color based on risk
+  analysisState: 'unanalyzed' | 'queued' | 'analyzing' | 'completed' | 'error';
+}
+
+// Camera territory for Manhattan subdivision
+export interface CameraTerritory {
+  id: string;
+  cameraId: string;
+  camera: NYCCamera;
+  bounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  };
+  polygon: Array<{latitude: number; longitude: number}>;
+  analysisState: 'unanalyzed' | 'queued' | 'analyzing' | 'completed' | 'error';
+  riskScore?: number;
+  lastAnalyzed?: Date;
 }
 
 class NYCCameraService {
@@ -104,6 +137,10 @@ class NYCCameraService {
   };
 
   private heatMapCache: Map<string, HeatMapData> = new Map();
+  
+  // Manhattan territory system
+  private territoryCache: Map<string, CameraTerritory> = new Map();
+  private territoriesGenerated = false;
 
   /**
    * Add request to queue with rate limiting
@@ -789,7 +826,8 @@ class NYCCameraService {
         cameraCount: cameras.length,
         lastAnalyzed: batchResult.analysisTimestamp,
         analysisType: 'batch',
-        color
+        color,
+        analysisState: 'completed'
       };
       
       this.heatMapCache.set(heatMapData.id, heatMapData);
@@ -827,7 +865,8 @@ class NYCCameraService {
         cameraCount: 1,
         lastAnalyzed: analysis.lastAnalyzed,
         analysisType: 'individual',
-        color
+        color,
+        analysisState: 'completed'
       };
       
       this.heatMapCache.set(heatMapData.id, heatMapData);
@@ -970,6 +1009,285 @@ class NYCCameraService {
     }
     
     console.log(`🧹 [HACKATHON] Cleaned old heat map data (${this.heatMapCache.size} entries remaining)`);
+  }
+
+  /**
+   * Generate Manhattan camera territories using Voronoi-style subdivision
+   * Each camera gets a polygon territory within Manhattan boundaries
+   */
+  async generateManhattanTerritories(): Promise<CameraTerritory[]> {
+    if (this.territoriesGenerated && this.territoryCache.size > 0) {
+      console.log(`🗺️ [HACKATHON] Using cached Manhattan territories (${this.territoryCache.size} territories)`);
+      return Array.from(this.territoryCache.values());
+    }
+
+    try {
+      console.log(`🗺️ [HACKATHON] Generating Manhattan camera territories...`);
+      
+      // Get all cameras
+      const allCameras = await this.fetchCameras();
+      
+      // Filter cameras within Manhattan bounds
+      const manhattanCameras = allCameras.filter(camera => 
+        this.isPointInManhattan(camera.latitude, camera.longitude)
+      );
+      
+      console.log(`📍 [HACKATHON] Found ${manhattanCameras.length} cameras within Manhattan boundaries`);
+      
+      // Generate territories for each camera
+      const territories: CameraTerritory[] = [];
+      
+      for (const camera of manhattanCameras) {
+        const territory = this.generateCameraTerritory(camera, manhattanCameras);
+        territories.push(territory);
+        this.territoryCache.set(territory.id, territory);
+      }
+      
+      this.territoriesGenerated = true;
+      console.log(`✅ [HACKATHON] Generated ${territories.length} Manhattan camera territories`);
+      
+      return territories;
+      
+    } catch (error) {
+      console.error('❌ [HACKATHON] Error generating Manhattan territories:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a point is within Manhattan boundaries
+   */
+  private isPointInManhattan(lat: number, lng: number): boolean {
+    // Use ray casting algorithm to check if point is inside Manhattan polygon
+    let inside = false;
+    const boundary = MANHATTAN_BOUNDARY;
+    
+    for (let i = 0, j = boundary.length - 1; i < boundary.length; j = i++) {
+      const xi = boundary[i].longitude, yi = boundary[i].latitude;
+      const xj = boundary[j].longitude, yj = boundary[j].latitude;
+      
+      if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+        inside = !inside;
+      }
+    }
+    
+    return inside;
+  }
+
+  /**
+   * Generate a Voronoi territory for a specific camera
+   */
+  private generateCameraTerritory(camera: NYCCamera, allCameras: NYCCamera[]): CameraTerritory {
+    // Get nearby cameras for Voronoi calculation
+    const otherCameras = allCameras.filter(cam => cam.id !== camera.id);
+    
+    // Calculate Voronoi cell within Manhattan
+    const voronoiPolygon = this.calculateVoronoiPolygonInManhattan(camera, otherCameras);
+    
+    // Calculate bounds from polygon
+    const lats = voronoiPolygon.map(p => p.latitude);
+    const lngs = voronoiPolygon.map(p => p.longitude);
+    
+    const bounds = {
+      north: Math.max(...lats),
+      south: Math.min(...lats),
+      east: Math.max(...lngs),
+      west: Math.min(...lngs)
+    };
+
+    return {
+      id: `territory_${camera.id}`,
+      cameraId: camera.id,
+      camera,
+      bounds,
+      polygon: voronoiPolygon,
+      analysisState: 'unanalyzed'
+    };
+  }
+
+  /**
+   * Calculate Voronoi polygon for camera within Manhattan boundaries
+   */
+  private calculateVoronoiPolygonInManhattan(
+    camera: NYCCamera, 
+    otherCameras: NYCCamera[]
+  ): Array<{latitude: number; longitude: number}> {
+    // Simplified Voronoi: create a polygon where each point is closer to this camera than any other
+    const gridResolution = 0.001; // ~100m resolution
+    const polygonPoints: Array<{latitude: number; longitude: number}> = [];
+    
+    // Get bounding box around camera (limited by Manhattan)
+    const searchRadius = 0.01; // ~1km search radius
+    const minLat = Math.max(40.7047, camera.latitude - searchRadius);
+    const maxLat = Math.min(40.8776, camera.latitude + searchRadius);
+    const minLng = Math.max(-74.0134, camera.longitude - searchRadius);
+    const maxLng = Math.min(-73.9102, camera.longitude + searchRadius);
+    
+    // Sample points on the boundary of the Voronoi cell
+    const boundaryPoints: Array<{latitude: number; longitude: number}> = [];
+    
+    // Sample along edges of search area
+    for (let lat = minLat; lat <= maxLat; lat += gridResolution) {
+      for (let lng = minLng; lng <= maxLng; lng += gridResolution) {
+        if (!this.isPointInManhattan(lat, lng)) continue;
+        
+        // Check if this point is closer to our camera than any other
+        const distToCamera = this.calculateDistance(camera.latitude, camera.longitude, lat, lng);
+        
+        let isClosest = true;
+        for (const otherCamera of otherCameras) {
+          const distToOther = this.calculateDistance(otherCamera.latitude, otherCamera.longitude, lat, lng);
+          if (distToOther < distToCamera) {
+            isClosest = false;
+            break;
+          }
+        }
+        
+        if (isClosest) {
+          boundaryPoints.push({ latitude: lat, longitude: lng });
+        }
+      }
+    }
+    
+    // If we found boundary points, create a convex hull
+    if (boundaryPoints.length > 0) {
+      return this.convexHull(boundaryPoints);
+    }
+    
+    // Fallback: create a small square around the camera
+    const fallbackSize = 0.002; // ~200m
+    return [
+      { latitude: camera.latitude - fallbackSize, longitude: camera.longitude - fallbackSize },
+      { latitude: camera.latitude - fallbackSize, longitude: camera.longitude + fallbackSize },
+      { latitude: camera.latitude + fallbackSize, longitude: camera.longitude + fallbackSize },
+      { latitude: camera.latitude + fallbackSize, longitude: camera.longitude - fallbackSize },
+    ];
+  }
+
+  /**
+   * Calculate convex hull of points (simplified Graham scan)
+   */
+  private convexHull(points: Array<{latitude: number; longitude: number}>): Array<{latitude: number; longitude: number}> {
+    if (points.length <= 3) return points;
+    
+    // Sort points by longitude, then latitude
+    points.sort((a, b) => a.longitude - b.longitude || a.latitude - b.latitude);
+    
+    // Build lower hull
+    const lower = [];
+    for (const point of points) {
+      while (lower.length >= 2 && this.cross(lower[lower.length-2], lower[lower.length-1], point) <= 0) {
+        lower.pop();
+      }
+      lower.push(point);
+    }
+    
+    // Build upper hull
+    const upper = [];
+    for (let i = points.length - 1; i >= 0; i--) {
+      const point = points[i];
+      while (upper.length >= 2 && this.cross(upper[upper.length-2], upper[upper.length-1], point) <= 0) {
+        upper.pop();
+      }
+      upper.push(point);
+    }
+    
+    // Remove last point of each half because it's repeated
+    upper.pop();
+    lower.pop();
+    
+    return lower.concat(upper);
+  }
+
+  /**
+   * Cross product for convex hull calculation
+   */
+  private cross(
+    o: {latitude: number; longitude: number}, 
+    a: {latitude: number; longitude: number}, 
+    b: {latitude: number; longitude: number}
+  ): number {
+    return (a.longitude - o.longitude) * (b.latitude - o.latitude) - (a.latitude - o.latitude) * (b.longitude - o.longitude);
+  }
+
+  /**
+   * Update territory analysis state
+   */
+  updateTerritoryState(cameraId: string, state: 'unanalyzed' | 'queued' | 'analyzing' | 'completed' | 'error', riskScore?: number): void {
+    const territoryId = `territory_${cameraId}`;
+    const territory = this.territoryCache.get(territoryId);
+    
+    if (territory) {
+      territory.analysisState = state;
+      if (riskScore !== undefined) {
+        territory.riskScore = riskScore;
+        territory.lastAnalyzed = new Date();
+      }
+      
+      console.log(`🏢 [HACKATHON] Updated territory ${territory.camera.name} state: ${state}${riskScore ? ` (risk: ${riskScore})` : ''}`);
+    }
+  }
+
+  /**
+   * Get all Manhattan territories with their current states
+   */
+  async getManhattanTerritories(): Promise<CameraTerritory[]> {
+    if (!this.territoriesGenerated) {
+      return await this.generateManhattanTerritories();
+    }
+    return Array.from(this.territoryCache.values());
+  }
+
+  /**
+   * Get territory heat map data for visualization
+   */
+  getTerritoryHeatMapData(): HeatMapData[] {
+    const heatMapData: HeatMapData[] = [];
+    
+    for (const territory of this.territoryCache.values()) {
+      let color = '#808080'; // Default grey for unanalyzed
+      let opacity = 0.3;
+      
+      switch (territory.analysisState) {
+        case 'unanalyzed':
+          color = '#808080'; // Grey
+          opacity = 0.2;
+          break;
+        case 'queued':
+          color = '#FFA500'; // Orange
+          opacity = 0.3;
+          break;
+        case 'analyzing':
+          color = '#FFD700'; // Gold
+          opacity = 0.4;
+          break;
+        case 'completed':
+          if (territory.riskScore !== undefined) {
+            color = this.getRiskColor(territory.riskScore);
+            opacity = 0.4;
+          }
+          break;
+        case 'error':
+          color = '#FF6B6B'; // Light red
+          opacity = 0.3;
+          break;
+      }
+      
+      const heatMapEntry: HeatMapData = {
+        id: territory.id,
+        bounds: territory.bounds,
+        riskScore: territory.riskScore || 0,
+        cameraCount: 1,
+        lastAnalyzed: territory.lastAnalyzed || new Date(),
+        analysisType: 'territory',
+        color,
+        analysisState: territory.analysisState
+      };
+      
+      heatMapData.push(heatMapEntry);
+    }
+    
+    return heatMapData;
   }
 }
 

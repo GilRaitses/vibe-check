@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useSafety } from '@/components/SafetyContext';
-import NYCCameraService, { NYCCamera, CameraCluster, HeatMapData as ServiceHeatMapData } from '@/services/nycCameraService';
+import NYCCameraService, { NYCCamera, CameraCluster, HeatMapData as ServiceHeatMapData, CameraTerritory } from '@/services/nycCameraService';
 import MapView, { Marker, Region, Polygon } from 'react-native-maps';
 import AnalysisProgressModal from '@/components/AnalysisProgressModal';
 import { AnalysisProgress } from '@/services/moondreamService';
@@ -24,6 +24,7 @@ interface HeatMapData {
   riskScore: number;
   color: string;
   opacity: number;
+  analysisState?: 'unanalyzed' | 'queued' | 'analyzing' | 'completed' | 'error';
 }
 
 export default function LiveMapScreen() {
@@ -45,6 +46,11 @@ export default function LiveMapScreen() {
   // Heat map state
   const [heatMapData, setHeatMapData] = useState<HeatMapData[]>([]);
   const [showHeatMap, setShowHeatMap] = useState(true); // Heat map enabled by default
+  
+  // Manhattan territory state
+  const [territoryData, setTerritoryData] = useState<HeatMapData[]>([]);
+  const [showTerritories, setShowTerritories] = useState(true);
+  const [territoriesLoaded, setTerritoriesLoaded] = useState(false);
   
   // Progressive analysis state
   const [isProgressiveAnalyzing, setIsProgressiveAnalyzing] = useState(false);
@@ -79,6 +85,7 @@ export default function LiveMapScreen() {
     // Set up interval to refresh heat map data every 30 seconds
     const heatMapInterval = setInterval(() => {
       loadHeatMapData();
+      loadTerritoryData();
     }, 30000);
     
     return () => {
@@ -114,6 +121,7 @@ export default function LiveMapScreen() {
           riskScore: region.riskScore,
           color: getHeatMapColor(region.riskScore),
           opacity: 0.4,
+          analysisState: region.analysisState,
         };
         
         if (index === 0) {
@@ -133,6 +141,50 @@ export default function LiveMapScreen() {
       
     } catch (error) {
       console.error('❌ [HACKATHON] Failed to load heat map data:', error);
+    }
+  };
+
+  const loadTerritoryData = async () => {
+    try {
+      if (!territoriesLoaded) {
+        console.log(`🏢 [HACKATHON] Loading Manhattan territories...`);
+        await NYCCameraService.generateManhattanTerritories();
+        setTerritoriesLoaded(true);
+      }
+
+      const territoryHeatData = NYCCameraService.getTerritoryHeatMapData();
+      console.log(`🏢 [HACKATHON] Loaded ${territoryHeatData.length} Manhattan territories`);
+
+      // Convert territory data to polygon format
+      const territoryPolygons: HeatMapData[] = territoryHeatData.map(territory => ({
+        id: territory.id,
+        coordinates: [
+          { latitude: territory.bounds.south, longitude: territory.bounds.west },
+          { latitude: territory.bounds.south, longitude: territory.bounds.east },
+          { latitude: territory.bounds.north, longitude: territory.bounds.east },
+          { latitude: territory.bounds.north, longitude: territory.bounds.west },
+        ],
+        riskScore: territory.riskScore,
+        color: territory.color,
+        opacity: getOpacityForState(territory.analysisState),
+        analysisState: territory.analysisState,
+      }));
+
+      setTerritoryData(territoryPolygons);
+      
+    } catch (error) {
+      console.error('❌ [HACKATHON] Failed to load territory data:', error);
+    }
+  };
+
+  const getOpacityForState = (state: 'unanalyzed' | 'queued' | 'analyzing' | 'completed' | 'error'): number => {
+    switch (state) {
+      case 'unanalyzed': return 0.2;
+      case 'queued': return 0.3;
+      case 'analyzing': return 0.4;
+      case 'completed': return 0.4;
+      case 'error': return 0.3;
+      default: return 0.2;
     }
   };
 
@@ -160,6 +212,9 @@ export default function LiveMapScreen() {
       
       // Load initial heat map data
       loadHeatMapData();
+      
+      // Load Manhattan territories
+      await loadTerritoryData();
 
     } catch (err) {
       console.error('❌ [HACKATHON] Error initializing app:', err);
@@ -353,6 +408,12 @@ export default function LiveMapScreen() {
       setAutoAnalysisQueue(camerasToAnalyze);
       setAutoAnalysisProgress({ current: 0, total: camerasToAnalyze.length });
       
+      // Mark cameras as queued in territories
+      for (const camera of camerasToAnalyze) {
+        NYCCameraService.updateTerritoryState(camera.id, 'queued');
+      }
+      loadTerritoryData(); // Refresh to show queued state
+      
       // Start analyzing cameras one by one
       for (let i = 0; i < camerasToAnalyze.length; i++) {
         const camera = camerasToAnalyze[i];
@@ -362,16 +423,24 @@ export default function LiveMapScreen() {
         console.log(`🤖 [HACKATHON] Auto-analyzing camera ${i + 1}/${camerasToAnalyze.length}: ${camera.name}`);
         
         try {
+          // Mark as analyzing
+          NYCCameraService.updateTerritoryState(camera.id, 'analyzing');
+          loadTerritoryData(); // Refresh to show analyzing state
+          
           const analysis = await NYCCameraService.analyzeCameraRisk(
             camera,
             undefined, // No progress callback for auto-analysis
             appSettings.disableTimeouts
           );
           
+          // Mark as completed with risk score
+          NYCCameraService.updateTerritoryState(camera.id, 'completed', analysis.riskScore);
+          
           setLastAnalysis({ camera, analysis });
           
-          // Update heat map
+          // Update heat map and territories
           loadHeatMapData();
+          loadTerritoryData();
           
           // Wait 3 seconds between analyses to be respectful to API
           if (i < camerasToAnalyze.length - 1) {
@@ -380,6 +449,9 @@ export default function LiveMapScreen() {
           
         } catch (error) {
           console.error(`❌ [HACKATHON] Auto-analysis failed for camera ${camera.name}:`, error);
+          // Mark as error
+          NYCCameraService.updateTerritoryState(camera.id, 'error');
+          loadTerritoryData();
           // Continue with next camera even if this one fails
         }
       }
@@ -398,10 +470,10 @@ export default function LiveMapScreen() {
 
   // Start auto-analysis when enabled
   useEffect(() => {
-    if (autoAnalyzeEnabled && userLocation && apiConnected && !isAutoAnalyzing) {
+    if (autoAnalyzeEnabled && userLocation && apiConnected && !isAutoAnalyzing && territoriesLoaded) {
       startAutoAnalysis();
     }
-  }, [autoAnalyzeEnabled, userLocation, apiConnected]);
+  }, [autoAnalyzeEnabled, userLocation, apiConnected, territoriesLoaded]);
 
   const analyzeSpecificCamera = async (camera: NYCCamera) => {
     try {
@@ -409,16 +481,25 @@ export default function LiveMapScreen() {
       console.log(`🎯 [HACKATHON] Analyzing specific camera: ${camera.name}`);
       console.log(`🎯 [HACKATHON] Camera location: ${camera.latitude}, ${camera.longitude}`);
 
+      // Mark territory as analyzing
+      NYCCameraService.updateTerritoryState(camera.id, 'analyzing');
+      loadTerritoryData();
+
       const analysis = await NYCCameraService.analyzeCameraRisk(
         camera, 
         appSettings.detailedProgress ? handleAnalysisProgress : undefined,
         appSettings.disableTimeouts
       );
       console.log(`✅ [HACKATHON] Analysis completed for ${camera.name}:`, analysis);
+      
+      // Mark territory as completed
+      NYCCameraService.updateTerritoryState(camera.id, 'completed', analysis.riskScore);
+      
       setLastAnalysis({ camera, analysis });
 
-      // Refresh heat map data after analysis
+      // Refresh heat map data and territories after analysis
       loadHeatMapData();
+      loadTerritoryData();
 
       Alert.alert(
         'Analysis Complete',
@@ -427,13 +508,19 @@ export default function LiveMapScreen() {
         `Risk Score: ${analysis.riskScore}/10\n` +
         `Active Cyclists: ${analysis.bikeCount}\n` +
         `Scene: ${analysis.sceneDescription}\n\n` +
-        `🔥 Heat Map: ${heatMapData.length} regions loaded`,
+        `🔥 Heat Map: ${heatMapData.length} regions loaded\n` +
+        `🏢 Territories: ${territoryData.length} areas mapped`,
         [
           { 
-            text: 'Show Heat Map Debug', 
+            text: 'Show Territory Debug', 
             onPress: () => {
               const heatData = NYCCameraService.getHeatMapData();
-              Alert.alert('Heat Map Debug', `Service has ${heatData.length} regions\nMap shows ${heatMapData.length} polygons\nHeat Map ${showHeatMap ? 'ON' : 'OFF'}`);
+              const territoryData = NYCCameraService.getTerritoryHeatMapData();
+              Alert.alert('Territory Debug', 
+                `Heat Map: ${heatData.length} regions\n` +
+                `Territories: ${territoryData.length} areas\n` +
+                `Manhattan Coverage: ${territoryData.filter(t => t.analysisState === 'completed').length} analyzed`
+              );
             }
           },
           { text: 'OK' }
@@ -442,6 +529,9 @@ export default function LiveMapScreen() {
 
     } catch (error) {
       console.error('❌ [HACKATHON] Analysis failed:', error);
+      // Mark territory as error
+      NYCCameraService.updateTerritoryState(camera.id, 'error');
+      loadTerritoryData();
       Alert.alert('Analysis Failed', 'Could not analyze camera');
     } finally {
       setIsAnalyzing(false);
@@ -686,14 +776,25 @@ export default function LiveMapScreen() {
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
-        {/* Heat Map Polygons */}
+        {/* Manhattan Territory Polygons (show first, underneath other layers) */}
+        {showTerritories && territoryData.map((territory) => (
+          <Polygon
+            key={territory.id}
+            coordinates={territory.coordinates}
+            fillColor={`${territory.color}${Math.round(territory.opacity * 255).toString(16).padStart(2, '0')}`}
+            strokeColor={territory.color}
+            strokeWidth={1}
+          />
+        ))}
+
+        {/* Heat Map Polygons (show on top of territories) */}
         {showHeatMap && heatMapData.map((heatData) => (
           <Polygon
             key={heatData.id}
             coordinates={heatData.coordinates}
-            fillColor={heatData.color}
+            fillColor={`${heatData.color}66`}
             strokeColor={heatData.color}
-            strokeWidth={1}
+            strokeWidth={2}
           />
         ))}
 
@@ -716,7 +817,7 @@ export default function LiveMapScreen() {
         ))}
       </MapView>
 
-      {/* Status Overlay with Heat Map Info */}
+      {/* Status Overlay with Territory Info */}
       <View style={styles.statusOverlay}>
         <Text style={styles.statusTitle}>🗽 NYC Safety Analysis</Text>
         <Text style={styles.statusSubtitle}>
@@ -724,6 +825,9 @@ export default function LiveMapScreen() {
         </Text>
         <Text style={styles.statusSubtitle}>
           🔥 Heat Map: {heatMapData.length} risk areas {showHeatMap ? '(visible)' : '(hidden)'}
+        </Text>
+        <Text style={styles.statusSubtitle}>
+          🏢 Manhattan: {territoryData.length} territories ({territoryData.filter(t => t.analysisState === 'completed').length} analyzed)
         </Text>
         {userLocation && (
           <Text style={styles.locationText}>
@@ -773,10 +877,10 @@ export default function LiveMapScreen() {
         </View>
       )}
 
-      {/* Settings Toggles - Compact */}
+      {/* Settings Toggles */}
       <View style={styles.settingsOverlay}>
         <TouchableOpacity 
-          style={[styles.toggleButton, { backgroundColor: autoAnalyzeEnabled ? '#34C759' : '#666666' }]}
+          style={styles.toggleButton}
           onPress={() => setAutoAnalyzeEnabled(!autoAnalyzeEnabled)}
         >
           <Text style={styles.toggleButtonText}>
@@ -784,7 +888,7 @@ export default function LiveMapScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.toggleButton, { marginTop: 8, backgroundColor: showHeatMap ? '#FF6B35' : '#666666' }]}
+          style={[styles.toggleButton, { marginTop: 8 }]}
           onPress={() => setShowHeatMap(!showHeatMap)}
         >
           <Text style={styles.toggleButtonText}>
@@ -792,8 +896,19 @@ export default function LiveMapScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity 
+          style={[styles.toggleButton, { marginTop: 8, backgroundColor: showTerritories ? '#34C759' : '#666666' }]}
+          onPress={() => setShowTerritories(!showTerritories)}
+        >
+          <Text style={styles.toggleButtonText}>
+            🏢
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
           style={[styles.toggleButton, { marginTop: 8, backgroundColor: appSettings.detailedProgress ? '#34C759' : '#666666' }]}
-          onPress={() => setAppSettings(prev => ({ ...prev, detailedProgress: !prev.detailedProgress }))}
+          onPress={() => setAppSettings(prev => ({
+            ...prev,
+            detailedProgress: !prev.detailedProgress
+          }))}
         >
           <Text style={styles.toggleButtonText}>
             📊
@@ -801,7 +916,10 @@ export default function LiveMapScreen() {
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.toggleButton, { marginTop: 8, backgroundColor: appSettings.disableTimeouts ? '#FF9500' : '#666666' }]}
-          onPress={() => setAppSettings(prev => ({ ...prev, disableTimeouts: !prev.disableTimeouts }))}
+          onPress={() => setAppSettings(prev => ({
+            ...prev,
+            disableTimeouts: !prev.disableTimeouts
+          }))}
         >
           <Text style={styles.toggleButtonText}>
             ⏰
