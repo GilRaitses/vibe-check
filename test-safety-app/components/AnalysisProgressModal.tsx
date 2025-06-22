@@ -7,11 +7,19 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { AnalysisProgress } from '@/services/moondreamService';
+
+// Simple progress states for config-based analysis
+export interface ConfigAnalysisProgress {
+  state: 'initializing' | 'analyzing' | 'processing' | 'completed' | 'error';
+  message: string;
+  cameraName?: string;
+  error?: string;
+  completed?: boolean;
+}
 
 interface AnalysisProgressModalProps {
   visible: boolean;
-  progress: AnalysisProgress | null;
+  progress: ConfigAnalysisProgress | null;
   onCancel?: () => void;
   allowCancel?: boolean;
 }
@@ -22,17 +30,45 @@ export default function AnalysisProgressModal({
   onCancel,
   allowCancel = false,
 }: AnalysisProgressModalProps) {
-  const getProgressPercentage = () => {
-    if (!progress) return 0;
-    return Math.round((progress.step / progress.totalSteps) * 100);
+  const getProgressIcon = () => {
+    if (!progress) return '🤖';
+    
+    switch (progress.state) {
+      case 'initializing': return '🔄';
+      case 'analyzing': return '👁️';
+      case 'processing': return '⚡';
+      case 'completed': return '✅';
+      case 'error': return '❌';
+      default: return '🤖';
+    }
   };
 
   const getProgressColor = () => {
     if (!progress) return '#4A90E2';
-    if (progress.error) return '#FF3B30';
-    if (progress.completed) return '#34C759';
-    return '#4A90E2';
+    
+    switch (progress.state) {
+      case 'error': return '#FF3B30';
+      case 'completed': return '#34C759';
+      case 'analyzing': return '#FF9500';
+      case 'processing': return '#5AC8FA';
+      default: return '#4A90E2';
+    }
   };
+
+  const getProgressTitle = () => {
+    if (!progress) return 'AI Analysis';
+    
+    switch (progress.state) {
+      case 'initializing': return 'Connecting to Moondream AI';
+      case 'analyzing': return 'Analyzing Camera Feed';
+      case 'processing': return 'Processing Results';
+      case 'completed': return 'Analysis Complete';
+      case 'error': return 'Analysis Failed';
+      default: return 'AI Analysis';
+    }
+  };
+
+  const showSpinner = progress && !progress.completed && progress.state !== 'error';
 
   return (
     <Modal
@@ -43,100 +79,60 @@ export default function AnalysisProgressModal({
     >
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          {/* Header */}
+          {/* Header with Icon */}
           <View style={styles.header}>
-            <Text style={styles.title}>🤖 AI Analysis</Text>
-            {progress && (
-              <Text style={styles.subtitle}>
-                Step {progress.step} of {progress.totalSteps}
-              </Text>
+            <Text style={styles.icon}>{getProgressIcon()}</Text>
+            <Text style={styles.title}>{getProgressTitle()}</Text>
+            {progress?.cameraName && (
+              <Text style={styles.subtitle}>{progress.cameraName}</Text>
             )}
           </View>
 
-          {/* Progress Bar */}
+          {/* Progress Indicator */}
           <View style={styles.progressContainer}>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${getProgressPercentage()}%`,
-                    backgroundColor: getProgressColor(),
-                  },
-                ]}
+            {showSpinner && (
+              <ActivityIndicator
+                size="large"
+                color={getProgressColor()}
+                style={styles.spinner}
               />
-            </View>
-            <Text style={styles.progressText}>
-              {getProgressPercentage()}%
-            </Text>
-          </View>
-
-          {/* Current Step */}
-          {progress && (
-            <View style={styles.stepContainer}>
-              <View style={styles.stepHeader}>
-                {!progress.completed && !progress.error && (
-                  <ActivityIndicator
-                    size="small"
-                    color="#4A90E2"
-                    style={styles.spinner}
-                  />
-                )}
-                <Text style={[
-                  styles.stepTitle,
-                  progress.error && styles.errorText,
-                  progress.completed && styles.successText,
-                ]}>
-                  {progress.error ? '❌ Error' : progress.completed ? '✅ Complete' : progress.currentStep}
-                </Text>
-              </View>
-              <Text style={styles.stepDescription}>
-                {progress.error || progress.description}
+            )}
+            
+            {/* Simple Status Bar */}
+            <View style={styles.statusContainer}>
+              <View style={[styles.statusDot, { backgroundColor: getProgressColor() }]} />
+              <Text style={[styles.statusText, { color: getProgressColor() }]}>
+                {progress?.message || 'Preparing analysis...'}
               </Text>
             </View>
-          )}
+          </View>
 
-          {/* Step Progress Indicators */}
-          {progress && (
-            <View style={styles.stepsContainer}>
-              {Array.from({ length: progress.totalSteps }, (_, index) => {
-                const stepNumber = index + 1;
-                const isCompleted = stepNumber < progress.step;
-                const isCurrent = stepNumber === progress.step;
-                const isError = progress.error && isCurrent;
-
-                return (
-                  <View
-                    key={stepNumber}
-                    style={[
-                      styles.stepIndicator,
-                      isCompleted && styles.stepCompleted,
-                      isCurrent && styles.stepCurrent,
-                      isError && styles.stepError,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.stepNumber,
-                        (isCompleted || isCurrent) && styles.stepNumberActive,
-                        isError && styles.stepNumberError,
-                      ]}
-                    >
-                      {stepNumber}
-                    </Text>
-                  </View>
-                );
-              })}
+          {/* Error Message */}
+          {progress?.error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{progress.error}</Text>
             </View>
           )}
 
           {/* Cancel Button */}
-          {allowCancel && onCancel && (
+          {allowCancel && onCancel && !progress?.completed && (
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={onCancel}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Close Button for Completed/Error */}
+          {(progress?.completed || progress?.error) && onCancel && (
+            <TouchableOpacity
+              style={[styles.cancelButton, styles.closeButton]}
+              onPress={onCancel}
+            >
+              <Text style={[styles.cancelButtonText, styles.closeButtonText]}>
+                {progress.completed ? 'Close' : 'Dismiss'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -158,7 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 350,
     borderWidth: 1,
     borderColor: '#333333',
   },
@@ -166,104 +162,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  icon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
+    textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
     color: '#CCCCCC',
+    textAlign: 'center',
   },
   progressContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  progressTrack: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#333333',
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    minWidth: 40,
-    textAlign: 'right',
-  },
-  stepContainer: {
     marginBottom: 20,
-  },
-  stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
   },
   spinner: {
+    marginBottom: 16,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     marginRight: 8,
   },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  stepDescription: {
+  statusText: {
     fontSize: 14,
-    color: '#CCCCCC',
-    lineHeight: 20,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.3)',
   },
   errorText: {
+    fontSize: 14,
     color: '#FF3B30',
-  },
-  successText: {
-    color: '#34C759',
-  },
-  stepsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  stepIndicator: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#333333',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#333333',
-  },
-  stepCompleted: {
-    backgroundColor: '#34C759',
-    borderColor: '#34C759',
-  },
-  stepCurrent: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
-  },
-  stepError: {
-    backgroundColor: '#FF3B30',
-    borderColor: '#FF3B30',
-  },
-  stepNumber: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#666666',
-  },
-  stepNumberActive: {
-    color: '#FFFFFF',
-  },
-  stepNumberError: {
-    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   cancelButton: {
     backgroundColor: 'rgba(255, 59, 48, 0.2)',
@@ -273,9 +223,16 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
   },
+  closeButton: {
+    backgroundColor: 'rgba(52, 199, 89, 0.2)',
+    borderColor: '#34C759',
+  },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FF3B30',
+  },
+  closeButtonText: {
+    color: '#34C759',
   },
 }); 

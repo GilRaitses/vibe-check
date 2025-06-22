@@ -16,7 +16,9 @@ import { useSafety } from '@/components/SafetyContext';
 import NYCCameraService, { NYCCamera, CameraCluster, HeatMapData as ServiceHeatMapData, CameraTerritory } from '@/services/nycCameraService';
 import MapView, { Marker, Region, Polygon } from 'react-native-maps';
 import AnalysisProgressModal from '@/components/AnalysisProgressModal';
-import { AnalysisProgress } from '@/services/moondreamService';
+import { ConfigAnalysisProgress } from '@/components/AnalysisProgressModal';
+import ProximityService from '@/services/proximityService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface HeatMapData {
   id: string;
@@ -57,7 +59,7 @@ export default function LiveMapScreen() {
   const [progressiveProgress, setProgressiveProgress] = useState({ current: 0, total: 0 });
   
   // Detailed progress tracking state
-  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<ConfigAnalysisProgress | null>(null);
   const [showProgressModal, setShowProgressModal] = useState(false);
   
   // Settings state (should be synced with settings screen)
@@ -147,13 +149,22 @@ export default function LiveMapScreen() {
   const loadTerritoryData = async () => {
     try {
       if (!territoriesLoaded) {
-        console.log(`🏢 [HACKATHON] Loading Manhattan territories...`);
-        await NYCCameraService.generateManhattanTerritories();
+        console.log(`🏢 [HACKATHON] Loading proximity-based territories...`);
+        // Only load territories near user location instead of all 303
+        if (userLocation) {
+          const nearbyCameras = await NYCCameraService.getCamerasNearLocation(
+            userLocation.coords.latitude,
+            userLocation.coords.longitude,
+            2 // 2km radius - much smaller than all Manhattan
+          );
+          console.log(`📍 [HACKATHON] Found ${nearbyCameras.length} nearby cameras (instead of all 303)`);
+        }
         setTerritoriesLoaded(true);
       }
 
+      // Get only relevant territory data (not all 303)
       const allTerritoryData = NYCCameraService.getTerritoryHeatMapData();
-      console.log(`🏢 [HACKATHON] Loaded ${allTerritoryData.length} Manhattan territories`);
+      console.log(`🏢 [HACKATHON] Loaded ${allTerritoryData.length} territories (proximity-filtered)`);
 
       // Filter territories based on user location and processing state
       let filteredTerritories = allTerritoryData;
@@ -187,16 +198,46 @@ export default function LiveMapScreen() {
         let color = territory.color;
         let opacity = getOpacityForState(territory.analysisState);
         
-        // Get the actual Voronoi polygon coordinates from the territory
-        const allTerritories = await NYCCameraService.getManhattanTerritories();
-        const fullTerritory = allTerritories.find(t => t.id === territory.id.replace('territory_', ''));
-        
-        // Use actual Voronoi polygon if available, otherwise fall back to rectangular bounds
-        let coordinates;
-        if (fullTerritory && fullTerritory.polygon && fullTerritory.polygon.length > 2) {
-          coordinates = fullTerritory.polygon;
-          console.log(`🔮 [HACKATHON] Using Voronoi polygon for ${territory.id} with ${coordinates.length} vertices`);
-        } else {
+        // Load precomputed Voronoi polygon coordinates from AsyncStorage
+        let coordinates = [];
+        try {
+          const storedData = await AsyncStorage.getItem('manhattan_territories_precomputed');
+          if (storedData) {
+            const parsed = JSON.parse(storedData);
+            const territories = parsed.territories || {};
+            const territoryKey = `territory_${territory.id.replace('territory_', '')}`;
+            const precomputedTerritory = territories[territoryKey];
+            
+            if (precomputedTerritory && precomputedTerritory.geometry && precomputedTerritory.geometry.coordinates) {
+              // Use precomputed Voronoi polygon coordinates
+              const polygonCoords = precomputedTerritory.geometry.coordinates[0];
+              coordinates = polygonCoords.map((coord: number[]) => ({
+                latitude: coord[1],  // GeoJSON uses [lng, lat]
+                longitude: coord[0]
+              }));
+              console.log(`🔮 [HACKATHON] Using precomputed Voronoi polygon for ${territory.id}: ${coordinates.length} vertices`);
+            } else {
+              console.log(`⚠️ [HACKATHON] No precomputed polygon found for ${territory.id}, using rectangular bounds`);
+              // Fallback to rectangular bounds
+              coordinates = [
+                { latitude: territory.bounds.south, longitude: territory.bounds.west },
+                { latitude: territory.bounds.south, longitude: territory.bounds.east },
+                { latitude: territory.bounds.north, longitude: territory.bounds.east },
+                { latitude: territory.bounds.north, longitude: territory.bounds.west },
+              ];
+            }
+          } else {
+            console.log(`❌ [HACKATHON] No precomputed territories found in AsyncStorage`);
+            // Fallback to rectangular bounds
+            coordinates = [
+              { latitude: territory.bounds.south, longitude: territory.bounds.west },
+              { latitude: territory.bounds.south, longitude: territory.bounds.east },
+              { latitude: territory.bounds.north, longitude: territory.bounds.east },
+              { latitude: territory.bounds.north, longitude: territory.bounds.west },
+            ];
+          }
+        } catch (error) {
+          console.error(`❌ [HACKATHON] Error loading precomputed polygon for ${territory.id}:`, error);
           // Fallback to rectangular bounds
           coordinates = [
             { latitude: territory.bounds.south, longitude: territory.bounds.west },
@@ -204,7 +245,6 @@ export default function LiveMapScreen() {
             { latitude: territory.bounds.north, longitude: territory.bounds.east },
             { latitude: territory.bounds.north, longitude: territory.bounds.west },
           ];
-          console.log(`⚠️ [HACKATHON] Using rectangular fallback for ${territory.id}`);
         }
         
         // Apply visual state logic based on user proximity and processing state
@@ -280,6 +320,40 @@ export default function LiveMapScreen() {
     return '#FF3B30'; // Red - High Risk
   };
 
+  // Verify Voronoi territories are loaded in AsyncStorage
+  const verifyVoronoiLoaded = async () => {
+    try {
+      console.log('🔍 [HACKATHON] Verifying Voronoi territories are loaded in AsyncStorage...');
+      const storedData = await AsyncStorage.getItem('manhattan_territories_precomputed');
+      
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        const territories = parsed.territories || {};
+        const territoryCount = Object.keys(territories).length;
+        console.log(`✅ [HACKATHON] VERIFICATION SUCCESS: ${territoryCount} Voronoi territories found in AsyncStorage`);
+        console.log(`📦 [HACKATHON] AsyncStorage data size: ${(storedData.length / 1024 / 1024).toFixed(2)} MB`);
+        
+        // Log sample territory for verification
+        const firstKey = Object.keys(territories)[0];
+        if (firstKey) {
+          const sample = territories[firstKey];
+          console.log(`🔍 [HACKATHON] Sample Voronoi territory:`, {
+            id: sample.id,
+            cameraId: sample.cameraId,
+            vertices: sample.geometry?.coordinates?.[0]?.length || 0,
+            area: sample.area,
+            neighbors: sample.neighbors?.length || 0
+          });
+        }
+      } else {
+        console.error('❌ [HACKATHON] VERIFICATION FAILED: No Voronoi territories found in AsyncStorage');
+        console.error('❌ [HACKATHON] This means the precomputed territories did not load properly');
+      }
+    } catch (error) {
+      console.error('❌ [HACKATHON] Error verifying Voronoi territories:', error);
+    }
+  };
+
   const initializeApp = async () => {
     try {
       setIsLoading(true);
@@ -287,6 +361,20 @@ export default function LiveMapScreen() {
 
       // Initialize location
       await initializeLocation();
+      
+      // Initialize Voronoi territories loading (early in startup)
+      console.log('🔮 [HACKATHON] Initializing Voronoi territories during app startup...');
+      if (userLocation) {
+        console.log(`📍 [HACKATHON] User location available for Voronoi loading: ${userLocation.coords.latitude}, ${userLocation.coords.longitude}`);
+        await ProximityService.initialize({
+          latitude: userLocation.coords.latitude,
+          longitude: userLocation.coords.longitude,
+          accuracy: userLocation.coords.accuracy || undefined
+        });
+        console.log('✅ [HACKATHON] ProximityService initialization completed');
+      } else {
+        console.log('⚠️ [HACKATHON] No user location available for Voronoi loading');
+      }
       
       // Test API connection (don't load all cameras)
       await testAPIConnection();
@@ -299,6 +387,9 @@ export default function LiveMapScreen() {
       
       // Load Manhattan territories
       await loadTerritoryData();
+      
+      // Verify Voronoi territories are loaded
+      await verifyVoronoiLoaded();
 
     } catch (err) {
       console.error('❌ [HACKATHON] Error initializing app:', err);
@@ -421,7 +512,7 @@ export default function LiveMapScreen() {
       setSelectedCamera(cluster.cameras[0]);
       setShowCameraModal(true);
     } else {
-      // Multiple cameras - show selection modal with batch analysis option
+      // Multiple cameras - show selection modal (batch analysis removed)
       const buttons = cluster.cameras.map(camera => ({
         text: camera.name,
         onPress: () => {
@@ -430,17 +521,11 @@ export default function LiveMapScreen() {
         }
       }));
       
-      // Add batch analysis option
-      buttons.unshift({
-        text: `🎯 Analyze All ${cluster.cameraCount} Cameras`,
-        onPress: () => analyzeCameraBatch(cluster.cameras)
-      });
-      
       buttons.push({ text: 'Cancel', onPress: () => {} });
       
       Alert.alert(
         `${cluster.region} - ${cluster.cameraCount} Cameras`,
-        'Select an option:',
+        'Select a camera to analyze:',
         buttons
       );
     }
@@ -451,16 +536,47 @@ export default function LiveMapScreen() {
     setShowCameraModal(true);
   };
 
+  // Convert old progress format to new config-based format
+  const convertProgress = (oldProgress: { step: string; completed: boolean; error?: string }): ConfigAnalysisProgress => {
+    if (oldProgress.error) {
+      return {
+        state: 'error',
+        message: oldProgress.error,
+        error: oldProgress.error,
+        completed: false
+      };
+    }
+    
+    if (oldProgress.completed) {
+      return {
+        state: 'completed',
+        message: 'Analysis complete',
+        completed: true
+      };
+    }
+    
+    // Map step to appropriate state
+    const step = oldProgress.step.toLowerCase();
+    if (step.includes('connecting') || step.includes('initializing')) {
+      return { state: 'initializing', message: oldProgress.step };
+    } else if (step.includes('analyzing') || step.includes('vision')) {
+      return { state: 'analyzing', message: oldProgress.step };
+    } else {
+      return { state: 'processing', message: oldProgress.step };
+    }
+  };
+
   // Progress callback for detailed analysis tracking
-  const handleAnalysisProgress = (progress: AnalysisProgress) => {
-    setAnalysisProgress(progress);
+  const handleAnalysisProgress = (progress: { step: string; completed: boolean; error?: string }) => {
+    const configProgress = convertProgress(progress);
+    setAnalysisProgress(configProgress);
     
     if (appSettings.detailedProgress && !isAutoAnalyzing) {
-      if (!showProgressModal && !progress.completed) {
+      if (!showProgressModal && !configProgress.completed) {
         setShowProgressModal(true);
       }
       
-      if (progress.completed || progress.error) {
+      if (configProgress.completed || configProgress.error) {
         // Keep modal open for 2 seconds to show completion
         setTimeout(() => {
           setShowProgressModal(false);
@@ -676,60 +792,7 @@ export default function LiveMapScreen() {
     }
   };
 
-  const analyzeCameraBatch = async (cameras: any[]) => {
-    if (cameras.length === 0) return;
-    
-    setIsAnalyzing(true);
-    try {
-      console.log(`🎯 [HACKATHON] Starting batch analysis of ${cameras.length} cameras`);
-      
-      // Analyze all cameras in the batch
-      const batchResults = [];
-      for (const camera of cameras) {
-        try {
-          const result = await NYCCameraService.analyzeCameraRisk(camera);
-          batchResults.push({ camera, analysis: result });
-        } catch (error) {
-          console.error(`❌ [HACKATHON] Failed to analyze camera ${camera.name}:`, error);
-        }
-      }
-      
-      if (batchResults.length > 0) {
-        // Calculate composite metrics
-        const avgRiskScore = Math.round(
-          batchResults.reduce((sum, r) => sum + r.analysis.riskScore, 0) / batchResults.length
-        );
-        const totalBikes = batchResults.reduce((sum, r) => sum + r.analysis.bikeCount, 0);
-        const totalPedestrians = batchResults.reduce((sum, r) => sum + r.analysis.pedestrianCount, 0);
-        const totalTrucks = batchResults.reduce((sum, r) => sum + r.analysis.truckCount, 0);
-        
-        // Show batch analysis results
-        Alert.alert(
-          `Batch Analysis Complete`,
-          `Analyzed ${batchResults.length} cameras:\n\n` +
-          `🚨 Average Risk Score: ${avgRiskScore}/10\n` +
-          `🚴 Total Active Cyclists: ${totalBikes}\n` +
-          `🚶 Total Pedestrians: ${totalPedestrians}\n` +
-          `🚛 Total Trucks: ${totalTrucks}\n\n` +
-          `Individual results saved to analysis history.`,
-          [{ text: 'OK', onPress: () => {} }]
-        );
-        
-        // Store the last batch result for heat map
-        setLastAnalysis(batchResults[0]); // Show first result as "latest"
-        
-        // Refresh heat map data after batch analysis
-        loadHeatMapData();
-      } else {
-        Alert.alert('Analysis Failed', 'Could not analyze any cameras in this batch.');
-      }
-    } catch (error) {
-      console.error('❌ [HACKATHON] Failed to analyze camera batch:', error);
-      Alert.alert('Batch Analysis Failed', 'Failed to analyze camera batch. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+  // BATCH ANALYSIS REMOVED - Was totally useless and outdated
 
   const analyzeAreaProgressively = async () => {
     if (!userLocation) {

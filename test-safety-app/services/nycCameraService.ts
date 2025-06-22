@@ -1,7 +1,19 @@
 // NYC Traffic Camera Service for Risk Assessment
-import MoondreamService, { ProgressCallback, AnalysisProgress } from './moondreamService';
+import MoondreamService from './moondreamService';
 import dataSourceService from './dataSourceService';
 import asyncStorageService, { CameraMetadata } from './asyncStorageService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Define types that were missing
+export interface ProgressCallback {
+  (progress: { step: string; completed: boolean; error?: string }): void;
+}
+
+export interface AnalysisProgress {
+  step: string;
+  completed: boolean;
+  error?: string;
+}
 
 // Manhattan outline coordinates (approximate boundary)
 const MANHATTAN_BOUNDARY = [
@@ -64,22 +76,7 @@ export interface HeatMapRegion {
   lastUpdated: Date;
 }
 
-export interface BatchAnalysisResult {
-  compositeImageUrl: string;
-  cameraIds: string[];
-  regionName: string;
-  totalBicycles: number;
-  totalTrucks: number;
-  totalPedestrians: number;
-  averageRiskScore: number;
-  confidence: 'high' | 'medium' | 'low';
-  sceneDescription: string;
-  analysisTimestamp: Date;
-  individualCameras: {
-    camera: NYCCamera;
-    analysis: CameraRiskAnalysis;
-  }[];
-}
+// BatchAnalysisResult interface removed - batch analysis was useless
 
 export interface HeatMapData {
   id: string;
@@ -92,7 +89,7 @@ export interface HeatMapData {
   riskScore: number;
   cameraCount: number;
   lastAnalyzed: Date;
-  analysisType: 'individual' | 'batch' | 'territory';
+  analysisType: 'individual' | 'territory';
   color: string; // Heat map color based on risk
   analysisState: 'unanalyzed' | 'queued' | 'analyzing' | 'completed' | 'error';
 }
@@ -282,6 +279,16 @@ class NYCCameraService {
    * Analyze a camera image for risk factors
    */
   async analyzeCameraRisk(camera: NYCCamera, progressCallback?: ProgressCallback, disableTimeouts: boolean = false): Promise<CameraRiskAnalysis> {
+    console.log(`🔍 [STORAGE_DEBUG] Checking AsyncStorage for existing analysis: ${camera.id}`);
+    
+    // Check if we have a recent analysis in AsyncStorage first
+    const existingAnalysis = await this.loadAnalysisFromStorage(camera.id);
+    if (existingAnalysis) {
+      console.log(`✅ [STORAGE_DEBUG] Found cached analysis for ${camera.name}: risk ${existingAnalysis.riskScore}/10`);
+      return existingAnalysis;
+    }
+    
+    console.log(`🆕 [STORAGE_DEBUG] No cached analysis found for ${camera.name}, performing new analysis...`);
     try {
       // Check if we have recent analysis
       const cached = this.analysisCache.get(camera.id);
@@ -348,6 +355,9 @@ class NYCCameraService {
 
       // Cache the analysis
       this.analysisCache.set(camera.id, analysis);
+      
+      // Save to AsyncStorage for persistence
+      await this.saveAnalysisToStorage(analysis);
       
       // Update heat map with individual analysis
       await this.updateHeatMapWithIndividualAnalysis(camera, analysis);
@@ -673,177 +683,9 @@ class NYCCameraService {
     return allCameras.find(camera => camera.id === cameraId) || null;
   }
 
-  /**
-   * Create composite image from multiple camera feeds for batch analysis
-   */
-  async createCompositeImage(cameras: NYCCamera[]): Promise<string> {
-    try {
-      console.log(`🖼️ [HACKATHON] Creating composite image from ${cameras.length} cameras`);
-      
-      // For now, we'll create a simple grid layout
-      // In a real implementation, you'd use Canvas or Image manipulation library
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      // Calculate grid size (e.g., 2x2 for 4 cameras, 3x2 for 6 cameras)
-      const gridCols = Math.ceil(Math.sqrt(cameras.length));
-      const gridRows = Math.ceil(cameras.length / gridCols);
-      
-      const imageWidth = 320; // Individual image width
-      const imageHeight = 240; // Individual image height
-      
-      canvas.width = gridCols * imageWidth;
-      canvas.height = gridRows * imageHeight;
-      
-      // Load and draw each camera image
-      const imagePromises = cameras.map(async (camera, index) => {
-        return new Promise<void>((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            const col = index % gridCols;
-            const row = Math.floor(index / gridCols);
-            const x = col * imageWidth;
-            const y = row * imageHeight;
-            
-            ctx?.drawImage(img, x, y, imageWidth, imageHeight);
-            resolve();
-          };
-          img.onerror = reject;
-          img.src = camera.imageUrl;
-        });
-      });
-      
-      await Promise.all(imagePromises);
-      
-      // Convert canvas to base64
-      const compositeDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      console.log(`✅ [HACKATHON] Composite image created (${canvas.width}x${canvas.height})`);
-      
-      return compositeDataUrl;
-      
-    } catch (error) {
-      console.error('❌ [HACKATHON] Error creating composite image:', error);
-      throw new Error('Failed to create composite image');
-    }
-  }
+  // COMPOSITE IMAGE REMOVED - Not needed for config-based analysis
 
-  /**
-   * Analyze multiple cameras as a batch using composite image
-   */
-  async analyzeCameraBatch(cameras: NYCCamera[]): Promise<BatchAnalysisResult> {
-    try {
-      console.log(`🎯 [HACKATHON] Starting batch analysis for ${cameras.length} cameras`);
-      
-      // Create composite image
-      const compositeImageUrl = await this.createCompositeImage(cameras);
-      
-      // Analyze composite image with Moondream
-      const batchAnalysis = await MoondreamService.detectBicycles(compositeImageUrl);
-      
-      // Also analyze individual cameras for detailed breakdown
-      const individualAnalyses = await Promise.all(
-        cameras.map(async (camera) => {
-          try {
-            const analysis = await this.analyzeCameraRisk(camera);
-            return { camera, analysis };
-          } catch (error) {
-            console.warn(`⚠️ [HACKATHON] Individual analysis failed for ${camera.name}:`, error);
-            // Return default analysis if individual fails
-            return {
-              camera,
-              analysis: {
-                cameraId: camera.id,
-                riskScore: 5,
-                truckCount: 0,
-                bikeCount: 0,
-                pedestrianCount: 0,
-                trafficDensity: 'medium' as const,
-                sidewalkCondition: 'clear' as const,
-                confidence: 'low' as const,
-                lastAnalyzed: new Date(),
-                sceneDescription: 'Individual analysis unavailable'
-              }
-            };
-          }
-        })
-      );
-      
-      // Calculate aggregate metrics
-      const totalBicycles = individualAnalyses.reduce((sum, item) => sum + item.analysis.bikeCount, 0);
-      const totalTrucks = individualAnalyses.reduce((sum, item) => sum + item.analysis.truckCount, 0);
-      const totalPedestrians = individualAnalyses.reduce((sum, item) => sum + item.analysis.pedestrianCount, 0);
-      const averageRiskScore = individualAnalyses.reduce((sum, item) => sum + item.analysis.riskScore, 0) / individualAnalyses.length;
-      
-      // Determine region name from camera locations
-      const regionName = this.getRegionName(
-        cameras.reduce((sum, cam) => sum + cam.latitude, 0) / cameras.length,
-        cameras.reduce((sum, cam) => sum + cam.longitude, 0) / cameras.length
-      );
-      
-      const result: BatchAnalysisResult = {
-        compositeImageUrl,
-        cameraIds: cameras.map(c => c.id),
-        regionName,
-        totalBicycles,
-        totalTrucks,
-        totalPedestrians,
-        averageRiskScore,
-        confidence: batchAnalysis.confidence,
-        sceneDescription: `Batch analysis of ${cameras.length} cameras in ${regionName}: ${batchAnalysis.sceneDescription}`,
-        analysisTimestamp: new Date(),
-        individualCameras: individualAnalyses
-      };
-      
-      // Update heat map with batch analysis
-      await this.updateHeatMapWithBatchAnalysis(cameras, result);
-      
-      console.log(`✅ [HACKATHON] Batch analysis completed for ${regionName}`);
-      return result;
-      
-    } catch (error) {
-      console.error('❌ [HACKATHON] Batch analysis failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update heat map data with batch analysis results
-   */
-  private async updateHeatMapWithBatchAnalysis(cameras: NYCCamera[], batchResult: BatchAnalysisResult): Promise<void> {
-    try {
-      // Calculate bounds for the camera group
-      const latitudes = cameras.map(c => c.latitude);
-      const longitudes = cameras.map(c => c.longitude);
-      
-      const bounds = {
-        north: Math.max(...latitudes) + 0.001, // Add small padding
-        south: Math.min(...latitudes) - 0.001,
-        east: Math.max(...longitudes) + 0.001,
-        west: Math.min(...longitudes) - 0.001
-      };
-      
-      // Generate heat map color based on risk score
-      const color = this.getRiskColor(batchResult.averageRiskScore);
-      
-      const heatMapData: HeatMapData = {
-        id: `batch_${batchResult.cameraIds.join('_')}`,
-        bounds,
-        riskScore: batchResult.averageRiskScore,
-        cameraCount: cameras.length,
-        lastAnalyzed: batchResult.analysisTimestamp,
-        analysisType: 'batch',
-        color,
-        analysisState: 'completed'
-      };
-      
-      this.heatMapCache.set(heatMapData.id, heatMapData);
-      console.log(`🗺️ [HACKATHON] Heat map updated for ${batchResult.regionName} (Risk: ${batchResult.averageRiskScore.toFixed(1)})`);
-      
-    } catch (error) {
-      console.error('❌ [HACKATHON] Error updating heat map:', error);
-    }
-  }
+  // BATCH ANALYSIS REMOVED - Was totally useless and outdated
 
   /**
    * Update heat map with individual camera analysis using Voronoi boundaries
@@ -1261,235 +1103,70 @@ class NYCCameraService {
     }));
   }
 
-  /**
-   * COMPREHENSIVE DEBUG ANALYSIS: Combines CV + External Data
-   */
-  async debugAnalyzeCameraRisk(
-    camera: NYCCamera, 
-    progressCallback?: ProgressCallback, 
-    disableTimeouts: boolean = false
-  ): Promise<{
-    computerVisionAnalysis: CameraRiskAnalysis;
-    externalDataAnalysis: any;
-    hybridAnalysis: {
-      finalRiskScore: number;
-      confidenceLevel: number;
-      analysisMethod: 'cv_only' | 'external_only' | 'hybrid';
-      reasoning: string;
-    };
-    performanceMetrics: {
-      cvTime: number;
-      externalDataTime: number;
-      totalTime: number;
-    };
-  }> {
-    console.log('🐛 [DEBUG] Starting comprehensive camera analysis...');
-    console.log(`📸 [DEBUG] Camera: ${camera.name} (${camera.area})`);
-    console.log(`📍 [DEBUG] Location: ${camera.latitude}, ${camera.longitude}`);
-    
-    const startTime = Date.now();
-    
-    // 1. Run Computer Vision Analysis (our existing method)
-    console.log('🤖 [DEBUG] Step 1/2: Computer Vision Analysis...');
-    const cvStartTime = Date.now();
-    const cvAnalysis = await this.analyzeCameraRisk(camera, progressCallback, disableTimeouts);
-    const cvTime = Date.now() - cvStartTime;
-    console.log(`✅ [DEBUG] CV Analysis completed in ${cvTime}ms`);
-    console.log(`🎯 [DEBUG] CV Risk Score: ${cvAnalysis.riskScore}/10`);
-    
-    // 2. Run External Data Analysis
-    console.log('🌐 [DEBUG] Step 2/2: External Data Analysis...');
-    const externalStartTime = Date.now();
-    const externalAnalysis = await dataSourceService.debugAnalysis(
-      camera.latitude, 
-      camera.longitude, 
-      cvAnalysis.bikeCount
-    );
-    const externalTime = Date.now() - externalStartTime;
-    console.log(`✅ [DEBUG] External Analysis completed in ${externalTime}ms`);
-    console.log(`🎯 [DEBUG] External Risk Score: ${externalAnalysis.safetyScore}/10`);
-    
-    // 3. Create Hybrid Analysis
-    const hybridAnalysis = this.createHybridAnalysis(cvAnalysis, externalAnalysis);
-    
-    const totalTime = Date.now() - startTime;
-    
-    const result = {
-      computerVisionAnalysis: cvAnalysis,
-      externalDataAnalysis: externalAnalysis,
-      hybridAnalysis,
-      performanceMetrics: {
-        cvTime,
-        externalDataTime: externalTime,
-        totalTime
-      }
-    };
-    
-    // Log comprehensive results
-    console.log('🐛 [DEBUG] === COMPREHENSIVE ANALYSIS RESULTS ===');
-    console.log('📊 [DEBUG] Computer Vision Analysis:', JSON.stringify(cvAnalysis, null, 2));
-    console.log('🌐 [DEBUG] External Data Analysis:', JSON.stringify(externalAnalysis, null, 2));
-    console.log('🔄 [DEBUG] Hybrid Analysis:', JSON.stringify(hybridAnalysis, null, 2));
-    console.log('⚡ [DEBUG] Performance Metrics:', JSON.stringify(result.performanceMetrics, null, 2));
-    
-    // Format for display
-    const formatted = this.formatComprehensiveResults(result);
-    console.log(formatted);
-    
-    return result;
-  }
+  // DEBUG/HYBRID ANALYSIS REMOVED - Not needed for config-based workflow
 
   /**
-   * Create hybrid analysis combining CV and external data
+   * Load analysis from AsyncStorage
    */
-  private createHybridAnalysis(
-    cvAnalysis: CameraRiskAnalysis, 
-    externalAnalysis: any
-  ): {
-    finalRiskScore: number;
-    confidenceLevel: number;
-    analysisMethod: 'cv_only' | 'external_only' | 'hybrid';
-    reasoning: string;
-  } {
-    const cvScore = cvAnalysis.riskScore;
-    const externalScore = externalAnalysis.safetyScore;
-    const cvConfidence = this.mapConfidenceToNumber(cvAnalysis.confidence);
-    
-    // Determine analysis method based on data quality
-    let analysisMethod: 'cv_only' | 'external_only' | 'hybrid';
-    let finalRiskScore: number;
-    let confidenceLevel: number;
-    let reasoning: string;
-    
-    // If CV confidence is low, rely more on external data
-    if (cvConfidence < 0.6) {
-      analysisMethod = 'external_only';
-      finalRiskScore = externalScore;
-      confidenceLevel = 0.8; // External data is generally more reliable
-      reasoning = `Using external data only due to low CV confidence (${cvAnalysis.confidence})`;
-    }
-    // If external data seems unreliable, use CV only
-    else if (externalAnalysis.performanceMetrics.totalTime > 10000) {
-      analysisMethod = 'cv_only';
-      finalRiskScore = cvScore;
-      confidenceLevel = cvConfidence;
-      reasoning = `Using CV only due to slow external data (${externalAnalysis.performanceMetrics.totalTime}ms)`;
-    }
-    // Best case: combine both sources
-    else {
-      analysisMethod = 'hybrid';
-      // Weighted average: 40% CV, 60% external data (external is more comprehensive)
-      finalRiskScore = Math.round((cvScore * 0.4 + externalScore * 0.6) * 10) / 10;
-      confidenceLevel = Math.min(cvConfidence + 0.2, 1.0); // Hybrid increases confidence
-      reasoning = `Hybrid analysis: ${Math.round(0.4*100)}% CV (${cvScore}) + ${Math.round(0.6*100)}% external (${externalScore})`;
-    }
-    
-    return {
-      finalRiskScore,
-      confidenceLevel,
-      analysisMethod,
-      reasoning
-    };
-  }
-
-  /**
-   * Map confidence strings to numbers
-   */
-  private mapConfidenceToNumber(confidence: string): number {
-    switch (confidence) {
-      case 'high': return 0.9;
-      case 'medium': return 0.7;
-      case 'low': return 0.4;
-      default: return 0.5;
-    }
-  }
-
-  /**
-   * Format comprehensive results for display
-   */
-  private formatComprehensiveResults(results: any): string {
-    const { computerVisionAnalysis, externalDataAnalysis, hybridAnalysis, performanceMetrics } = results;
-    const cv = computerVisionAnalysis;
-    const ext = externalDataAnalysis;
-    const hybrid = hybridAnalysis;
-    
-    return `
-🐛 COMPREHENSIVE CAMERA ANALYSIS RESULTS
-=======================================
-
-📸 CAMERA INFORMATION:
-Camera ID: ${cv.cameraId}
-Analysis Time: ${new Date().toLocaleString()}
-
-🤖 COMPUTER VISION ANALYSIS:
-Risk Score: ${cv.riskScore}/10
-Confidence: ${cv.confidence}
-Bicycles Detected: ${cv.bikeCount}
-Trucks Detected: ${cv.truckCount}
-Pedestrians: ${cv.pedestrianCount}
-Traffic Density: ${cv.trafficDensity}
-Sidewalk: ${cv.sidewalkCondition}
-Scene: ${cv.sceneDescription}
-
-🌐 EXTERNAL DATA ANALYSIS:
-Safety Score: ${ext.safetyScore}/10
-Time Category: ${ext.externalData.timeData.timeCategory}
-Weather: ${ext.externalData.weatherData.weatherCategory} (${ext.externalData.weatherData.temperature}°F)
-Protected Bike Lane: ${ext.externalData.infrastructureData.hasProtectedBikeLane ? 'YES' : 'NO'}
-Traffic Light: ${ext.externalData.infrastructureData.hasTrafficLight ? 'YES' : 'NO'}
-Historical Accidents: ${ext.externalData.historicalData.accidentCount_lastYear}
-Current Traffic Density: ${ext.externalData.trafficData.currentTrafficDensity}/10
-
-🔄 HYBRID ANALYSIS:
-Final Risk Score: ${hybrid.finalRiskScore}/10
-Analysis Method: ${hybrid.analysisMethod.toUpperCase().replace('_', ' ')}
-Confidence Level: ${Math.round(hybrid.confidenceLevel * 100)}%
-Reasoning: ${hybrid.reasoning}
-
-⚡ PERFORMANCE COMPARISON:
-Computer Vision: ${performanceMetrics.cvTime}ms
-External Data: ${performanceMetrics.externalDataTime}ms
-Total Time: ${performanceMetrics.totalTime}ms
-Speed Improvement: ${performanceMetrics.cvTime > performanceMetrics.externalDataTime ? 
-  `External data ${Math.round((performanceMetrics.cvTime / performanceMetrics.externalDataTime - 1) * 100)}% faster` :
-  `CV ${Math.round((performanceMetrics.externalDataTime / performanceMetrics.cvTime - 1) * 100)}% faster`}
-
-🎯 FINAL RECOMMENDATION:
-${hybrid.finalRiskScore >= 8 ? '✅ SAFE - Low risk for cycling' : 
-  hybrid.finalRiskScore >= 6 ? '⚠️ MODERATE - Proceed with caution' : 
-  hybrid.finalRiskScore >= 4 ? '🟡 CAUTION - High attention required' : 
-  '🔴 HIGH RISK - Avoid if possible'}
-`;
-  }
-
-  /**
-   * QUICK DEBUG TEST: Test a specific camera
-   */
-  async quickDebugTest(cameraId?: string): Promise<void> {
-    console.log('🧪 [TEST] Starting quick camera debug test...');
-    
+  private loadAnalysisFromStorage = async (cameraId: string): Promise<CameraRiskAnalysis | null> => {
     try {
-      // Get cameras
-      const cameras = await this.fetchCameras();
-      const targetCamera = cameraId 
-        ? cameras.find(c => c.id === cameraId) 
-        : cameras.find(c => c.area.toLowerCase().includes('manhattan')) || cameras[0];
+      console.log(`🔍 [STORAGE_DEBUG] Loading analysis from AsyncStorage for camera: ${cameraId}`);
       
-      if (!targetCamera) {
-        console.error('❌ [TEST] No suitable camera found');
-        return;
+      const storageKey = `camera_analysis_${cameraId}`;
+      const stored = await AsyncStorage.getItem(storageKey);
+      
+      if (!stored) {
+        console.log(`❌ [STORAGE_DEBUG] No stored analysis found for ${cameraId}`);
+        return null;
       }
       
-      console.log(`📸 [TEST] Testing camera: ${targetCamera.name} (${targetCamera.area})`);
+      const analysis = JSON.parse(stored) as CameraRiskAnalysis;
       
-      const results = await this.debugAnalyzeCameraRisk(targetCamera, undefined, true);
+      // Check if analysis is recent (within 24 hours)
+      const analysisAge = Date.now() - new Date(analysis.lastAnalyzed).getTime();
+      const maxAge = 24 * 60 * 60 * 1000; // 24 hours
       
-      console.log('✅ [TEST] Debug test completed successfully!');
+      if (analysisAge > maxAge) {
+        console.log(`⏰ [STORAGE_DEBUG] Stored analysis for ${cameraId} is ${Math.round(analysisAge / (60 * 60 * 1000))}h old, too stale`);
+        return null;
+      }
+      
+      console.log(`✅ [STORAGE_DEBUG] Loaded fresh analysis for ${cameraId}: risk ${analysis.riskScore}/10 (${Math.round(analysisAge / (60 * 1000))}min old)`);
+      return analysis;
       
     } catch (error) {
-      console.error('❌ [TEST] Debug test failed:', error);
+      console.error(`❌ [STORAGE_DEBUG] Failed to load analysis for ${cameraId}:`, error);
+      return null;
     }
   }
+
+  /**
+   * Save analysis to AsyncStorage
+   */
+  private saveAnalysisToStorage = async (analysis: CameraRiskAnalysis): Promise<void> => {
+    try {
+      console.log(`💾 [STORAGE_DEBUG] Saving analysis to AsyncStorage for camera: ${analysis.cameraId}`);
+      
+      const storageKey = `camera_analysis_${analysis.cameraId}`;
+      const dataToStore = {
+        ...analysis,
+        lastAnalyzed: new Date().toISOString(),
+        storedAt: new Date().toISOString()
+      };
+      
+      await AsyncStorage.setItem(storageKey, JSON.stringify(dataToStore));
+      
+      console.log(`✅ [STORAGE_DEBUG] Successfully saved analysis for ${analysis.cameraId}: risk ${analysis.riskScore}/10`);
+      
+      // Also update the cache
+      this.analysisCache.set(analysis.cameraId, analysis);
+      
+    } catch (error) {
+      console.error(`❌ [STORAGE_DEBUG] Failed to save analysis for ${analysis.cameraId}:`, error);
+    }
+  }
+
+  // QUICK DEBUG TEST REMOVED - Used obsolete debug methods
 }
 
 export default new NYCCameraService(); 

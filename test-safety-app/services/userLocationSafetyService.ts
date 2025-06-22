@@ -192,11 +192,11 @@ class UserLocationSafetyService {
       zone.visualState = 'blinking';
       this.notifyZoneStateChange(zone);
 
-      // Run comprehensive analysis
-      const analysis = await nycCameraService.debugAnalyzeCameraRisk(zone.camera, undefined, true);
+      // Run camera analysis
+      const analysis = await nycCameraService.analyzeCameraRisk(zone.camera, undefined, true);
       
       // Update zone with results
-      zone.safetyScore = analysis.hybridAnalysis.finalRiskScore;
+      zone.safetyScore = analysis.riskScore;
       zone.processingState = 'completed';
       zone.visualState = 'heat_color';
       zone.lastUpdated = new Date();
