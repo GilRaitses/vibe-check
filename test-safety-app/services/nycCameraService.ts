@@ -1,6 +1,7 @@
 // NYC Traffic Camera Service for Risk Assessment
 import MoondreamService, { ProgressCallback, AnalysisProgress } from './moondreamService';
 import dataSourceService from './dataSourceService';
+import asyncStorageService, { CameraMetadata } from './asyncStorageService';
 
 // Manhattan outline coordinates (approximate boundary)
 const MANHATTAN_BOUNDARY = [
@@ -292,63 +293,42 @@ class NYCCameraService {
       console.log(`📸 [HACKATHON] Camera image URL: ${camera.imageUrl}`);
       console.log(`📍 [HACKATHON] Camera location: ${camera.latitude}, ${camera.longitude}`);
 
-      // Use rate-limited requests to avoid overwhelming the API
-      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #1: Active cyclist detection for camera ${camera.id}`);
-      const bicycleResult = await this.queueRequest(() => 
-        MoondreamService.detectBicycles(camera.imageUrl, progressCallback, disableTimeouts)
+      // Use NEW optimized config-based vision analysis - single API call
+      console.log(`🔥 [HACKATHON] MOONDREAM API CALL: Optimized config-based analysis for camera ${camera.id}`);
+      const rawVisionData = await this.queueRequest(() => 
+        MoondreamService.analyzeVisionOptimized(camera.imageUrl)
       );
-      console.log(`✅ [HACKATHON] Active cyclist detection completed:`, bicycleResult);
+      console.log(`✅ [HACKATHON] Optimized vision analysis completed:`, rawVisionData);
       
-      // Detect trucks and traffic with rate limiting
-      const truckQuestion = "How many trucks, delivery vehicles, or large vehicles do you see in this image?";
-      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #2: Truck detection for camera ${camera.id}`);
-      console.log(`❓ [HACKATHON] Question: "${truckQuestion}"`);
-      const truckAnswer = await this.queueRequest(() => 
-        MoondreamService.askQuestion(camera.imageUrl, truckQuestion)
-      );
-      console.log(`✅ [HACKATHON] Truck detection answer: "${truckAnswer}"`);
+      // Extract data from the optimized raw vision response
+      const bikeCount = rawVisionData.bikes_street + rawVisionData.bikes_bike_lane + rawVisionData.bikes_crosswalk;
+      const truckCount = rawVisionData.vehicles_moving + rawVisionData.vehicles_stopped;
+      const pedestrianCount = rawVisionData.people_sidewalk + rawVisionData.people_street + rawVisionData.people_moving;
       
-      const pedestrianQuestion = "How many pedestrians or people walking do you see in this image?";
-      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #3: Pedestrian detection for camera ${camera.id}`);
-      console.log(`❓ [HACKATHON] Question: "${pedestrianQuestion}"`);
-      const pedestrianAnswer = await this.queueRequest(() => 
-        MoondreamService.askQuestion(camera.imageUrl, pedestrianQuestion)
-      );
-      console.log(`✅ [HACKATHON] Pedestrian detection answer: "${pedestrianAnswer}"`);
-      
-      const trafficQuestion = "How would you describe the traffic density: light, moderate, or heavy?";
-      console.log(`🤖 [HACKATHON] MOONDREAM API CALL #4: Traffic density analysis for camera ${camera.id}`);
-      console.log(`❓ [HACKATHON] Question: "${trafficQuestion}"`);
-      const trafficAnswer = await this.queueRequest(() => 
-        MoondreamService.askQuestion(camera.imageUrl, trafficQuestion)
-      );
-      console.log(`✅ [HACKATHON] Traffic density answer: "${trafficAnswer}"`);
+      // Map activity levels to traffic density
+      const trafficDensity = this.mapActivityToTrafficDensity(rawVisionData.activity_traffic);
 
-      // Extract counts from AI responses
-      const truckCount = this.extractNumberFromResponse(truckAnswer);
-      const pedestrianCount = this.extractNumberFromResponse(pedestrianAnswer);
-      const bikeCount = bicycleResult.totalCount;
-
-      console.log(`🧮 [HACKATHON] Extracted counts from AI responses:`);
-      console.log(`  🚛 Trucks: ${truckCount}`);
+      console.log(`🧮 [HACKATHON] Extracted data from optimized vision analysis:`);
       console.log(`  🚴 Active Cyclists: ${bikeCount}`);
+      console.log(`  🚛 Vehicles/Trucks: ${truckCount}`);
       console.log(`  🚶 Pedestrians: ${pedestrianCount}`);
-
-      // Determine traffic density
-      const trafficDensity = this.parseTrafficDensity(trafficAnswer);
-      console.log(`🚦 [HACKATHON] Parsed traffic density: ${trafficDensity}`);
+      console.log(`  🚦 Traffic Density: ${trafficDensity}`);
+      console.log(`  🛤️ Sidewalk: ${rawVisionData.people_sidewalk > 0 ? 'Present' : 'None'}`);
+      console.log(`  💡 Lighting: ${rawVisionData.infrastructure_lighting > 2 ? 'Good' : 'Poor'}`);
+      console.log(`  🚥 Traffic Signs: ${rawVisionData.infrastructure_signs} signs detected`);
 
       // Calculate risk score (1-10, lower = more risky)
+      const hasSidewalk = rawVisionData.people_sidewalk > 0;
       const riskScore = this.calculateRiskScore({
         bikeCount,
         truckCount,
         pedestrianCount,
         trafficDensity,
-        hasSidewalk: bicycleResult.hasSidewalk
+        hasSidewalk
       });
 
       console.log(`⚠️ [HACKATHON] Calculated risk score: ${riskScore}/10 (1=high risk, 10=low risk)`);
-      console.log(`🛤️ [HACKATHON] Sidewalk condition: ${bicycleResult.hasSidewalk ? 'clear' : 'unsafe'}`);
+      console.log(`🛤️ [HACKATHON] Sidewalk condition: ${hasSidewalk ? 'clear' : 'unsafe'}`);
 
       const analysis: CameraRiskAnalysis = {
         cameraId: camera.id,
@@ -357,10 +337,10 @@ class NYCCameraService {
         bikeCount,
         pedestrianCount,
         trafficDensity,
-        sidewalkCondition: bicycleResult.hasSidewalk ? 'clear' : 'unsafe',
-        confidence: bicycleResult.confidence,
+        sidewalkCondition: hasSidewalk ? 'clear' : 'unsafe',
+        confidence: 'medium', // Default confidence for optimized analysis
         lastAnalyzed: new Date(),
-        sceneDescription: bicycleResult.sceneDescription
+        sceneDescription: `Optimized analysis: ${bikeCount} bikes, ${truckCount} vehicles, ${pedestrianCount} people`
       };
 
       console.log(`📊 [HACKATHON] FINAL ANALYSIS RESULT for ${camera.name}:`, analysis);
@@ -472,6 +452,32 @@ class NYCCameraService {
     if (highKeywords.some(keyword => responseLower.includes(keyword))) {
       return 'high';
     }
+    return 'medium';
+  }
+
+  /**
+   * Map traffic density from new categorical format to old format
+   */
+  private mapTrafficDensity(density: 'light' | 'moderate' | 'heavy' | 'gridlock'): 'low' | 'medium' | 'high' {
+    switch (density) {
+      case 'light':
+        return 'low';
+      case 'moderate':
+        return 'medium';
+      case 'heavy':
+      case 'gridlock':
+        return 'high';
+      default:
+        return 'medium';
+    }
+  }
+
+  /**
+   * Map activity level (0-4) to traffic density
+   */
+  private mapActivityToTrafficDensity(activityLevel: number): 'low' | 'medium' | 'high' {
+    if (activityLevel <= 1) return 'low';
+    if (activityLevel >= 3) return 'high';
     return 'medium';
   }
 

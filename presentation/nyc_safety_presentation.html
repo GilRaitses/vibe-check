@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="nyc_safety_presentation_files/libs/clipboard/clipboard.min.js"></script>
+<script src="nyc_safety_presentation_files/libs/quarto-html/tabby.min.js"></script>
+<script src="nyc_safety_presentation_files/libs/quarto-html/popper.min.js"></script>
+<script src="nyc_safety_presentation_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="nyc_safety_presentation_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="nyc_safety_presentation_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="nyc_safety_presentation_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.7.32">
+
+  <meta name="author" content="NYC Safety Team">
+  <meta name="dcterms.date" content="2025-06-22">
+  <title>NYC Safety App: Chill Routes for Hot Summers</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="nyc_safety_presentation_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="nyc_safety_presentation_files/libs/revealjs/dist/reveal.css">
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="nyc_safety_presentation_files/libs/revealjs/dist/theme/quarto-f563837468303362081e247dddd440d0.css">
+  <link rel="stylesheet" href="styles.css">
+  <link href="nyc_safety_presentation_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="nyc_safety_presentation_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="nyc_safety_presentation_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="nyc_safety_presentation_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide" class="quarto-title-block center">
+  <h1 class="title">NYC Safety App: Chill Routes for Hot Summers</h1>
+  <p class="subtitle">Real-time analysis to find safer, calmer paths</p>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+NYC Safety Team 
+</div>
+</div>
+</div>
+
+  <p class="date">2025-06-22</p>
+</section>
+<section id="the-problem" class="slide level2 center">
+<h2>The Problem</h2>
+<p><strong>Summer in NYC: Streets are crazy, sidewalks are crazy, it’s fucking hot out</strong></p>
+<ul>
+<li>You’re sweating, stressed, trying to get somewhere</li>
+<li>Streets are chaos - bikes, cars, construction everywhere<br>
+</li>
+<li>Sidewalks aren’t safe either - bikes flying through pedestrians</li>
+<li>You see something, you say something… and nothing happens</li>
+</ul>
+<p><strong>What are you gonna do about it? What is ANYBODY gonna do about it?</strong></p>
+<p><em>We built a tool to crowdsource the data and help you stay chill</em></p>
+</section>
+<section id="our-solution-crowdsourced-chill-routes" class="slide level2">
+<h2>Our Solution: Crowdsourced Chill Routes</h2>
+<p><strong>We analyze live camera data AND let you report what you see:</strong></p>
+<ul>
+<li>Live analysis: How chaotic is each street right now?</li>
+<li>User reports: Document bikes on sidewalks with photos</li>
+<li>Public database: Everyone’s experiences in one place</li>
+<li>Route intelligence: Find paths that won’t stress you out</li>
+</ul>
+<p><strong>Result: Routes that are 5 minutes longer but way more chill</strong></p>
+</section>
+<section id="the-technical-breakthrough" class="slide level2">
+<h2>The Technical Breakthrough</h2>
+<p><strong>Problem:</strong> Analyzing camera data was too slow and unreliable - 8 API calls per camera = 60+ seconds - Constant failures and rate limiting</p>
+<p><strong>Solution:</strong> Optimized to 1 call per camera = 15 seconds - 87.5% fewer API calls - 90% success rate - Real-time analysis now possible</p>
+</section>
+<section id="section" class="slide level2">
+<h2></h2>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="presentation/assets/performance_comparison.png" class="quarto-figure quarto-figure-center" style="width:100.0%;height:100.0%"></p>
+</figure>
+</div>
+</section>
+<section id="raw-feature-matrix-output" class="slide level2">
+<h2>Raw Feature Matrix Output</h2>
+<p><strong>Each camera analysis returns 25 numerical values (0-4 scale):</strong></p>
+<pre><code>Raw API Response: [2,0,1,3,2,1,0,2,3,1,2,0,1,2,3,0,1,2,1,3,2,0,1,2,3]
+
+Converted to JSON:
+{
+  "bikes_sidewalk": 2, "bikes_street": 0, "bikes_bike_lane": 1,
+  "people_sidewalk": 3, "people_street": 2, "people_crosswalk": 1,
+  "vehicles_moving": 2, "vehicles_stopped": 3, "vehicles_parked": 1,
+  "activity_pedestrian": 2, "activity_cycling": 0, ...
+}</code></pre>
+</section>
+<section id="mathematical-analysis" class="slide level2">
+<h2>Mathematical Analysis</h2>
+<p><strong>Chill Score Calculation:</strong></p>
+<p><span class="math display">\[S_{chill} = 10 - S_{stress} + B_{comfort}\]</span></p>
+<p><strong>Where:</strong> <span class="math display">\[S_{stress} = 2.5 \cdot B_{street} + 1.5 \cdot V_{moving}\]</span></p>
+<p><span class="math display">\[B_{comfort} = 2 \cdot I_{good} + 1 \cdot Sh_{available}\]</span></p>
+<p><strong>Variable Definitions:</strong> - <span class="math inline">\(B_{street}\)</span> = bikes on street (0-4), <span class="math inline">\(V_{moving}\)</span> = moving vehicles (0-4) - <span class="math inline">\(I_{good}\)</span> = infrastructure quality (0-4), <span class="math inline">\(Sh_{available}\)</span> = shade availability (0-4)</p>
+</section>
+<section id="live-demo-finding-chill-routes" class="slide level2">
+<h2>Live Demo: Finding Chill Routes</h2>
+<p><strong>Let’s see it working:</strong></p>
+<ol type="1">
+<li><strong>Current location</strong> - app analyzes nearby cameras</li>
+<li><strong>Raw numbers</strong> - see the actual feature matrix output</li>
+<li><strong>Route options</strong> - fastest vs most chill</li>
+<li><strong>User reporting</strong> - photograph bikes on sidewalks</li>
+<li><strong>311 integration</strong> - export violation reports</li>
+</ol>
+<p><strong>Key insight:</strong> Sometimes the best route isn’t the fastest one</p>
+</section>
+<section id="what-makes-a-route-chill" class="slide level2">
+<h2>What Makes a Route “Chill”?</h2>
+<table class="caption-top">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 35%">
+<col style="width: 43%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Factor</th>
+<th>Chill (Good)</th>
+<th>Stressful (Bad)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Bike Infrastructure</strong></td>
+<td>Protected bike lanes</td>
+<td>Sharing lanes with cars</td>
+</tr>
+<tr class="even">
+<td><strong>Pedestrian Activity</strong></td>
+<td>Relaxed walking pace</td>
+<td>Rushing crowds</td>
+</tr>
+<tr class="odd">
+<td><strong>Traffic Patterns</strong></td>
+<td>Smooth, steady flow</td>
+<td>Stop-and-go chaos</td>
+</tr>
+<tr class="even">
+<td><strong>Street Design</strong></td>
+<td>Wide sidewalks, trees</td>
+<td>Narrow, no shade</td>
+</tr>
+<tr class="odd">
+<td><strong>Lighting</strong></td>
+<td>Well-lit, visible</td>
+<td>Dark, poor visibility</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result:</strong> Routes optimized for your peace of mind, not just speed</p>
+</section>
+<section id="finally-you-can-do-something-about-it" class="slide level2">
+<h2>Finally: You Can DO Something About It</h2>
+<p><strong>See a bike on the sidewalk? Don’t just get mad - document it:</strong></p>
+<ol type="1">
+<li><strong>Take a photo</strong> - AI analyzes the violation instantly</li>
+<li><strong>Public database</strong> - Your report joins thousands of others</li>
+<li><strong>Route updates</strong> - Helps others avoid that chaos</li>
+<li><strong>311 reports</strong> - Automated reports to the city with data</li>
+</ol>
+<p><strong>Your frustration becomes useful data that helps everyone stay chill</strong></p>
+</section>
+<section id="sidewalk-violation-analysis-output" class="slide level2">
+<h2>Sidewalk Violation Analysis Output</h2>
+<p><strong>User photo analysis returns 13 specialized values (0-4 scale):</strong></p>
+<pre><code>Raw Violation API Response: [3,2,4,2,3,2,1,2,3,1,4,4,2]
+
+Converted to Violation Matrix:
+{
+  "cyclist_speed": 3, "cyclist_direction": 2, "cyclist_awareness": 4,
+  "cyclist_equipment": 2, "pedestrian_density": 3, "pedestrian_reaction": 2,
+  "pedestrian_vulnerable": 1, "sidewalk_width": 2, "bike_lane_proximity": 3,
+  "pedestrian_infrastructure": 1, "safety_risk": 4, "violation_clarity": 4,
+  "repeat_location": 2
+}
+
+Violation Score: 8.2/10 (HIGH severity)</code></pre>
+</section>
+<section id="stay-chill-in-the-heat" class="slide level2">
+<h2>Stay Chill in the Heat</h2>
+<p><strong>When it’s 90°F and you’re already sweating:</strong> - Don’t add street chaos to your stress - Don’t let sidewalk cyclists ruin your day - Don’t feel helpless about the madness</p>
+<p><strong>Use the app to:</strong> - Find the chill route (yes, 5 minutes longer) - Document the chaos when you see it - Help build a better database for everyone - Actually DO something about the problem</p>
+<p><strong>Sometimes 5 extra minutes is worth your sanity</strong></p>
+</section>
+<section id="section-1" class="slide level2 center">
+<h2></h2>
+<p><strong>NYC Safety App: Stay Chill, Document Chaos</strong></p>
+<p><em>Now handing off to Effy for our next idea…</em></p>
+</section>
+<section id="section-2" class="slide level2 center">
+<h2></h2>
+<div style="font-size: 20em; line-height: 1; margin: 0; padding: 0;">
+😓
+</div>
+
+</section>
+    </div>
+  <div class="quarto-auto-generated-content" style="display: none;">
+<div class="footer footer-default">
+<p>🥵 Nice People X Moondream X Betaworks - CV Hackathon, 2025</p>
+</div>
+</div></div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="nyc_safety_presentation_files/libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="nyc_safety_presentation_files/libs/revealjs/plugin/math/math.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': true,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease",
+'autoAnimateDuration': 1,
+'autoAnimateUnmatched': true,
+'jumpToSlide': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'slide',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1050,
+
+        height: 700,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 0.1,
+
+        math: {
+          mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <script id="quarto-html-after-body" type="application/javascript">
+      window.document.addEventListener("DOMContentLoaded", function (event) {
+        const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+        tabsets.forEach(function(tabset) {
+          const tabby = new Tabby('#' + tabset.id);
+        });
+        const isCodeAnnotation = (el) => {
+          for (const clz of el.classList) {
+            if (clz.startsWith('code-annotation-')) {                     
+              return true;
+            }
+          }
+          return false;
+        }
+        const onCopySuccess = function(e) {
+          // button target
+          const button = e.trigger;
+          // don't keep focus
+          button.blur();
+          // flash "checked"
+          button.classList.add('code-copy-button-checked');
+          var currentTitle = button.getAttribute("title");
+          button.setAttribute("title", "Copied!");
+          let tooltip;
+          if (window.bootstrap) {
+            button.setAttribute("data-bs-toggle", "tooltip");
+            button.setAttribute("data-bs-placement", "left");
+            button.setAttribute("data-bs-title", "Copied!");
+            tooltip = new bootstrap.Tooltip(button, 
+              { trigger: "manual", 
+                customClass: "code-copy-button-tooltip",
+                offset: [0, -8]});
+            tooltip.show();    
+          }
+          setTimeout(function() {
+            if (tooltip) {
+              tooltip.hide();
+              button.removeAttribute("data-bs-title");
+              button.removeAttribute("data-bs-toggle");
+              button.removeAttribute("data-bs-placement");
+            }
+            button.setAttribute("title", currentTitle);
+            button.classList.remove('code-copy-button-checked');
+          }, 1000);
+          // clear code selection
+          e.clearSelection();
+        }
+        const getTextToCopy = function(trigger) {
+            const codeEl = trigger.previousElementSibling.cloneNode(true);
+            for (const childEl of codeEl.children) {
+              if (isCodeAnnotation(childEl)) {
+                childEl.remove();
+              }
+            }
+            return codeEl.innerText;
+        }
+        const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+          text: getTextToCopy
+        });
+        clipboard.on('success', onCopySuccess);
+        if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+          const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+            text: getTextToCopy,
+            container: window.document.getElementById('quarto-embedded-source-code-modal')
+          });
+          clipboardModal.on('success', onCopySuccess);
+        }
+          var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+          var mailtoRegex = new RegExp(/^mailto:/);
+            var filterRegex = new RegExp('/' + window.location.host + '/');
+          var isInternal = (href) => {
+              return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+          }
+          // Inspect non-navigation links and adorn them if external
+         var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+          for (var i=0; i<links.length; i++) {
+            const link = links[i];
+            if (!isInternal(link.href)) {
+              // undo the damage that might have been done by quarto-nav.js in the case of
+              // links that we want to consider external
+              if (link.dataset.originalHref !== undefined) {
+                link.href = link.dataset.originalHref;
+              }
+            }
+          }
+        function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+          const config = {
+            allowHTML: true,
+            maxWidth: 500,
+            delay: 100,
+            arrow: false,
+            appendTo: function(el) {
+                return el.closest('section.slide') || el.parentElement;
+            },
+            interactive: true,
+            interactiveBorder: 10,
+            theme: 'light-border',
+            placement: 'bottom-start',
+          };
+          if (contentFn) {
+            config.content = contentFn;
+          }
+          if (onTriggerFn) {
+            config.onTrigger = onTriggerFn;
+          }
+          if (onUntriggerFn) {
+            config.onUntrigger = onUntriggerFn;
+          }
+            config['offset'] = [0,0];
+            config['maxWidth'] = 700;
+          window.tippy(el, config); 
+        }
+        const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+        for (var i=0; i<noterefs.length; i++) {
+          const ref = noterefs[i];
+          tippyHover(ref, function() {
+            // use id or data attribute instead here
+            let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+            try { href = new URL(href).hash; } catch {}
+            const id = href.replace(/^#\/?/, "");
+            const note = window.document.getElementById(id);
+            if (note) {
+              return note.innerHTML;
+            } else {
+              return "";
+            }
+          });
+        }
+        const findCites = (el) => {
+          const parentEl = el.parentElement;
+          if (parentEl) {
+            const cites = parentEl.dataset.cites;
+            if (cites) {
+              return {
+                el,
+                cites: cites.split(' ')
+              };
+            } else {
+              return findCites(el.parentElement)
+            }
+          } else {
+            return undefined;
+          }
+        };
+        var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+        for (var i=0; i<bibliorefs.length; i++) {
+          const ref = bibliorefs[i];
+          const citeInfo = findCites(ref);
+          if (citeInfo) {
+            tippyHover(citeInfo.el, function() {
+              var popup = window.document.createElement('div');
+              citeInfo.cites.forEach(function(cite) {
+                var citeDiv = window.document.createElement('div');
+                citeDiv.classList.add('hanging-indent');
+                citeDiv.classList.add('csl-entry');
+                var biblioDiv = window.document.getElementById('ref-' + cite);
+                if (biblioDiv) {
+                  citeDiv.innerHTML = biblioDiv.innerHTML;
+                }
+                popup.appendChild(citeDiv);
+              });
+              return popup.innerHTML;
+            });
+          }
+        }
+      });
+      </script>
+    
+
+</body></html>

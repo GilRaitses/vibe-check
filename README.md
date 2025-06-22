@@ -4,6 +4,22 @@
 
 A React Native app that analyzes NYC traffic cameras using AI to detect bicycles and assess cycling safety risks.
 
+## 📁 **Repository Structure**
+
+```
+nice-people-hackathon/
+├── test-safety-app/          # 🎯 MAIN APP - NYC Safety Analysis
+│   ├── app/                  # React Native screens & navigation
+│   ├── components/           # Reusable UI components
+│   ├── services/             # API services (NYC cameras, AI analysis)
+│   ├── assets/               # Images, fonts, icons
+│   └── ...
+├── log/                      # 📝 Development logs & progress
+└── README.md                 # 📖 This file
+```
+
+**⚠️ Important**: Always work in the `test-safety-app/` directory!
+
 ## 👥 Team Members & Personal Branches
 
 Each team member has their own branch to work on:

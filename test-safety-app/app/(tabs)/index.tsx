@@ -152,22 +152,94 @@ export default function LiveMapScreen() {
         setTerritoriesLoaded(true);
       }
 
-      const territoryHeatData = NYCCameraService.getTerritoryHeatMapData();
-      console.log(`🏢 [HACKATHON] Loaded ${territoryHeatData.length} Manhattan territories`);
+      const allTerritoryData = NYCCameraService.getTerritoryHeatMapData();
+      console.log(`🏢 [HACKATHON] Loaded ${allTerritoryData.length} Manhattan territories`);
 
-      // Convert territory data to polygon format
-      const territoryPolygons: HeatMapData[] = territoryHeatData.map(territory => ({
-        id: territory.id,
-        coordinates: [
-          { latitude: territory.bounds.south, longitude: territory.bounds.west },
-          { latitude: territory.bounds.south, longitude: territory.bounds.east },
-          { latitude: territory.bounds.north, longitude: territory.bounds.east },
-          { latitude: territory.bounds.north, longitude: territory.bounds.west },
-        ],
-        riskScore: territory.riskScore,
-        color: territory.color,
-        opacity: getOpacityForState(territory.analysisState),
-        analysisState: territory.analysisState,
+      // Filter territories based on user location and processing state
+      let filteredTerritories = allTerritoryData;
+      
+      if (userLocation) {
+        const userLat = userLocation.coords.latitude;
+        const userLng = userLocation.coords.longitude;
+        const SAFETY_BUBBLE_RADIUS = 0.5; // 500m radius
+
+        // Separate territories into different categories
+        const nearbyTerritories = allTerritoryData.filter(territory => {
+          const centerLat = (territory.bounds.north + territory.bounds.south) / 2;
+          const centerLng = (territory.bounds.east + territory.bounds.west) / 2;
+          const distance = calculateDistance(userLat, userLng, centerLat, centerLng);
+          return distance <= SAFETY_BUBBLE_RADIUS;
+        });
+
+        const adjacentTerritories = allTerritoryData.filter(territory => {
+          const centerLat = (territory.bounds.north + territory.bounds.south) / 2;
+          const centerLng = (territory.bounds.east + territory.bounds.west) / 2;
+          const distance = calculateDistance(userLat, userLng, centerLat, centerLng);
+          return distance > SAFETY_BUBBLE_RADIUS && distance <= SAFETY_BUBBLE_RADIUS * 2;
+        });
+
+        console.log(`🔮 [HACKATHON] User-based filtering: ${nearbyTerritories.length} nearby, ${adjacentTerritories.length} adjacent territories`);
+        filteredTerritories = [...nearbyTerritories, ...adjacentTerritories];
+      }
+
+      // Convert territory data to polygon format with proper visual states
+      const territoryPolygons: HeatMapData[] = await Promise.all(filteredTerritories.map(async territory => {
+        let color = territory.color;
+        let opacity = getOpacityForState(territory.analysisState);
+        
+        // Get the actual Voronoi polygon coordinates from the territory
+        const allTerritories = await NYCCameraService.getManhattanTerritories();
+        const fullTerritory = allTerritories.find(t => t.id === territory.id.replace('territory_', ''));
+        
+        // Use actual Voronoi polygon if available, otherwise fall back to rectangular bounds
+        let coordinates;
+        if (fullTerritory && fullTerritory.polygon && fullTerritory.polygon.length > 2) {
+          coordinates = fullTerritory.polygon;
+          console.log(`🔮 [HACKATHON] Using Voronoi polygon for ${territory.id} with ${coordinates.length} vertices`);
+        } else {
+          // Fallback to rectangular bounds
+          coordinates = [
+            { latitude: territory.bounds.south, longitude: territory.bounds.west },
+            { latitude: territory.bounds.south, longitude: territory.bounds.east },
+            { latitude: territory.bounds.north, longitude: territory.bounds.east },
+            { latitude: territory.bounds.north, longitude: territory.bounds.west },
+          ];
+          console.log(`⚠️ [HACKATHON] Using rectangular fallback for ${territory.id}`);
+        }
+        
+        // Apply visual state logic based on user proximity and processing state
+        if (userLocation) {
+          const centerLat = (territory.bounds.north + territory.bounds.south) / 2;
+          const centerLng = (territory.bounds.east + territory.bounds.west) / 2;
+          const distance = calculateDistance(
+            userLocation.coords.latitude, 
+            userLocation.coords.longitude, 
+            centerLat, 
+            centerLng
+          );
+          
+          if (distance <= 0.5) { // Within safety bubble
+            if (territory.analysisState === 'queued') {
+              color = '#FFB6C1'; // Sakura pink for queued
+              opacity = 0.6;
+            } else if (territory.analysisState === 'analyzing') {
+              color = '#FFB6C1'; // Blinking sakura pink (will be handled by animation)
+              opacity = 0.8;
+            }
+          } else if (distance <= 1.0) { // Adjacent/tangential areas
+            opacity = 0.2; // Clear and slightly blurry
+            color = territory.color + '33'; // Very transparent
+          }
+        }
+
+        return {
+          id: territory.id,
+          coordinates,
+          riskScore: territory.riskScore,
+          color,
+          opacity,
+          analysisState: territory.analysisState,
+        };
       }));
 
       setTerritoryData(territoryPolygons);
@@ -175,6 +247,18 @@ export default function LiveMapScreen() {
     } catch (error) {
       console.error('❌ [HACKATHON] Failed to load territory data:', error);
     }
+  };
+
+  // Helper function to calculate distance between two points
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   };
 
   const getOpacityForState = (state: 'unanalyzed' | 'queued' | 'analyzing' | 'completed' | 'error'): number => {
@@ -328,7 +412,7 @@ export default function LiveMapScreen() {
       }
     }, 500); // 500ms debounce
     
-    setRegionChangeTimeout(timeout);
+    setRegionChangeTimeout(timeout as any);
   };
 
   const handleClusterPress = (cluster: CameraCluster) => {
