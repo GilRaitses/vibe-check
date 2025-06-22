@@ -1,5 +1,6 @@
 // NYC Traffic Camera Service for Risk Assessment
 import MoondreamService, { ProgressCallback, AnalysisProgress } from './moondreamService';
+import dataSourceService from './dataSourceService';
 
 // Manhattan outline coordinates (approximate boundary)
 const MANHATTAN_BOUNDARY = [
@@ -1242,52 +1243,248 @@ class NYCCameraService {
    * Get territory heat map data for visualization
    */
   getTerritoryHeatMapData(): HeatMapData[] {
-    const heatMapData: HeatMapData[] = [];
-    
-    for (const territory of this.territoryCache.values()) {
-      let color = '#808080'; // Default grey for unanalyzed
-      let opacity = 0.3;
-      
-      switch (territory.analysisState) {
-        case 'unanalyzed':
-          color = '#808080'; // Grey
-          opacity = 0.2;
-          break;
-        case 'queued':
-          color = '#FFA500'; // Orange
-          opacity = 0.3;
-          break;
-        case 'analyzing':
-          color = '#FFD700'; // Gold
-          opacity = 0.4;
-          break;
-        case 'completed':
-          if (territory.riskScore !== undefined) {
-            color = this.getRiskColor(territory.riskScore);
-            opacity = 0.4;
-          }
-          break;
-        case 'error':
-          color = '#FF6B6B'; // Light red
-          opacity = 0.3;
-          break;
-      }
-      
-      const heatMapEntry: HeatMapData = {
-        id: territory.id,
+    return this.territoryCache.values()
+      .map(territory => ({
+        id: `territory_${territory.id}`,
         bounds: territory.bounds,
-        riskScore: territory.riskScore || 0,
+        riskScore: territory.riskScore || 5,
         cameraCount: 1,
         lastAnalyzed: territory.lastAnalyzed || new Date(),
-        analysisType: 'territory',
-        color,
+        analysisType: 'territory' as const,
+        color: this.getRiskColor(territory.riskScore || 5),
         analysisState: territory.analysisState
-      };
-      
-      heatMapData.push(heatMapEntry);
+      }))
+      .toArray();
+  }
+
+  /**
+   * COMPREHENSIVE DEBUG ANALYSIS: Combines CV + External Data
+   */
+  async debugAnalyzeCameraRisk(
+    camera: NYCCamera, 
+    progressCallback?: ProgressCallback, 
+    disableTimeouts: boolean = false
+  ): Promise<{
+    computerVisionAnalysis: CameraRiskAnalysis;
+    externalDataAnalysis: any;
+    hybridAnalysis: {
+      finalRiskScore: number;
+      confidenceLevel: number;
+      analysisMethod: 'cv_only' | 'external_only' | 'hybrid';
+      reasoning: string;
+    };
+    performanceMetrics: {
+      cvTime: number;
+      externalDataTime: number;
+      totalTime: number;
+    };
+  }> {
+    console.log('🐛 [DEBUG] Starting comprehensive camera analysis...');
+    console.log(`📸 [DEBUG] Camera: ${camera.name} (${camera.area})`);
+    console.log(`📍 [DEBUG] Location: ${camera.latitude}, ${camera.longitude}`);
+    
+    const startTime = Date.now();
+    
+    // 1. Run Computer Vision Analysis (our existing method)
+    console.log('🤖 [DEBUG] Step 1/2: Computer Vision Analysis...');
+    const cvStartTime = Date.now();
+    const cvAnalysis = await this.analyzeCameraRisk(camera, progressCallback, disableTimeouts);
+    const cvTime = Date.now() - cvStartTime;
+    console.log(`✅ [DEBUG] CV Analysis completed in ${cvTime}ms`);
+    console.log(`🎯 [DEBUG] CV Risk Score: ${cvAnalysis.riskScore}/10`);
+    
+    // 2. Run External Data Analysis
+    console.log('🌐 [DEBUG] Step 2/2: External Data Analysis...');
+    const externalStartTime = Date.now();
+    const externalAnalysis = await dataSourceService.debugAnalysis(
+      camera.latitude, 
+      camera.longitude, 
+      cvAnalysis.bikeCount
+    );
+    const externalTime = Date.now() - externalStartTime;
+    console.log(`✅ [DEBUG] External Analysis completed in ${externalTime}ms`);
+    console.log(`🎯 [DEBUG] External Risk Score: ${externalAnalysis.safetyScore}/10`);
+    
+    // 3. Create Hybrid Analysis
+    const hybridAnalysis = this.createHybridAnalysis(cvAnalysis, externalAnalysis);
+    
+    const totalTime = Date.now() - startTime;
+    
+    const result = {
+      computerVisionAnalysis: cvAnalysis,
+      externalDataAnalysis: externalAnalysis,
+      hybridAnalysis,
+      performanceMetrics: {
+        cvTime,
+        externalDataTime: externalTime,
+        totalTime
+      }
+    };
+    
+    // Log comprehensive results
+    console.log('🐛 [DEBUG] === COMPREHENSIVE ANALYSIS RESULTS ===');
+    console.log('📊 [DEBUG] Computer Vision Analysis:', JSON.stringify(cvAnalysis, null, 2));
+    console.log('🌐 [DEBUG] External Data Analysis:', JSON.stringify(externalAnalysis, null, 2));
+    console.log('🔄 [DEBUG] Hybrid Analysis:', JSON.stringify(hybridAnalysis, null, 2));
+    console.log('⚡ [DEBUG] Performance Metrics:', JSON.stringify(result.performanceMetrics, null, 2));
+    
+    // Format for display
+    const formatted = this.formatComprehensiveResults(result);
+    console.log(formatted);
+    
+    return result;
+  }
+
+  /**
+   * Create hybrid analysis combining CV and external data
+   */
+  private createHybridAnalysis(
+    cvAnalysis: CameraRiskAnalysis, 
+    externalAnalysis: any
+  ): {
+    finalRiskScore: number;
+    confidenceLevel: number;
+    analysisMethod: 'cv_only' | 'external_only' | 'hybrid';
+    reasoning: string;
+  } {
+    const cvScore = cvAnalysis.riskScore;
+    const externalScore = externalAnalysis.safetyScore;
+    const cvConfidence = this.mapConfidenceToNumber(cvAnalysis.confidence);
+    
+    // Determine analysis method based on data quality
+    let analysisMethod: 'cv_only' | 'external_only' | 'hybrid';
+    let finalRiskScore: number;
+    let confidenceLevel: number;
+    let reasoning: string;
+    
+    // If CV confidence is low, rely more on external data
+    if (cvConfidence < 0.6) {
+      analysisMethod = 'external_only';
+      finalRiskScore = externalScore;
+      confidenceLevel = 0.8; // External data is generally more reliable
+      reasoning = `Using external data only due to low CV confidence (${cvAnalysis.confidence})`;
+    }
+    // If external data seems unreliable, use CV only
+    else if (externalAnalysis.performanceMetrics.totalTime > 10000) {
+      analysisMethod = 'cv_only';
+      finalRiskScore = cvScore;
+      confidenceLevel = cvConfidence;
+      reasoning = `Using CV only due to slow external data (${externalAnalysis.performanceMetrics.totalTime}ms)`;
+    }
+    // Best case: combine both sources
+    else {
+      analysisMethod = 'hybrid';
+      // Weighted average: 40% CV, 60% external data (external is more comprehensive)
+      finalRiskScore = Math.round((cvScore * 0.4 + externalScore * 0.6) * 10) / 10;
+      confidenceLevel = Math.min(cvConfidence + 0.2, 1.0); // Hybrid increases confidence
+      reasoning = `Hybrid analysis: ${Math.round(0.4*100)}% CV (${cvScore}) + ${Math.round(0.6*100)}% external (${externalScore})`;
     }
     
-    return heatMapData;
+    return {
+      finalRiskScore,
+      confidenceLevel,
+      analysisMethod,
+      reasoning
+    };
+  }
+
+  /**
+   * Map confidence strings to numbers
+   */
+  private mapConfidenceToNumber(confidence: string): number {
+    switch (confidence) {
+      case 'high': return 0.9;
+      case 'medium': return 0.7;
+      case 'low': return 0.4;
+      default: return 0.5;
+    }
+  }
+
+  /**
+   * Format comprehensive results for display
+   */
+  private formatComprehensiveResults(results: any): string {
+    const { computerVisionAnalysis, externalDataAnalysis, hybridAnalysis, performanceMetrics } = results;
+    const cv = computerVisionAnalysis;
+    const ext = externalDataAnalysis;
+    const hybrid = hybridAnalysis;
+    
+    return `
+🐛 COMPREHENSIVE CAMERA ANALYSIS RESULTS
+=======================================
+
+📸 CAMERA INFORMATION:
+Camera ID: ${cv.cameraId}
+Analysis Time: ${new Date().toLocaleString()}
+
+🤖 COMPUTER VISION ANALYSIS:
+Risk Score: ${cv.riskScore}/10
+Confidence: ${cv.confidence}
+Bicycles Detected: ${cv.bikeCount}
+Trucks Detected: ${cv.truckCount}
+Pedestrians: ${cv.pedestrianCount}
+Traffic Density: ${cv.trafficDensity}
+Sidewalk: ${cv.sidewalkCondition}
+Scene: ${cv.sceneDescription}
+
+🌐 EXTERNAL DATA ANALYSIS:
+Safety Score: ${ext.safetyScore}/10
+Time Category: ${ext.externalData.timeData.timeCategory}
+Weather: ${ext.externalData.weatherData.weatherCategory} (${ext.externalData.weatherData.temperature}°F)
+Protected Bike Lane: ${ext.externalData.infrastructureData.hasProtectedBikeLane ? 'YES' : 'NO'}
+Traffic Light: ${ext.externalData.infrastructureData.hasTrafficLight ? 'YES' : 'NO'}
+Historical Accidents: ${ext.externalData.historicalData.accidentCount_lastYear}
+Current Traffic Density: ${ext.externalData.trafficData.currentTrafficDensity}/10
+
+🔄 HYBRID ANALYSIS:
+Final Risk Score: ${hybrid.finalRiskScore}/10
+Analysis Method: ${hybrid.analysisMethod.toUpperCase().replace('_', ' ')}
+Confidence Level: ${Math.round(hybrid.confidenceLevel * 100)}%
+Reasoning: ${hybrid.reasoning}
+
+⚡ PERFORMANCE COMPARISON:
+Computer Vision: ${performanceMetrics.cvTime}ms
+External Data: ${performanceMetrics.externalDataTime}ms
+Total Time: ${performanceMetrics.totalTime}ms
+Speed Improvement: ${performanceMetrics.cvTime > performanceMetrics.externalDataTime ? 
+  `External data ${Math.round((performanceMetrics.cvTime / performanceMetrics.externalDataTime - 1) * 100)}% faster` :
+  `CV ${Math.round((performanceMetrics.externalDataTime / performanceMetrics.cvTime - 1) * 100)}% faster`}
+
+🎯 FINAL RECOMMENDATION:
+${hybrid.finalRiskScore >= 8 ? '✅ SAFE - Low risk for cycling' : 
+  hybrid.finalRiskScore >= 6 ? '⚠️ MODERATE - Proceed with caution' : 
+  hybrid.finalRiskScore >= 4 ? '🟡 CAUTION - High attention required' : 
+  '🔴 HIGH RISK - Avoid if possible'}
+`;
+  }
+
+  /**
+   * QUICK DEBUG TEST: Test a specific camera
+   */
+  async quickDebugTest(cameraId?: string): Promise<void> {
+    console.log('🧪 [TEST] Starting quick camera debug test...');
+    
+    try {
+      // Get cameras
+      const cameras = await this.fetchCameras();
+      const targetCamera = cameraId 
+        ? cameras.find(c => c.id === cameraId) 
+        : cameras.find(c => c.area.toLowerCase().includes('manhattan')) || cameras[0];
+      
+      if (!targetCamera) {
+        console.error('❌ [TEST] No suitable camera found');
+        return;
+      }
+      
+      console.log(`📸 [TEST] Testing camera: ${targetCamera.name} (${targetCamera.area})`);
+      
+      const results = await this.debugAnalyzeCameraRisk(targetCamera, undefined, true);
+      
+      console.log('✅ [TEST] Debug test completed successfully!');
+      
+    } catch (error) {
+      console.error('❌ [TEST] Debug test failed:', error);
+    }
   }
 }
 

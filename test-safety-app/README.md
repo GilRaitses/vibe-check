@@ -188,6 +188,84 @@ npx expo logs
 - ✅ Camera cropping issue fixes with force reset capability
 - ✅ Comprehensive error handling and network timeout recovery
 
+## 🔢 **NEW: Numerical Safety Analysis System**
+
+### **Streamlined Architecture (Current)**
+The app now uses a **simplified numerical feature matrix system** instead of complex multi-step AI analysis:
+
+#### **Feature Matrix Structure**
+```typescript
+SafetyFeatureMatrix {
+  // Raw counts (0-10 normalized)
+  bicycleCount: number;        // 0-10 (0 = no bikes, 10 = 10+ bikes)
+  personCount: number;         // 0-10 (0 = no people, 10 = 10+ people)  
+  vehicleCount: number;        // 0-10 (0 = no vehicles, 10 = 10+ vehicles)
+  
+  // Context features (0-1 binary)
+  hasSidewalk: number;         // 0 or 1
+  hasTrafficSigns: number;     // 0 or 1
+  hasStreetLighting: number;   // 0 or 1
+  
+  // Activity indicators (0-10)
+  movementDensity: number;     // 0-10 based on scene complexity
+  trafficDensity: number;      // 0-10 based on congestion
+  
+  // Risk coefficients (tunable weights)
+  coefficients: {
+    bicycleWeight: 2.5,      // Impact of bicycles on safety
+    personWeight: 0.5,       // Impact of people on safety  
+    vehicleWeight: 1.5,      // Impact of vehicles on safety
+    sidewalkBonus: 2.0,      // Safety bonus for sidewalks
+    lightingBonus: 1.0       // Safety bonus for lighting
+  }
+}
+```
+
+#### **Safety Score Calculation**
+```
+Safety Score = Base(10) 
+              - (bicycles × 2.5) 
+              - (vehicles × 1.5) 
+              + (people × 0.5) 
+              + (sidewalk × 2.0) 
+              + (lighting × 1.0)
+```
+
+#### **Key Improvements**
+- **🚀 3 Steps vs 8 Steps** - Reduced from 8-step to 3-step analysis
+- **⚡ Single API Call** - Batch detection instead of multiple requests  
+- **🔢 Numerical Output** - Structured feature matrix for consistent scoring
+- **📊 Tunable Coefficients** - Adjustable weights for different scenarios
+- **🛡️ Rate Limit Resistant** - Fewer API calls = fewer 429 errors
+- **🧮 Predictable Scoring** - Mathematical formula vs AI interpretation
+
+#### **Analysis Flow**
+1. **Process Image** → Convert to base64 (efficient single conversion)
+2. **Object Detection** → Single comprehensive API call for all objects
+3. **Safety Analysis** → Mathematical calculation from feature matrix
+
+#### **Example Output**
+```
+📊 Feature Matrix:
+🚴 Bicycles: 2/10
+👥 People: 5/10  
+🚗 Vehicles: 3/10
+🚶 Sidewalk: Yes
+🚦 Traffic Signs: No
+💡 Street Lighting: Yes
+📊 Movement Density: 7/10
+🚗 Traffic Density: 6/10
+
+⚖️ Coefficients:
+Bicycle Weight: 2.5
+Person Weight: 0.5
+Vehicle Weight: 1.5
+Sidewalk Bonus: 2.0
+Lighting Bonus: 1.0
+
+🎯 Safety Score: 6/10
+```
+
 ## 🏙️ **NYC Integration**
 
 ### **Camera Coverage**
