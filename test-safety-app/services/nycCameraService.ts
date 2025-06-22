@@ -1243,18 +1243,16 @@ class NYCCameraService {
    * Get territory heat map data for visualization
    */
   getTerritoryHeatMapData(): HeatMapData[] {
-    return this.territoryCache.values()
-      .map(territory => ({
-        id: `territory_${territory.id}`,
-        bounds: territory.bounds,
-        riskScore: territory.riskScore || 5,
-        cameraCount: 1,
-        lastAnalyzed: territory.lastAnalyzed || new Date(),
-        analysisType: 'territory' as const,
-        color: this.getRiskColor(territory.riskScore || 5),
-        analysisState: territory.analysisState
-      }))
-      .toArray();
+    return Array.from(this.territoryCache.values()).map(territory => ({
+      id: `territory_${territory.id}`,
+      bounds: territory.bounds,
+      riskScore: territory.riskScore || 5,
+      cameraCount: 1,
+      lastAnalyzed: territory.lastAnalyzed || new Date(),
+      analysisType: 'territory' as const,
+      color: this.getRiskColor(territory.riskScore || 5),
+      analysisState: territory.analysisState
+    }));
   }
 
   /**
