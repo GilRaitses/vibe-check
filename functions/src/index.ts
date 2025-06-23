@@ -3,7 +3,9 @@ import * as admin from 'firebase-admin';
 import * as cors from 'cors';
 import * as express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { Request, Response } from 'express';
+import * as path from 'path';
 
 admin.initializeApp();
 
@@ -13,6 +15,11 @@ app.use(express.json({ limit: '10mb' }));
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
+
+// Initialize Google Cloud Vision
+const visionClient = new ImageAnnotatorClient({
+  keyFilename: path.join(__dirname, '../service-account-key.json')
+});
 
 // Firestore references
 const db = admin.firestore();
@@ -224,6 +231,133 @@ app.get('/territory/:territoryId', async (req: Request, res: Response) => {
 });
 
 /**
+ * Enhanced Analysis - Combines Google Vision + Gemini AI
+ */
+app.post('/enhanced-analysis', async (req: Request, res: Response) => {
+  try {
+    const { imageData, metadata } = req.body;
+    
+    if (!imageData || !metadata) {
+      return res.status(400).json({
+        error: 'Missing required fields: imageData, metadata'
+      });
+    }
+
+    // Step 1: Use Google Cloud Vision for object detection
+    const imageBuffer = Buffer.from(imageData, 'base64');
+    const [visionResult] = await visionClient.annotateImage({
+      image: { content: imageBuffer },
+      features: [
+        { type: 'OBJECT_LOCALIZATION', maxResults: 20 },
+        { type: 'LABEL_DETECTION', maxResults: 10 },
+        { type: 'SAFE_SEARCH_DETECTION' }
+      ]
+    });
+
+    // Extract relevant objects for safety analysis
+    const objects = visionResult.localizedObjectAnnotations || [];
+    const labels = visionResult.labelAnnotations || [];
+    const safeSearch = visionResult.safeSearchAnnotation;
+
+    const detectedObjects = objects.map(obj => ({
+      name: obj.name,
+      confidence: obj.score,
+      bounds: obj.boundingPoly
+    }));
+
+    const detectedLabels = labels.map(label => ({
+      description: label.description,
+      confidence: label.score
+    }));
+
+    // Step 2: Use Gemini AI for contextual analysis with Vision data
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    const enhancedPrompt = `
+As the vibe-check AI orchestrator, analyze this street scene using both visual data and contextual AI:
+
+Location: ${JSON.stringify(metadata.location)}
+Context: ${JSON.stringify(metadata)}
+
+Google Vision detected objects: ${JSON.stringify(detectedObjects)}
+Google Vision detected labels: ${JSON.stringify(detectedLabels)}
+
+Based on both the image and the detected objects/labels, provide:
+1. Safety score (0-10) considering detected hazards
+2. Risk level (low/moderate/high/critical)
+3. Specific hazards identified (including detected vehicles, cyclists, pedestrians)
+4. Recommendations for pedestrians
+5. Infrastructure observations
+6. Object-specific risks (e.g., if bicycles detected on sidewalk)
+
+Respond with JSON:
+{
+  "safetyScore": number,
+  "riskLevel": "low|moderate|high|critical",
+  "hazards": ["string"],
+  "recommendations": ["string"],
+  "infrastructure": {
+    "bikeActivity": "low|medium|high",
+    "pedestrianSpace": "adequate|crowded|blocked",
+    "visibility": "good|fair|poor"
+  },
+  "detectedObjects": {
+    "vehicles": number,
+    "bicycles": number,
+    "pedestrians": number,
+    "otherHazards": ["string"]
+  },
+  "confidence": number
+}`;
+
+    const result = await model.generateContent([
+      enhancedPrompt,
+      {
+        inlineData: {
+          data: imageData,
+          mimeType: 'image/jpeg'
+        }
+      }
+    ]);
+
+    const response = result.response.text();
+    const analysis = JSON.parse(response);
+
+    // Store enhanced analysis in Firestore
+    const analysisDoc = {
+      id: `enhanced-analysis-${Date.now()}`,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      location: metadata.location,
+      analysis,
+      visionData: {
+        objects: detectedObjects,
+        labels: detectedLabels,
+        safeSearch
+      },
+      metadata,
+      type: 'enhanced'
+    };
+
+    await db.collection('analyses').add(analysisDoc);
+
+    res.json({
+      success: true,
+      analysis: {
+        ...analysisDoc,
+        timestamp: Date.now()
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Enhanced analysis failed:', error);
+    res.status(500).json({
+      error: 'Enhanced analysis failed',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
  * Get System Status
  */
 app.get('/status', async (req, res) => {
@@ -265,7 +399,7 @@ app.get('/status', async (req, res) => {
       lastUpdated: Date.now()
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Status check failed:', error);
     res.status(500).json({
       error: 'Status check failed',
@@ -325,7 +459,7 @@ Format as a comprehensive daily report.`;
 
       console.log('Daily report generated successfully');
       return null;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Daily report generation failed:', error);
       return null;
     }
