@@ -25,7 +25,7 @@ export interface BicycleDetectionResult {
   hasSidewalk: boolean;
 }
 
-const MOONDREAM_API_KEY = process.env.EXPO_PUBLIC_MOONDREAM_API_KEY || 'hyper-panther-270';
+const MOONDREAM_API_KEY = process.env.EXPO_PUBLIC_MOONDREAM_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlfaWQiOiJiMDVhNDdjNi0xNTBmLTQ4YjUtYjZlNi03NTYwMjRkOGNlZDYiLCJvcmdfaWQiOiJkT1hVemRNNjdmODl6cURoRERCT3M1Ym10VVJVczB5RSIsImlhdCI6MTc1MDcwNTc0OSwidmVyIjoxfQ.iRJwDhnNgTMJsQQVf8NYWBmRLVvYVXdXBY8D9BGzK5s';
 const MOONDREAM_API_BASE = 'https://api.moondream.ai/v1';
 
 class MoondreamService {
