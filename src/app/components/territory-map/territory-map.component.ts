@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleMapsModule } from '@angular/google-maps';
-import { TerritoryService, Territory } from '../services/territory.service';
+import { TerritoryService, Territory } from '../../services/territory.service';
 import { Observable, map } from 'rxjs';
 
 @Component({
@@ -20,7 +20,7 @@ import { Observable, map } from 'rxjs';
     >
       <map-polygon
         *ngFor="let territory of territories$ | async"
-        [paths]="territory.coordinates"
+        [paths]="territory.coordinates || []"
         [options]="getPolygonOptions(territory.safetyScore)"
         (polygonClick)="onTerritoryClick(territory)"
       ></map-polygon>

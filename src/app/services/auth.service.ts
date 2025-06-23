@@ -6,9 +6,11 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class AuthService {
-  user$: Observable<User | null> = authState(this.auth);
+  user$: Observable<User | null>;
 
-  constructor(private auth: Auth) { }
+  constructor(private auth: Auth) { 
+    this.user$ = authState(this.auth);
+  }
 
   async signIn(email: string, password: string): Promise<void> {
     try {

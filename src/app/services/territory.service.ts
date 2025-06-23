@@ -11,6 +11,7 @@ export interface Territory {
   recentAnalyses: any[];
   recentReports: any[];
   lastUpdated: number;
+  coordinates?: google.maps.LatLng[]; // For map component
 }
 
 export interface Analysis {
@@ -100,5 +101,46 @@ export class TerritoryService {
    */
   healthCheck(): Observable<{ status: string; timestamp: number; version: string }> {
     return this.http.get<{ status: string; timestamp: number; version: string }>(`${this.apiUrl}/health`);
+  }
+
+  /**
+   * Get all territories (mock implementation for map component)
+   */
+  getAllTerritories(): Observable<Territory[]> {
+    // Mock data for now - replace with actual API call when available
+    const mockTerritories: Territory[] = [
+      {
+        territoryId: 'manhattan-lower',
+        safetyScore: 7.5,
+        totalAnalyses: 45,
+        totalReports: 12,
+        recentAnalyses: [],
+        recentReports: [],
+        lastUpdated: Date.now()
+      },
+      {
+        territoryId: 'manhattan-midtown', 
+        safetyScore: 6.2,
+        totalAnalyses: 78,
+        totalReports: 23,
+        recentAnalyses: [],
+        recentReports: [],
+        lastUpdated: Date.now()
+      },
+      {
+        territoryId: 'brooklyn-williamsburg',
+        safetyScore: 8.1,
+        totalAnalyses: 34,
+        totalReports: 8,
+        recentAnalyses: [],
+        recentReports: [],
+        lastUpdated: Date.now()
+      }
+    ];
+    
+    return new Observable(observer => {
+      observer.next(mockTerritories);
+      observer.complete();
+    });
   }
 } 

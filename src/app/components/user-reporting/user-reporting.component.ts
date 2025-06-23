@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { TerritoryService } from '../services/territory.service'; // Adjust the path as necessary
+import { TerritoryService } from '../../services/territory.service';
 
 @Component({
   selector: 'app-user-reporting',
@@ -153,7 +153,7 @@ import { TerritoryService } from '../services/territory.service'; // Adjust the 
       border-radius: 4px;
       text-align: center;
     }
-  `
+  `]
 })
 export class UserReportingComponent {
   reportForm: FormGroup;

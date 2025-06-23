@@ -1,9 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TerritoryService, Analysis } from '../../services/territory.service';
-import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-analysis-interface',
@@ -46,7 +44,7 @@ export class AnalysisInterfaceComponent {
   isLoading = false;
   error: string | null = null;
 
-  constructor(private http: HttpClient) { }
+  constructor(private territoryService: TerritoryService) { }
 
   onFileSelected(event: any): void {
     const file: File = event.target.files[0];
@@ -81,17 +79,17 @@ export class AnalysisInterfaceComponent {
         source: 'frontend-upload'
       };
 
-      this.http.post('https://us-central1-vibe-check-463816.cloudfunctions.net/api/orchestrate-analysis', { imageData, metadata }).subscribe({
-          next: (response) => {
-            this.analysisResult = response;
-            this.isLoading = false;
-          },
-          error: (err) => {
-            console.error('Analysis API Error:', err);
-            this.error = 'Failed to analyze image. Please try again.';
-            this.isLoading = false;
-          }
-        });
+      this.territoryService.analyzeImage(imageData, metadata).subscribe({
+        next: (response) => {
+          this.analysisResult = response.analysis;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error('Analysis API Error:', err);
+          this.error = 'Failed to analyze image. Please try again.';
+          this.isLoading = false;
+        }
+      });
     };
     reader.readAsDataURL(this.selectedFile);
   }

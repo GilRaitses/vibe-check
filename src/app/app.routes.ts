@@ -6,7 +6,7 @@ import { map } from 'rxjs/operators';
 
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
-  { path: 'register', loadComponent: () => import('./components/register/register.component').then(m => m.RegisterComponent) },
+  { path: 'register', loadComponent: () => import('./components/register/register.component').then(m => m.RegistrationComponent) },
   { path: '', canActivate: [() => inject(AuthService).user$.pipe(map(user => user ? true : false))], children: [
     { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     { path: 'dashboard', loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent) },
@@ -14,8 +14,7 @@ export const routes: Routes = [
     { path: 'reporting', loadComponent: () => import('./components/user-reporting/user-reporting.component').then(m => m.UserReportingComponent) },
     { path: 'map', loadComponent: () => import('./components/territory-map/territory-map.component').then(m => m.TerritoryMapComponent) },
     { path: 'territories', loadComponent: () => import('./components/territory-viewer/territory-viewer.component').then(m => m.TerritoryViewerComponent) }, // Keeping existing territory viewer
-    { path: 'status', loadComponent: () => import('./components/ai-orchestrator-status/ai-orchestrator-status.component').then(m => m.AIOrchestratorStatusComponent) }, // Keeping existing status view
-    { path: 'admin', loadComponent: () => import('./components/admin-panel/admin-panel.component').then(m => m.AdminPanelComponent) }, // Keeping existing admin panel
+    // TODO: Add status and admin components when needed
   ],
  },
  { path: '**', redirectTo: 'login' } // Redirect any unknown routes to login

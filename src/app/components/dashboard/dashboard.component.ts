@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TerritoryService } from '/home/user/app/src/app/services/territory.service';
+import { TerritoryService } from '../../services/territory.service';
 
 export interface SystemStatus {
   status: string;
