@@ -1,250 +1,330 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
-import { TerritoryService } from '../../services/territory.service';
+import { Component, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-user-reporting',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    HttpClientModule
-  ],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="reporting-container">
-      <h2>Submit Violation Report</h2>
-      <form [formGroup]="reportForm" (ngSubmit)="onSubmit()">
-        <div class="form-group">
-          <label for="reportType">Report Type:</label>
-          <select id="reportType" formControlName="reportType" required>
-            <option value="">-- Select Report Type --</option>
-            <option value="Sidewalk Cycling">Sidewalk Cycling</option>
-            <option value="Blocking">Blocking</option>
-            <option value="Infrastructure Hazard">Infrastructure Hazard</option>
-            <option value="Other">Other</option>
-          </select>
-          <div *ngIf="reportForm.get('reportType')?.invalid && reportForm.get('reportType')?.touched" class="error-message">
-            Report type is required.
+      <h2>📝 Report Safety Issue</h2>
+      
+      <form (ngSubmit)="onSubmit()" #reportForm="ngForm">
+        <div class="form-section">
+          <h3>📍 Location Information</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Latitude:</label>
+              <input type="number" [(ngModel)]="report.latitude" name="latitude" 
+                     placeholder="40.7128" step="any">
+            </div>
+            <div class="form-group">
+              <label>Longitude:</label>
+              <input type="number" [(ngModel)]="report.longitude" name="longitude" 
+                     placeholder="-74.0060" step="any">
+            </div>
+          </div>
+          <button type="button" (click)="getCurrentLocation()" class="location-btn">
+            📍 Get Current Location
+          </button>
+        </div>
+        
+        <div class="form-section">
+          <h3>⚠️ Issue Details</h3>
+          <div class="form-group">
+            <label>Issue Type:</label>
+            <select [(ngModel)]="report.issueType" name="issueType">
+              <option value="">Select issue type</option>
+              <option value="sidewalk-cycling">Sidewalk Cycling</option>
+              <option value="obstruction">Sidewalk Obstruction</option>
+              <option value="poor-lighting">Poor Lighting</option>
+              <option value="dangerous-crossing">Dangerous Crossing</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Severity Level:</label>
+            <div class="severity-options">
+              <label class="radio-option">
+                <input type="radio" [(ngModel)]="report.severity" name="severity" value="low">
+                <span class="severity-low">🟢 Low</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" [(ngModel)]="report.severity" name="severity" value="medium">
+                <span class="severity-medium">🟡 Medium</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" [(ngModel)]="report.severity" name="severity" value="high">
+                <span class="severity-high">🔴 High</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Description:</label>
+            <textarea [(ngModel)]="report.description" name="description" 
+                      placeholder="Describe the safety issue..." rows="4"></textarea>
           </div>
         </div>
-
-        <div class="form-group">
-          <label for="latitude">Latitude:</label>
-          <input type="number" id="latitude" formControlName="latitude" required step="any">
-          <div *ngIf="reportForm.get('latitude')?.invalid && reportForm.get('latitude')?.touched" class="error-message">
-            Latitude is required.
-          </div>
+        
+        <div class="submit-section">
+          <button type="submit" [disabled]="isSubmitting" class="submit-btn">
+            {{isSubmitting ? '🔄 Submitting...' : '🚀 Submit Report'}}
+          </button>
         </div>
-
-        <div class="form-group">
-          <label for="longitude">Longitude:</label>
-          <input type="number" id="longitude" formControlName="longitude" required step="any">
-          <div *ngIf="reportForm.get('longitude')?.invalid && reportForm.get('longitude')?.touched" class="error-message">
-            Longitude is required.
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="description">Description:</label>
-          <textarea id="description" formControlName="description" rows="4"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="severity">Severity:</label>
-          <select id="severity" formControlName="severity">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="image">Upload Image (Optional):</label>
-          <input type="file" id="image" (change)="onFileSelected($event)" accept="image/*">
-        </div>
-
-        <button type="submit" [disabled]="reportForm.invalid || isLoading">
-          Submit Report
-          <span *ngIf="isLoading" class="spinner"></span>
-        </button>
-
-        <div *ngIf="successMessage" class="success-message">{{ successMessage }}</div>
-        <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
       </form>
+      
+      <div *ngIf="statusMessage" class="status-message" [class]="statusType">
+        {{statusMessage}}
+      </div>
     </div>
   `,
   styles: [`
     .reporting-container {
-      max-width: 600px;
-      margin: 20px auto;
       padding: 20px;
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: 0 auto;
     }
+    
     h2 {
-      color: #1976d2; /* NYC Blue */
+      color: #1976d2;
       text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .form-section {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
       margin-bottom: 20px;
     }
+    
+    .form-section h3 {
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #1976d2;
+      padding-bottom: 5px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
     .form-group {
       margin-bottom: 15px;
     }
-    label {
+    
+    .form-group label {
       display: block;
-      margin-bottom: 5px;
+      color: #333;
       font-weight: bold;
-      color: #424242; /* NYC Gray */
+      margin-bottom: 5px;
     }
-    input[type="text"], input[type="number"], textarea, select {
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
       width: 100%;
-      padding: 8px;
+      padding: 10px;
       border: 1px solid #ccc;
       border-radius: 4px;
+      font-size: 14px;
       box-sizing: border-box;
     }
-    button {
-      background-color: #4caf50; /* NYC Green */
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #1976d2;
+      box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+    }
+    
+    .location-btn {
+      background: #4caf50;
       color: white;
-      padding: 10px 15px;
       border: none;
+      padding: 8px 16px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    
+    .location-btn:hover {
+      background: #45a049;
+    }
+    
+    .severity-options {
+      display: flex;
+      gap: 15px;
+      margin-top: 5px;
+    }
+    
+    .radio-option {
       display: flex;
       align-items: center;
-      justify-content: center;
-      width: 100%;
+      cursor: pointer;
     }
-    button:disabled {
-      background-color: #cccccc;
+    
+    .radio-option input {
+      margin-right: 5px;
+      width: auto;
+    }
+    
+    .severity-low { color: #4caf50; }
+    .severity-medium { color: #ff9800; }
+    .severity-high { color: #f44336; }
+    
+    .submit-section {
+      text-align: center;
+    }
+    
+    .submit-btn {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    
+    .submit-btn:hover:not(:disabled) {
+      background: #1565c0;
+    }
+    
+    .submit-btn:disabled {
+      background: #ccc;
       cursor: not-allowed;
     }
-    .spinner {
-      border: 2px solid #f3f3f3;
-      border-top: 2px solid #3498db;
-      border-radius: 50%;
-      width: 12px;
-      height: 12px;
-      animation: spin 1s linear infinite;
-      margin-left: 10px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .success-message {
-      margin-top: 15px;
-      padding: 10px;
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-      border-radius: 4px;
+    
+    .status-message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
       text-align: center;
+      font-weight: bold;
     }
-    .error-message {
-      margin-top: 15px;
-      padding: 10px;
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-      border-radius: 4px;
-      text-align: center;
+    
+    .status-message.success {
+      background: #e8f5e8;
+      color: #2e7d32;
+      border: 1px solid #4caf50;
+    }
+    
+    .status-message.error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #f44336;
+    }
+    
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .severity-options {
+        flex-direction: column;
+        gap: 8px;
+      }
     }
   `]
 })
 export class UserReportingComponent {
-  reportForm: FormGroup;
-  selectedFile: File | null = null;
-  isLoading = false;
-  successMessage: string | null = null;
-  errorMessage: string | null = null;
+  report = {
+    latitude: null as number | null,
+    longitude: null as number | null,
+    issueType: '',
+    severity: 'medium',
+    description: ''
+  };
+  
+  isSubmitting = false;
+  statusMessage = '';
+  statusType = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private territoryService: TerritoryService // Corrected service injection
-  ) {
-    this.reportForm = this.fb.group({
-      reportType: ['', Validators.required],
-      latitude: ['', Validators.required],
-      longitude: ['', Validators.required],
-      description: [''],
-      severity: ['medium']
-    });
-  }
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
-  onFileSelected(event: any): void {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      this.selectedFile = files[0];
+  getCurrentLocation(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.report.latitude = position.coords.latitude;
+          this.report.longitude = position.coords.longitude;
+          this.showStatus('Location obtained successfully!', 'success');
+        },
+        (error) => {
+          this.showStatus('Unable to get location. Please enter manually.', 'error');
+        }
+      );
     } else {
-      this.selectedFile = null;
+      this.showStatus('Geolocation not supported by this browser.', 'error');
     }
   }
 
   onSubmit(): void {
-    if (this.reportForm.invalid) {
-      this.reportForm.markAllAsTouched();
-      return;
-    }
-
-    this.isLoading = true;
-    this.successMessage = null;
-    this.errorMessage = null;
-
-    const formData = this.reportForm.value;
-    let imageDataUrl: string | undefined = undefined;
-
-    const sendReport = (dataUrl?: string) => {
-      const reportPayload = {
-        location: {
-          lat: formData.latitude,
-          lng: formData.longitude
-          // territory will be determined on the backend
-        },
-        reportType: formData.reportType,
-        description: formData.description,
-        severity: formData.severity,
-        imageData: dataUrl?.split(',')[1] // Send base64 data without the prefix
+    if (!this.validateForm()) return;
+    
+    this.isSubmitting = true;
+    this.statusMessage = '';
+    
+    // Simulate API submission
+    setTimeout(() => {
+      const reportData = {
+        ...this.report,
+        timestamp: new Date().toISOString(),
+        reportId: 'RPT-' + Date.now()
       };
+      
+      console.log('Report submitted:', reportData);
+      
+      this.showStatus('✅ Report submitted successfully! Thank you for helping improve street safety.', 'success');
+      this.resetForm();
+      this.isSubmitting = false;
+    }, 1500);
+  }
 
-      this.territoryService.submitReport(reportPayload).subscribe({
-        next: (response) => {
-          this.successMessage = 'Report submitted successfully!';
-          this.reportForm.reset({ severity: 'medium' });
-          this.selectedFile = null;
-          const fileInput = document.getElementById('image') as HTMLInputElement;
-          if (fileInput) {
-            fileInput.value = '';
-          }
-          console.log('Report submission success:', response);
-        },
-        error: (error) => {
-          this.errorMessage = 'Failed to submit report. Please try again.';
-          console.error('Report submission error:', error);
-        },
-        complete: () => {
-          this.isLoading = false;
-        }
-      });
+  private validateForm(): boolean {
+    if (!this.report.latitude || !this.report.longitude) {
+      this.showStatus('Please provide location coordinates.', 'error');
+      return false;
+    }
+    
+    if (!this.report.issueType) {
+      this.showStatus('Please select an issue type.', 'error');
+      return false;
+    }
+    
+    return true;
+  }
+
+  private showStatus(message: string, type: string): void {
+    this.statusMessage = message;
+    this.statusType = type;
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      this.statusMessage = '';
+    }, 5000);
+  }
+
+  private resetForm(): void {
+    this.report = {
+      latitude: null,
+      longitude: null,
+      issueType: '',
+      severity: 'medium',
+      description: ''
     };
-
-    if (this.selectedFile) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        imageDataUrl = reader.result as string;
-        sendReport(imageDataUrl);
-      };
-      reader.onerror = (error) => {
-        this.errorMessage = 'Failed to read image file.';
-        this.isLoading = false;
-        console.error('File reading error:', error);
-      };
-      reader.readAsDataURL(this.selectedFile);
-    } else {
-      sendReport();
-    }
   }
 }

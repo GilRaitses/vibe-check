@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "dist/vibe-check-ui",
+    "public": "dist/vibe-check-ui/browser",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -9,7 +9,7 @@
     "rewrites": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "destination": "/index.csr.html"
       }
     ]
   },

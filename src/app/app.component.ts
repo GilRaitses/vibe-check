@@ -10,7 +10,7 @@ import { AuthService } from './services/auth.service';
   imports: [RouterModule, CommonModule, NavigationComponent],
   template: `
     <div class="app-container">
-      <app-navigation *ngIf="(authService.user$ | async)"></app-navigation>
+      <app-navigation></app-navigation>
       <main class="main-content">
         <router-outlet></router-outlet>
       </main>

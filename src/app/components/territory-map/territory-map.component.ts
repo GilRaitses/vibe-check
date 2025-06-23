@@ -1,151 +1,184 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { GoogleMapsModule } from '@angular/google-maps';
-import { TerritoryService, Territory } from '../../services/territory.service';
-import { Observable, map } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 
 @Component({
   selector: 'app-territory-map',
   standalone: true,
-  imports: [
-    CommonModule,
-    GoogleMapsModule
-  ],
+  imports: [CommonModule],
   template: `
     <div class="map-container">
-      <google-map
-        height="100%"
-        width="100%"
-        [zoom]="12"
-        [center]="nycCenter"
-        [options]="mapOptions"
-      >
-        <map-polygon
-          *ngFor="let territory of territories$ | async"
-          [paths]="territory.coordinates || []"
-          [options]="getPolygonOptions(territory.safetyScore)"
-          (polygonClick)="onTerritoryClick(territory)"
-        ></map-polygon>
-      </google-map>
-
-      <div *ngIf="selectedTerritory" class="territory-info-overlay">
-        <h3>Territory Details</h3>
-        <p>ID: {{ selectedTerritory.territoryId }}</p>
-        <p>Safety Score: {{ selectedTerritory.safetyScore }}/10</p>
-        <p>Total Analyses: {{ selectedTerritory.totalAnalyses }}</p>
-        <p>Total Reports: {{ selectedTerritory.totalReports }}</p>
-        <button (click)="closeTerritoryInfo()">Close</button>
+      <h2>NYC Territory Map</h2>
+      
+      <div class="map-placeholder">
+        <div class="territory-info">
+          <h3>🗽 NYC Safety Territories</h3>
+          <p>Interactive map will load here with Google Maps integration</p>
+          
+          <div class="territory-list">
+            <div class="territory-item" *ngFor="let territory of territories">
+              <div class="territory-header">
+                <strong>{{territory.name}}</strong>
+                <span class="safety-score" [class]="territory.safetyClass">
+                  {{territory.safetyScore}}/10
+                </span>
+              </div>
+              <p>{{territory.description}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="map-controls">
+        <button (click)="refreshTerritories()">🔄 Refresh Data</button>
+        <button (click)="toggleView()">📍 {{viewMode}} View</button>
       </div>
     </div>
   `,
   styles: [`
-    :host {
-      display: block;
-      height: 100%;
-      width: 100%;
-      position: relative;
-    }
     .map-container {
-      height: 100%;
-      width: 100%;
-      position: relative;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
     }
-    .territory-info-overlay {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(255, 255, 255, 0.9);
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      z-index: 10;
+    
+    h2 {
+      color: #1976d2;
       text-align: center;
+      margin-bottom: 20px;
     }
-    .territory-info-overlay h3 {
-      margin-top: 0;
+    
+    .map-placeholder {
+      height: 400px;
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      border: 2px dashed #1976d2;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    
+    .territory-info {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .territory-info h3 {
+      color: #1976d2;
       margin-bottom: 10px;
-      color: #333;
     }
-    .territory-info-overlay p {
+    
+    .territory-list {
+      margin-top: 20px;
+      text-align: left;
+      max-width: 400px;
+    }
+    
+    .territory-item {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .territory-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 5px;
-      color: #555;
     }
-    .territory-info-overlay button {
-      margin-top: 10px;
-      padding: 8px 15px;
-      background-color: #007bff;
+    
+    .safety-score {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .safety-high {
+      background: #c8e6c9;
+      color: #2e7d32;
+    }
+    
+    .safety-medium {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+    
+    .safety-low {
+      background: #ffcdd2;
+      color: #c62828;
+    }
+    
+    .map-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    
+    .map-controls button {
+      padding: 10px 20px;
+      background: #1976d2;
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      font-size: 14px;
     }
-    .territory-info-overlay button:hover {
-      background-color: #0056b3;
+    
+    .map-controls button:hover {
+      background: #1565c0;
     }
   `]
 })
 export class TerritoryMapComponent implements OnInit {
-  nycCenter = { lat: 40.7128, lng: -74.0060 };
-  territories$: Observable<Territory[]>;
-  selectedTerritory: Territory | null = null;
+  viewMode = 'Map';
+  
+  territories = [
+    {
+      name: 'Times Square',
+      description: 'High pedestrian traffic, moderate cycling violations',
+      safetyScore: 6,
+      safetyClass: 'safety-medium'
+    },
+    {
+      name: 'Central Park South',
+      description: 'Well-maintained sidewalks, good visibility',
+      safetyScore: 8,
+      safetyClass: 'safety-high'
+    },
+    {
+      name: 'Lower East Side',
+      description: 'Narrow sidewalks, frequent cycling issues',
+      safetyScore: 4,
+      safetyClass: 'safety-low'
+    },
+    {
+      name: 'Financial District',
+      description: 'Good infrastructure, business hours congestion',
+      safetyScore: 7,
+      safetyClass: 'safety-medium'
+    }
+  ];
 
-  mapOptions: google.maps.MapOptions = {
-    zoomControl: true,
-    scrollwheel: true,
-    disableDoubleClickZoom: false,
-    mapTypeId: google.maps.MapTypeId.ROADMAP,
-    maxZoom: 18,
-    minZoom: 8,
-  };
-
-  constructor(private territoryService: TerritoryService) {
-    this.territories$ = this.territoryService.getAllTerritories();
-  }
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngOnInit(): void {
-    // Load Google Maps API with the key
-    if (!window.google) {
-      this.loadGoogleMapsAPI();
+    // Component loads safely without external dependencies
+  }
+  
+  refreshTerritories(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      // Simulate data refresh
+      console.log('Refreshing territory data...');
+      
+      // Update timestamps or safety scores here if needed
+      this.territories = [...this.territories];
     }
   }
-
-  private loadGoogleMapsAPI(): void {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${environment.googleMapsApiKey}&libraries=geometry`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-  }
-
-  getPolygonOptions(safetyScore: number): google.maps.PolygonOptions {
-    let fillColor = '#4CAF50'; // Green
-    if (safetyScore < 7) {
-      fillColor = '#FFC107'; // Yellow
-    }
-    if (safetyScore < 5) {
-      fillColor = '#FF9800'; // Orange
-    }
-    if (safetyScore < 3) {
-      fillColor = '#F44336'; // Red
-    }
-
-    return {
-      fillColor: fillColor,
-      fillOpacity: 0.5,
-      strokeColor: '#000000',
-      strokeOpacity: 0.8,
-      strokeWeight: 1,
-      clickable: true,
-    };
-  }
-
-  onTerritoryClick(territory: Territory): void {
-    this.selectedTerritory = territory;
-  }
-
-  closeTerritoryInfo(): void {
-    this.selectedTerritory = null;
+  
+  toggleView(): void {
+    this.viewMode = this.viewMode === 'Map' ? 'List' : 'Map';
   }
 }
