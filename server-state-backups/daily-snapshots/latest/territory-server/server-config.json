@@ -1,0 +1,10 @@
+{
+  "url": "http://10.4.32.157:3001",
+  "timestamp": "2025-06-22T20:08:14.753Z",
+  "port": 3001,
+  "endpoints": [
+    "/territories",
+    "/status"
+  ],
+  "cors_enabled": true
+}

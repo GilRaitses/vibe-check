@@ -1,15 +1,28 @@
-// Auto-generated Voronoi loader - loads territories directly from bundled file
+// Auto-generated Voronoi loader - loads territories from local computer
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import precomputedData from '../assets/precomputed-territories.json';
+
+const LOCAL_SERVER_URL = 'http://10.4.32.157:3001'; // Your computer's IP address
+const TERRITORIES_ENDPOINT = '/territories';
 
 export async function loadPrecomputedTerritories() {
   try {
     const startTime = Date.now();
-    console.log('🔮 [VORONOI_LOADER] Loading precomputed Voronoi territories...');
-    console.log(`📊 [VORONOI_LOADER] Precomputed data keys found: ${Object.keys(precomputedData).length}`);
+    console.log('🔮 [VORONOI_LOADER] Loading territories from local computer...');
+    console.log(`🌐 [VORONOI_LOADER] Fetching from: ${LOCAL_SERVER_URL}${TERRITORIES_ENDPOINT}`);
     
-    // Use bundled territories data directly
-    const territoriesData = precomputedData as any;
+    // Fetch territories from local computer
+    const response = await fetch(`${LOCAL_SERVER_URL}${TERRITORIES_ENDPOINT}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const territoriesData = await response.json();
     console.log(`📊 [VORONOI_LOADER] Received data keys: ${Object.keys(territoriesData).length}`);
     
     let territoriesLoaded = 0;
@@ -53,7 +66,7 @@ export async function loadPrecomputedTerritories() {
     console.error('❌ [VORONOI_LOADER] Make sure local server is running on your computer');
     console.error('❌ [VORONOI_LOADER] Error details:', error);
     
-    // Fallback 1: try to use any existing session cache
+    // Fallback: try to use any existing session cache
     try {
       const cachedData = await AsyncStorage.getItem('manhattan_territories_session_cache');
       if (cachedData) {
@@ -62,24 +75,6 @@ export async function loadPrecomputedTerritories() {
       }
     } catch (cacheError) {
       console.error('❌ [VORONOI_LOADER] No cached data available');
-    }
-    
-    // Fallback 2: Use local bundled file as last resort
-    try {
-      console.log('🔄 [VORONOI_LOADER] Attempting fallback to bundled territories...');
-      const precomputedData = require('../assets/precomputed-territories.json');
-      
-      if (precomputedData && precomputedData.manhattan_territories_precomputed) {
-        const jsonString = JSON.stringify(precomputedData);
-        await AsyncStorage.setItem('manhattan_territories_session_cache', jsonString);
-        
-        const territories = precomputedData.manhattan_territories_precomputed.territories;
-        const territoryCount = Object.keys(territories).length;
-        console.log(`✅ [VORONOI_LOADER] Fallback successful: ${territoryCount} territories loaded from bundle`);
-        return true;
-      }
-    } catch (fallbackError) {
-      console.error('❌ [VORONOI_LOADER] Fallback to bundled file also failed:', fallbackError);
     }
     
     return false;
