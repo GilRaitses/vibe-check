@@ -1,6 +1,10 @@
 {
   "hosting": {
+<<<<<<< HEAD
     "public": "public",
+=======
+    "public": "dist/vibe-check-ui",
+>>>>>>> 7cebcfc8b801186d70f05c87e94d52b2543d5254
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -12,5 +16,26 @@
         "destination": "/index.html"
       }
     ]
+<<<<<<< HEAD
   }
 }
+=======
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+} 
+>>>>>>> 7cebcfc8b801186d70f05c87e94d52b2543d5254
