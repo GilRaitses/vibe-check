@@ -7,11 +7,14 @@ import { getAuth, provideAuth } from '@angular/fire/auth';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 
 import { routes } from './app.routes';
+import { environment } from '../environments/environment';
 
 const firebaseConfig = {
   projectId: 'vibe-check-463816',
   // Add other Firebase config properties as needed
 };
+
+// Google Maps will be loaded by the GoogleMapsModule
 
 export const appConfig: ApplicationConfig = {
   providers: [

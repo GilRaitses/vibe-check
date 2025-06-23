@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { GoogleMapsModule } from '@angular/google-maps';
 import { TerritoryService, Territory } from '../../services/territory.service';
 import { Observable, map } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-territory-map',
@@ -12,32 +13,40 @@ import { Observable, map } from 'rxjs';
     GoogleMapsModule
   ],
   template: `
-    <google-map
-      height="100%"
-      width="100%"
-      [zoom]="12"
-      [center]="nycCenter"
-    >
-      <map-polygon
-        *ngFor="let territory of territories$ | async"
-        [paths]="territory.coordinates || []"
-        [options]="getPolygonOptions(territory.safetyScore)"
-        (polygonClick)="onTerritoryClick(territory)"
-      ></map-polygon>
-    </google-map>
+    <div class="map-container">
+      <google-map
+        height="100%"
+        width="100%"
+        [zoom]="12"
+        [center]="nycCenter"
+        [options]="mapOptions"
+      >
+        <map-polygon
+          *ngFor="let territory of territories$ | async"
+          [paths]="territory.coordinates || []"
+          [options]="getPolygonOptions(territory.safetyScore)"
+          (polygonClick)="onTerritoryClick(territory)"
+        ></map-polygon>
+      </google-map>
 
-    <div *ngIf="selectedTerritory" class="territory-info-overlay">
-      <h3>Territory Details</h3>
-      <p>ID: {{ selectedTerritory.territoryId }}</p>
-      <p>Safety Score: {{ selectedTerritory.safetyScore }}/10</p>
-      <p>Total Analyses: {{ selectedTerritory.totalAnalyses }}</p>
-      <p>Total Reports: {{ selectedTerritory.totalReports }}</p>
-      <button (click)="closeTerritoryInfo()">Close</button>
+      <div *ngIf="selectedTerritory" class="territory-info-overlay">
+        <h3>Territory Details</h3>
+        <p>ID: {{ selectedTerritory.territoryId }}</p>
+        <p>Safety Score: {{ selectedTerritory.safetyScore }}/10</p>
+        <p>Total Analyses: {{ selectedTerritory.totalAnalyses }}</p>
+        <p>Total Reports: {{ selectedTerritory.totalReports }}</p>
+        <button (click)="closeTerritoryInfo()">Close</button>
+      </div>
     </div>
   `,
   styles: [`
     :host {
       display: block;
+      height: 100%;
+      width: 100%;
+      position: relative;
+    }
+    .map-container {
       height: 100%;
       width: 100%;
       position: relative;
@@ -82,14 +91,32 @@ export class TerritoryMapComponent implements OnInit {
   territories$: Observable<Territory[]>;
   selectedTerritory: Territory | null = null;
 
+  mapOptions: google.maps.MapOptions = {
+    zoomControl: true,
+    scrollwheel: true,
+    disableDoubleClickZoom: false,
+    mapTypeId: google.maps.MapTypeId.ROADMAP,
+    maxZoom: 18,
+    minZoom: 8,
+  };
+
   constructor(private territoryService: TerritoryService) {
-    // Mock data for demonstration - replace with actual service call
-    this.territories$ = this.territoryService.getAllTerritories(); // Assuming this method exists or will be added
+    this.territories$ = this.territoryService.getAllTerritories();
   }
 
   ngOnInit(): void {
-    // Fetch territory data on initialization
-    // this.territories$ = this.territoryService.getAllTerritories(); // Make sure TerritoryService has this method
+    // Load Google Maps API with the key
+    if (!window.google) {
+      this.loadGoogleMapsAPI();
+    }
+  }
+
+  private loadGoogleMapsAPI(): void {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${environment.googleMapsApiKey}&libraries=geometry`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
   }
 
   getPolygonOptions(safetyScore: number): google.maps.PolygonOptions {
