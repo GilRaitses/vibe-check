@@ -14,7 +14,7 @@ app.use(cors({ origin: true }));
 app.use(express.json({ limit: '10mb' }));
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(functions.config().google?.gemini_api_key || process.env.GOOGLE_GEMINI_API_KEY || '');
 
 // Initialize Google Cloud Vision
 const visionClient = new ImageAnnotatorClient({
@@ -102,7 +102,7 @@ Respond with JSON:
 
     await db.collection('analyses').add(analysisDoc);
 
-    res.json({
+    return res.json({
       success: true,
       analysis: {
         ...analysisDoc,
@@ -112,7 +112,7 @@ Respond with JSON:
 
   } catch (error) {
     console.error('Analysis failed:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Analysis failed',
       details: error instanceof Error ? error.message : String(error)
     });
@@ -160,7 +160,7 @@ app.post('/submit-report', async (req: Request, res: Response) => {
 
     await db.collection('reports').add(report);
 
-    res.json({
+    return res.json({
       success: true,
       reportId: report.id,
       message: 'Report submitted successfully'
@@ -168,7 +168,7 @@ app.post('/submit-report', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Report submission failed:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Report submission failed',
       details: error instanceof Error ? error.message : String(error)
     });
@@ -340,7 +340,7 @@ Respond with JSON:
 
     await db.collection('analyses').add(analysisDoc);
 
-    res.json({
+    return res.json({
       success: true,
       analysis: {
         ...analysisDoc,
@@ -350,7 +350,7 @@ Respond with JSON:
 
   } catch (error: any) {
     console.error('Enhanced analysis failed:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Enhanced analysis failed',
       details: error instanceof Error ? error.message : String(error)
     });
