@@ -1,146 +1,128 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { Observable, map } from 'rxjs';
 
 export interface Territory {
   territoryId: string;
+  name: string;
   safetyScore: number;
+  lastUpdated: number;
   totalAnalyses: number;
   totalReports: number;
   recentAnalyses: any[];
   recentReports: any[];
-  lastUpdated: number;
-  coordinates?: google.maps.LatLng[]; // For map component
+  description: string;
+  safetyClass: string;
+  latitude: number;
+  longitude: number;
+  zone_id: string;
+  borough: string;
 }
 
-export interface Analysis {
+export interface CameraData {
   id: string;
-  timestamp: number;
-  location: {
-    lat: number;
-    lng: number;
-    territory?: string;
-  };
-  safetyScore: number;
-  riskLevel: 'low' | 'moderate' | 'high' | 'critical';
-  hazards: string[];
-  recommendations: string[];
-  infrastructure: {
-    bikeActivity: 'low' | 'medium' | 'high';
-    pedestrianSpace: 'adequate' | 'crowded' | 'blocked';
-    visibility: 'good' | 'fair' | 'poor';
-  };
-  confidence: number;
+  name: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  lastSeen: number;
+  location: { lat: number; lng: number; };
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class TerritoryService {
-  private apiUrl = environment.production 
-    ? 'https://us-central1-vibe-check-463816.cloudfunctions.net/api'
-    : 'http://localhost:5001/vibe-check-463816/us-central1/api';
+  private apiUrl = 'https://us-central1-vibe-check-463816.cloudfunctions.net/api';
 
   constructor(private http: HttpClient) {}
 
   /**
-   * Get territory analysis data
+   * Get camera zone data (replaces territory analysis)
+   */
+  getCameraZones(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/dashboard/camera-zones`);
+  }
+
+  /**
+   * Get map zones data
+   */
+  getMapZones(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/dashboard/map-zones`);
+  }
+
+  /**
+   * Get monitoring status for a specific location
+   */
+  getLocationStatus(cameraId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/monitoring/timeseries/${cameraId}`);
+  }
+
+  /**
+   * Get metrics for a location  
+   */
+  getLocationMetrics(location: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/get-metrics/${location}`);
+  }
+
+  /**
+   * Get territory analysis for a specific camera zone (REAL DATA)
    */
   getTerritoryAnalysis(territoryId: string): Observable<Territory> {
-    return this.http.get<Territory>(`${this.apiUrl}/territory/${territoryId}`);
+    return this.getCameraZones().pipe(
+      map(response => {
+        const zone = response.zones?.find((z: any) => z.id === territoryId || z.zone_id === territoryId);
+        if (!zone) {
+          throw new Error(`Territory ${territoryId} not found`);
+        }
+        
+        return {
+          territoryId: zone.id,
+          name: zone.name,
+          safetyScore: zone.current_score || 0,
+          lastUpdated: Date.now(),
+          totalAnalyses: 0, // Will be populated by separate metrics call
+          totalReports: 0,
+          recentAnalyses: [],
+          recentReports: [],
+          description: `${zone.neighborhood} camera zone - ${zone.frequency_tier} monitoring`,
+          safetyClass: zone.is_high_risk ? 'low' : zone.current_score >= 8 ? 'high' : 'medium',
+          latitude: zone.latitude,
+          longitude: zone.longitude,
+          zone_id: zone.zone_id,
+          borough: zone.neighborhood
+        } as Territory;
+      })
+    );
   }
 
   /**
-   * Submit image for AI analysis
-   */
-  analyzeImage(imageData: string, metadata: any): Observable<{ success: boolean; analysis: Analysis }> {
-    return this.http.post<{ success: boolean; analysis: Analysis }>(`${this.apiUrl}/orchestrate-analysis`, {
-      imageData,
-      metadata
-    });
-  }
-
-  /**
-   * Submit user report
-   */
-  submitReport(reportData: {
-    location: { lat: number; lng: number; territory?: string };
-    reportType: string;
-    description: string;
-    severity?: string;
-    imageData?: string;
-  }): Observable<{ success: boolean; reportId: string; message: string }> {
-    return this.http.post<{ success: boolean; reportId: string; message: string }>(`${this.apiUrl}/submit-report`, reportData);
-  }
-
-  /**
-   * Get system status
-   */
-  getSystemStatus(): Observable<{
-    status: string;
-    metrics: {
-      totalAnalyses: number;
-      pendingReports: number;
-      successRate: number;
-      avgResponseTime: string;
-      systemHealth: string;
-    };
-    services: {
-      geminiAI: string;
-      firestore: string;
-      storage: string;
-    };
-    lastUpdated: number;
-  }> {
-    return this.http.get<any>(`${this.apiUrl}/status`);
-  }
-
-  /**
-   * Health check
-   */
-  healthCheck(): Observable<{ status: string; timestamp: number; version: string }> {
-    return this.http.get<{ status: string; timestamp: number; version: string }>(`${this.apiUrl}/health`);
-  }
-
-  /**
-   * Get all territories (mock implementation for map component)
+   * Get all territories from REAL camera zone data
    */
   getAllTerritories(): Observable<Territory[]> {
-    // Mock data for now - replace with actual API call when available
-    const mockTerritories: Territory[] = [
-      {
-        territoryId: 'manhattan-lower',
-        safetyScore: 7.5,
-        totalAnalyses: 45,
-        totalReports: 12,
-        recentAnalyses: [],
-        recentReports: [],
-        lastUpdated: Date.now()
-      },
-      {
-        territoryId: 'manhattan-midtown', 
-        safetyScore: 6.2,
-        totalAnalyses: 78,
-        totalReports: 23,
-        recentAnalyses: [],
-        recentReports: [],
-        lastUpdated: Date.now()
-      },
-      {
-        territoryId: 'brooklyn-williamsburg',
-        safetyScore: 8.1,
-        totalAnalyses: 34,
-        totalReports: 8,
-        recentAnalyses: [],
-        recentReports: [],
-        lastUpdated: Date.now()
-      }
-    ];
-    
-    return new Observable(observer => {
-      observer.next(mockTerritories);
-      observer.complete();
-    });
+    return this.getCameraZones().pipe(
+      map(response => {
+        if (!response.zones || !Array.isArray(response.zones)) {
+          return [];
+        }
+        
+        return response.zones.map((zone: any) => ({
+          territoryId: zone.id,
+          name: zone.name,
+          safetyScore: zone.current_score || 0,
+          lastUpdated: Date.now(),
+          totalAnalyses: 0, // Could be enhanced with metrics data
+          totalReports: 0,
+          recentAnalyses: [],
+          recentReports: [],
+          description: `${zone.neighborhood} camera zone - ${zone.frequency_tier} monitoring`,
+          safetyClass: zone.is_high_risk ? 'low' : zone.current_score >= 8 ? 'high' : 'medium',
+          latitude: zone.latitude,
+          longitude: zone.longitude,
+          zone_id: zone.zone_id,
+          borough: zone.neighborhood
+        } as Territory));
+      })
+    );
   }
 } 

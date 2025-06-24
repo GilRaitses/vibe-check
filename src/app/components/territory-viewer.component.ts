@@ -9,219 +9,249 @@ import { Observable } from 'rxjs';
   imports: [CommonModule],
   template: `
     <div class="territory-viewer">
-      <h2>Territory Safety Analysis</h2>
+      <h2>Camera Zone Analysis</h2>
       
       <div class="territory-selection">
-        <label for="territory-select">Select Territory:</label>
+        <label for="territory-select">Select Zone:</label>
         <select id="territory-select" (change)="onTerritoryChange($event)">
-          <option value="">Select a territory...</option>
-          <option value="manhattan-lower">Lower Manhattan</option>
-          <option value="manhattan-midtown">Midtown Manhattan</option>
-          <option value="brooklyn-williamsburg">Williamsburg, Brooklyn</option>
-          <option value="queens-astoria">Astoria, Queens</option>
+          <option value="">Select a camera zone...</option>
+          <option *ngFor="let territory of territories" [value]="territory.territoryId">
+            {{territory.name}} (Safety: {{territory.safetyScore}}/10)
+          </option>
         </select>
       </div>
 
       <div *ngIf="selectedTerritory" class="territory-details">
-        <div class="safety-score-card">
-          <h3>Safety Score</h3>
-          <div class="score" [class]="getScoreClass(selectedTerritory.safetyScore)">
-            {{ selectedTerritory.safetyScore }}/10
-          </div>
+        <h3>{{ selectedTerritory.name }}</h3>
+        
+        <div class="score" [class]="getScoreClass(selectedTerritory.safetyScore)">
+          {{ selectedTerritory.safetyScore }}/10
         </div>
-
+        
         <div class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-item">
             <h4>Total Analyses</h4>
             <p>{{ selectedTerritory.totalAnalyses }}</p>
           </div>
-          <div class="stat-card">
-            <h4>Total Reports</h4>
+          
+          <div class="stat-item">
+            <h4>Reports</h4>
             <p>{{ selectedTerritory.totalReports }}</p>
           </div>
-          <div class="stat-card">
+          
+          <div class="stat-item">
             <h4>Last Updated</h4>
             <p>{{ formatTimestamp(selectedTerritory.lastUpdated) }}</p>
           </div>
         </div>
 
-        <div class="recent-analyses" *ngIf="selectedTerritory.recentAnalyses.length > 0">
-          <h4>Recent Analyses</h4>
-          <div class="analysis-list">
-            <div *ngFor="let analysis of selectedTerritory.recentAnalyses" class="analysis-item">
-              <span class="timestamp">{{ formatTimestamp(analysis.timestamp) }}</span>
-              <span class="score">Score: {{ analysis.analysis?.safetyScore || 'N/A' }}</span>
-              <span class="risk" [class]="analysis.analysis?.riskLevel">
-                {{ analysis.analysis?.riskLevel || 'Unknown' }}
-              </span>
-            </div>
-          </div>
+        <div class="description">
+          <h4>Area Description</h4>
+          <p>{{ selectedTerritory.description }}</p>
         </div>
 
-        <div class="recent-reports" *ngIf="selectedTerritory.recentReports.length > 0">
-          <h4>Recent Reports</h4>
-          <div class="report-list">
-            <div *ngFor="let report of selectedTerritory.recentReports" class="report-item">
-              <span class="timestamp">{{ formatTimestamp(report.timestamp) }}</span>
-              <span class="type">{{ report.reportType }}</span>
-              <span class="severity" [class]="report.severity">
-                {{ report.severity || 'medium' }}
-              </span>
-            </div>
-          </div>
+        <div class="zone-data" *ngIf="zoneData">
+          <h4>Camera Zone Data</h4>
+          <p><strong>Total Cameras:</strong> {{ zoneData.total_cameras || 'Loading...' }}</p>
+          <p><strong>Active Zones:</strong> {{ zoneData.zones?.length || 'Loading...' }}</p>
         </div>
       </div>
-
+      
       <div *ngIf="loading" class="loading">
-        Loading territory data...
+        Loading camera zone data...
       </div>
-
+      
       <div *ngIf="error" class="error">
-        Error loading territory data: {{ error }}
+        Error loading zone data: {{ error }}
       </div>
     </div>
   `,
   styles: [`
     .territory-viewer {
-      padding: 20px;
-      max-width: 1200px;
+      padding: 2rem;
+      max-width: 800px;
       margin: 0 auto;
     }
 
     .territory-selection {
-      margin-bottom: 20px;
+      margin-bottom: 2rem;
     }
 
     .territory-selection label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 0.5rem;
       font-weight: bold;
     }
 
     .territory-selection select {
-      padding: 8px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 16px;
-      min-width: 200px;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      width: 100%;
+      max-width: 400px;
     }
 
-    .safety-score-card {
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      margin-bottom: 20px;
+    .territory-details {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .territory-details h3 {
+      margin: 0 0 1rem 0;
+      font-size: 2rem;
+      font-weight: 300;
     }
 
     .score {
-      font-size: 48px;
+      font-size: 3rem;
       font-weight: bold;
-      margin-top: 10px;
+      text-align: center;
+      padding: 1rem;
+      border-radius: 50%;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 1rem auto;
+      border: 4px solid rgba(255,255,255,0.3);
     }
 
-    .score.high { color: #28a745; }
-    .score.medium { color: #ffc107; }
-    .score.low { color: #dc3545; }
+    .score.high {
+      background: rgba(76, 175, 80, 0.3);
+      border-color: #4CAF50;
+    }
+
+    .score.medium {
+      background: rgba(255, 152, 0, 0.3);
+      border-color: #FF9800;
+    }
+
+    .score.low {
+      background: rgba(244, 67, 54, 0.3);
+      border-color: #F44336;
+    }
 
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
+      gap: 1.5rem;
+      margin: 2rem 0;
     }
 
-    .stat-card {
-      background: white;
-      border: 1px solid #dee2e6;
-      border-radius: 8px;
-      padding: 16px;
+    .stat-item {
+      background: rgba(255,255,255,0.1);
+      padding: 1.5rem;
+      border-radius: 10px;
       text-align: center;
+      backdrop-filter: blur(10px);
     }
 
-    .stat-card h4 {
-      margin: 0 0 8px 0;
-      color: #6c757d;
-      font-size: 14px;
+    .stat-item h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.9rem;
       text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.8;
     }
 
-    .stat-card p {
+    .stat-item p {
       margin: 0;
-      font-size: 24px;
+      font-size: 1.8rem;
       font-weight: bold;
     }
 
-    .recent-analyses, .recent-reports {
-      margin-bottom: 20px;
+    .description {
+      background: rgba(255,255,255,0.1);
+      padding: 1.5rem;
+      border-radius: 10px;
+      margin-top: 1.5rem;
+      backdrop-filter: blur(10px);
     }
 
-    .analysis-list, .report-list {
-      background: white;
-      border: 1px solid #dee2e6;
-      border-radius: 8px;
-      overflow: hidden;
+    .description h4 {
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
-    .analysis-item, .report-item {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 16px;
-      padding: 12px 16px;
-      border-bottom: 1px solid #f1f3f4;
-      align-items: center;
+    .zone-data {
+      background: rgba(255,255,255,0.1);
+      padding: 1.5rem;
+      border-radius: 10px;
+      margin-top: 1.5rem;
+      backdrop-filter: blur(10px);
     }
 
-    .analysis-item:last-child, .report-item:last-child {
-      border-bottom: none;
+    .zone-data h4 {
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
-    .timestamp {
-      color: #6c757d;
-      font-size: 14px;
-    }
-
-    .risk.low, .severity.low { 
-      color: #28a745; 
-      font-weight: bold;
-    }
-    .risk.moderate, .severity.medium { 
-      color: #ffc107; 
-      font-weight: bold;
-    }
-    .risk.high, .severity.high { 
-      color: #fd7e14; 
-      font-weight: bold;
-    }
-    .risk.critical, .severity.critical { 
-      color: #dc3545; 
-      font-weight: bold;
-    }
-
-    .loading, .error {
+    .loading {
       text-align: center;
-      padding: 40px;
-      color: #6c757d;
+      padding: 2rem;
+      font-style: italic;
+      color: #666;
     }
 
     .error {
-      color: #dc3545;
-      background: #f8d7da;
-      border: 1px solid #f5c6cb;
-      border-radius: 4px;
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .territory-viewer {
+        padding: 1rem;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .score {
+        width: 100px;
+        height: 100px;
+        font-size: 2rem;
+      }
     }
   `]
 })
 export class TerritoryViewerComponent implements OnInit {
   selectedTerritory: Territory | null = null;
+  territories: Territory[] = [];
+  zoneData: any = null;
   loading = false;
-  error: string | null = null;
+  error = '';
 
   constructor(private territoryService: TerritoryService) {}
 
   ngOnInit() {
-    // Component initialization
+    this.loadTerritories();
+  }
+
+  loadTerritories() {
+    this.territoryService.getAllTerritories().subscribe({
+      next: (territories) => {
+        this.territories = territories;
+      },
+      error: (err) => {
+        this.error = 'Failed to load territories';
+        console.error('Territory loading error:', err);
+      }
+    });
   }
 
   onTerritoryChange(event: Event) {
@@ -229,48 +259,57 @@ export class TerritoryViewerComponent implements OnInit {
     const territoryId = select.value;
     
     if (territoryId) {
-      this.loadTerritoryData(territoryId);
+      this.selectedTerritory = this.territories.find(t => t.territoryId === territoryId) || null;
+      this.loadZoneData();
     } else {
       this.selectedTerritory = null;
+      this.zoneData = null;
     }
   }
 
-  loadTerritoryData(territoryId: string) {
+  loadZoneData() {
+    if (!this.selectedTerritory) return;
+    
     this.loading = true;
-    this.error = null;
-
-    this.territoryService.getTerritoryAnalysis(territoryId).subscribe({
-      next: (territory) => {
-        this.selectedTerritory = territory;
-        this.loading = false;
+    this.error = '';
+    
+    // Load real camera zone data and metrics for the selected territory
+    this.territoryService.getCameraZones().subscribe({
+      next: (data) => {
+        this.zoneData = data;
+        
+        // Get specific metrics for this territory if available
+        if (this.selectedTerritory?.territoryId) {
+          this.territoryService.getLocationMetrics(this.selectedTerritory.territoryId).subscribe({
+            next: (metrics) => {
+              // Enhance zone data with metrics
+              this.zoneData.metrics = metrics;
+              this.loading = false;
+            },
+            error: (err) => {
+              console.warn('Metrics not available for this zone:', err);
+              this.loading = false;
+            }
+          });
+        } else {
+          this.loading = false;
+        }
       },
       error: (err) => {
-        this.error = 'Failed to load territory data';
+        this.error = 'Failed to load real camera zone data';
         this.loading = false;
-        console.error('Territory loading error:', err);
+        console.error('Zone data loading error:', err);
       }
     });
   }
 
   getScoreClass(score: number): string {
-    if (score >= 7) return 'high';
-    if (score >= 4) return 'medium';
+    if (score >= 8) return 'high';
+    if (score >= 6) return 'medium';
     return 'low';
   }
 
-  formatTimestamp(timestamp: any): string {
-    if (!timestamp) return 'Unknown';
-    
-    // Handle Firestore Timestamp objects
-    if (timestamp && typeof timestamp === 'object' && timestamp.seconds) {
-      return new Date(timestamp.seconds * 1000).toLocaleString();
-    }
-    
-    // Handle regular timestamps
-    if (typeof timestamp === 'number') {
-      return new Date(timestamp).toLocaleString();
-    }
-    
-    return 'Unknown';
+  formatTimestamp(timestamp: number): string {
+    return new Date(timestamp).toLocaleString();
   }
 } 
