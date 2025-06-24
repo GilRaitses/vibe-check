@@ -151,39 +151,50 @@ def create_constrained_voronoi_tessellation():
     # Create Voronoi diagram
     vor = Voronoi(points)
     
-    # Create the figure with clean white background
+    # Create the figure with clean aesthetic design
     fig, ax = plt.subplots(1, 1, figsize=(16, 12))
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('white')
     
-    # Plot NYC boundaries first
+    # Create beautiful peachy sunset gradient background
+    gradient = np.linspace(0, 1, 256).reshape(1, -1)
+    gradient = np.vstack((gradient, gradient))
+    
+    # Set up the gradient colors (peachy sunset)
+    from matplotlib.colors import LinearSegmentedColormap
+    colors = ['#FF6B6B', '#FF8E53', '#FF6B35', '#F7931E', '#FFB347', '#FFCF48']
+    n_bins = 256
+    cmap = LinearSegmentedColormap.from_list('sunset', colors, N=n_bins)
+    
+    # Apply gradient background
+    ax.imshow(gradient, aspect='auto', cmap=cmap, extent=(-74.3, -73.7, 40.5, 40.92), alpha=0.8)
+    
+    # Plot NYC boundaries with subtle styling
     if geojson_data:
         for feature in geojson_data['features']:
             if feature['geometry']['type'] == 'Polygon':
                 coords = feature['geometry']['coordinates'][0]
-                polygon = MplPolygon(coords, fill=False, edgecolor='black', linewidth=2)
+                polygon = MplPolygon(coords, fill=False, edgecolor='white', linewidth=1.5, alpha=0.7)
                 ax.add_patch(polygon)
             elif feature['geometry']['type'] == 'MultiPolygon':
                 for poly_coords in feature['geometry']['coordinates']:
                     coords = poly_coords[0]
-                    polygon = MplPolygon(coords, fill=False, edgecolor='black', linewidth=2)
+                    polygon = MplPolygon(coords, fill=False, edgecolor='white', linewidth=1.5, alpha=0.7)
                     ax.add_patch(polygon)
     
-    # Create color palette for boroughs
+    # Create subtle color palette for boroughs
     borough_colors = {
-        'MN': '#FFB6C1',  # Light pink
-        'BK': '#98FB98',  # Pale green  
-        'QN': '#87CEEB',  # Sky blue
-        'BX': '#DDA0DD',  # Plum
-        'SI': '#F0E68C',  # Khaki
-        'Manhattan': '#FFB6C1',
-        'Brooklyn': '#98FB98',
-        'Queens': '#87CEEB', 
-        'Bronx': '#DDA0DD',
-        'Staten Island': '#F0E68C'
+        'MN': '#FFFFFF',  # White
+        'BK': '#FFF8DC',  # Cream  
+        'QN': '#F0F8FF',  # Alice Blue
+        'BX': '#F5F5DC',  # Beige
+        'SI': '#FFFACD',  # Lemon Chiffon
+        'Manhattan': '#FFFFFF',
+        'Brooklyn': '#FFF8DC',
+        'Queens': '#F0F8FF', 
+        'Bronx': '#F5F5DC',
+        'Staten Island': '#FFFACD'
     }
     
-    # Plot CONSTRAINED Voronoi regions
+    # Plot CONSTRAINED Voronoi regions with subtle styling
     clipped_cells = 0
     total_cells = 0
     
@@ -205,61 +216,50 @@ def create_constrained_voronoi_tessellation():
         clipped_cells += 1
         
         # Determine color based on camera borough
-        color = '#E6E6FA'  # Default light lavender
+        color = '#FFFFFF'  # Default white
         if i < len(cameras):
             borough = cameras[i].get('borough', 'Unknown')
             color = borough_colors.get(borough, color)
         
-        # Create and add CLIPPED polygon
+        # Create and add CLIPPED polygon with subtle styling
         polygon = MplPolygon(clipped_coords, 
                            facecolor=color, 
-                           edgecolor='blue', 
-                           linewidth=0.5,
-                           alpha=0.7)
+                           edgecolor='white', 
+                           linewidth=0.3,
+                           alpha=0.6)
         ax.add_patch(polygon)
     
-    # Plot camera points as red dots
+    # Plot camera points as small elegant dots
     camera_lngs = [cam['lng'] for cam in cameras]
     camera_lats = [cam['lat'] for cam in cameras]
-    ax.scatter(camera_lngs, camera_lats, c='red', s=8, alpha=0.8, zorder=5)
+    ax.scatter(camera_lngs, camera_lats, c='#FF4444', s=3, alpha=0.9, zorder=5, edgecolors='white', linewidths=0.2)
     
     # Set NYC bounds
     ax.set_xlim(-74.3, -73.7)
     ax.set_ylim(40.5, 40.92)
     
-    # Clean styling
-    ax.set_xlabel('Longitude', fontsize=12)
-    ax.set_ylabel('Latitude', fontsize=12)
-    ax.grid(True, alpha=0.3)
+    # Remove ALL plot elements for clean aesthetic
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
     
-    # Add title
-    plt.title('NYC Vibe-Check: Constrained Voronoi Tessellation\n907 Camera Zones Clipped to City Boundaries', 
-              fontsize=16, fontweight='bold', pad=20)
+    # Remove any padding around the map
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     
-    # Add legend
-    legend_elements = []
-    for borough, color in borough_colors.items():
-        if len(borough) == 2:  # Only show abbreviations
-            legend_elements.append(patches.Patch(color=color, label=f'{borough}'))
-    
-    ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.02, 0.98))
-    
-    # Add constraint statistics
-    constraint_text = f"Constrained: {clipped_cells}/{total_cells} cells clipped to NYC boundaries"
-    ax.text(0.02, 0.02, constraint_text, transform=ax.transAxes, 
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8),
-            fontsize=10)
-    
-    # Save the map
-    plt.tight_layout()
+    # Save the clean aesthetic map
     plt.savefig('nyc_vibe_check_camera_map.png', 
                 dpi=300, 
                 bbox_inches='tight',
-                facecolor='white',
-                edgecolor='none')
+                pad_inches=0,
+                facecolor='none',
+                edgecolor='none',
+                transparent=False)
     
-    print(f"✅ Created constrained Voronoi tessellation: {clipped_cells}/{total_cells} cells within NYC boundaries")
-    print("✅ Saved to: nyc_vibe_check_camera_map.png")
+    print(f"✅ Created aesthetic tessellation: {clipped_cells}/{total_cells} cells")
+    print("✅ Saved clean map asset: nyc_vibe_check_camera_map.png")
     plt.close()
 
 if __name__ == "__main__":
