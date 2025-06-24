@@ -154,6 +154,9 @@ def create_constrained_voronoi_tessellation():
     # Create the figure with square aspect ratio
     fig, ax = plt.subplots(1, 1, figsize=(12, 12))
     
+    # Add solid charcoal background layer first
+    ax.add_patch(patches.Rectangle((-74.3, 40.5), 0.6, 0.42, facecolor='#2F2F2F', zorder=0))
+    
     # Create beautiful peachy sunset gradient background
     gradient = np.linspace(0, 1, 256).reshape(1, -1)
     gradient = np.vstack((gradient, gradient))
@@ -164,8 +167,8 @@ def create_constrained_voronoi_tessellation():
     n_bins = 256
     cmap = LinearSegmentedColormap.from_list('sunset', colors, N=n_bins)
     
-    # Apply gradient background
-    ax.imshow(gradient, aspect='auto', cmap=cmap, extent=(-74.3, -73.7, 40.5, 40.92), alpha=0.8)
+    # Apply gradient background with 66% opacity over charcoal
+    ax.imshow(gradient, aspect='auto', cmap=cmap, extent=(-74.3, -73.7, 40.5, 40.92), alpha=0.66)
     
     # Plot NYC boundaries with crisp styling
     if geojson_data:
