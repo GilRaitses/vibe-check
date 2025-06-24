@@ -151,8 +151,8 @@ def create_constrained_voronoi_tessellation():
     # Create Voronoi diagram
     vor = Voronoi(points)
     
-    # Create the figure with clean aesthetic design
-    fig, ax = plt.subplots(1, 1, figsize=(16, 12))
+    # Create the figure with square aspect ratio
+    fig, ax = plt.subplots(1, 1, figsize=(12, 12))
     
     # Create beautiful peachy sunset gradient background
     gradient = np.linspace(0, 1, 256).reshape(1, -1)
@@ -167,20 +167,20 @@ def create_constrained_voronoi_tessellation():
     # Apply gradient background
     ax.imshow(gradient, aspect='auto', cmap=cmap, extent=(-74.3, -73.7, 40.5, 40.92), alpha=0.8)
     
-    # Plot NYC boundaries with subtle styling
+    # Plot NYC boundaries with crisp styling
     if geojson_data:
         for feature in geojson_data['features']:
             if feature['geometry']['type'] == 'Polygon':
                 coords = feature['geometry']['coordinates'][0]
-                polygon = MplPolygon(coords, fill=False, edgecolor='white', linewidth=1.5, alpha=0.7)
+                polygon = MplPolygon(coords, fill=False, edgecolor='white', linewidth=2.5, alpha=0.9)
                 ax.add_patch(polygon)
             elif feature['geometry']['type'] == 'MultiPolygon':
                 for poly_coords in feature['geometry']['coordinates']:
                     coords = poly_coords[0]
-                    polygon = MplPolygon(coords, fill=False, edgecolor='white', linewidth=1.5, alpha=0.7)
+                    polygon = MplPolygon(coords, fill=False, edgecolor='white', linewidth=2.5, alpha=0.9)
                     ax.add_patch(polygon)
     
-    # Create subtle color palette for boroughs
+    # Create more vibrant color palette for boroughs
     borough_colors = {
         'MN': '#FFFFFF',  # White
         'BK': '#FFF8DC',  # Cream  
@@ -194,7 +194,7 @@ def create_constrained_voronoi_tessellation():
         'Staten Island': '#FFFACD'
     }
     
-    # Plot CONSTRAINED Voronoi regions with subtle styling
+    # Plot CONSTRAINED Voronoi regions with crisp styling
     clipped_cells = 0
     total_cells = 0
     
@@ -221,18 +221,18 @@ def create_constrained_voronoi_tessellation():
             borough = cameras[i].get('borough', 'Unknown')
             color = borough_colors.get(borough, color)
         
-        # Create and add CLIPPED polygon with subtle styling
+        # Create and add CLIPPED polygon with crisp styling
         polygon = MplPolygon(clipped_coords, 
                            facecolor=color, 
                            edgecolor='white', 
-                           linewidth=0.3,
-                           alpha=0.6)
+                           linewidth=0.8,
+                           alpha=0.85)
         ax.add_patch(polygon)
     
     # Plot camera points as small elegant dots
     camera_lngs = [cam['lng'] for cam in cameras]
     camera_lats = [cam['lat'] for cam in cameras]
-    ax.scatter(camera_lngs, camera_lats, c='#FF4444', s=3, alpha=0.9, zorder=5, edgecolors='white', linewidths=0.2)
+    ax.scatter(camera_lngs, camera_lats, c='#FF4444', s=4, alpha=0.95, zorder=5, edgecolors='white', linewidths=0.3)
     
     # Set NYC bounds
     ax.set_xlim(-74.3, -73.7)
