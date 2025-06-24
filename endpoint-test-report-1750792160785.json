@@ -1,0 +1,655 @@
+{
+  "timestamp": "2025-06-24T19:09:20.783Z",
+  "baseUrl": "https://us-central1-vibe-check-463816.cloudfunctions.net/api",
+  "summary": {
+    "total": 22,
+    "successful": 5,
+    "failed": 17,
+    "successRate": "22.7",
+    "totalTime": 6640
+  },
+  "categories": {
+    "Zone Analytics": {
+      "success": 5,
+      "total": 5,
+      "endpoints": [
+        {
+          "category": "Zone Analytics",
+          "endpoint": "/get-metrics/MN_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/MN_001",
+          "status": 200,
+          "statusText": "OK",
+          "success": true,
+          "responseData": {
+            "location": "MN_001",
+            "metrics_count": 0,
+            "violation_rates": {},
+            "latest_numerical_data": [],
+            "stored": true,
+            "retrieved": true
+          },
+          "responseSize": 118,
+          "error": null
+        },
+        {
+          "category": "Zone Analytics",
+          "endpoint": "/get-metrics/BK_042",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/BK_042",
+          "status": 200,
+          "statusText": "OK",
+          "success": true,
+          "responseData": {
+            "location": "BK_042",
+            "metrics_count": 0,
+            "violation_rates": {},
+            "latest_numerical_data": [],
+            "stored": true,
+            "retrieved": true
+          },
+          "responseSize": 118,
+          "error": null
+        },
+        {
+          "category": "Zone Analytics",
+          "endpoint": "/get-metrics/QN_123",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/QN_123",
+          "status": 200,
+          "statusText": "OK",
+          "success": true,
+          "responseData": {
+            "location": "QN_123",
+            "metrics_count": 0,
+            "violation_rates": {},
+            "latest_numerical_data": [],
+            "stored": true,
+            "retrieved": true
+          },
+          "responseSize": 118,
+          "error": null
+        },
+        {
+          "category": "Zone Analytics",
+          "endpoint": "/get-metrics/SI_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/SI_001",
+          "status": 200,
+          "statusText": "OK",
+          "success": true,
+          "responseData": {
+            "location": "SI_001",
+            "metrics_count": 0,
+            "violation_rates": {},
+            "latest_numerical_data": [],
+            "stored": true,
+            "retrieved": true
+          },
+          "responseSize": 118,
+          "error": null
+        },
+        {
+          "category": "Zone Analytics",
+          "endpoint": "/get-metrics/BX_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/BX_001",
+          "status": 200,
+          "statusText": "OK",
+          "success": true,
+          "responseData": {
+            "location": "BX_001",
+            "metrics_count": 0,
+            "violation_rates": {},
+            "latest_numerical_data": [],
+            "stored": true,
+            "retrieved": true
+          },
+          "responseSize": 118,
+          "error": null
+        }
+      ]
+    },
+    "Camera Network": {
+      "success": 0,
+      "total": 5,
+      "endpoints": [
+        {
+          "category": "Camera Network",
+          "endpoint": "/get-camera-image/MN_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-camera-image/MN_001",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /get-camera-image/MN_001</pre>\n</body>\n</html>\n",
+          "responseSize": 178,
+          "error": null
+        },
+        {
+          "category": "Camera Network",
+          "endpoint": "/get-camera-image/BK_042",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-camera-image/BK_042",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /get-camera-image/BK_042</pre>\n</body>\n</html>\n",
+          "responseSize": 178,
+          "error": null
+        },
+        {
+          "category": "Camera Network",
+          "endpoint": "/camera-network",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/camera-network",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /camera-network</pre>\n</body>\n</html>\n",
+          "responseSize": 169,
+          "error": null
+        },
+        {
+          "category": "Camera Network",
+          "endpoint": "/voronoi-map",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/voronoi-map",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /voronoi-map</pre>\n</body>\n</html>\n",
+          "responseSize": 166,
+          "error": null
+        },
+        {
+          "category": "Camera Network",
+          "endpoint": "/territory/MN_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/territory/MN_001",
+          "status": 500,
+          "statusText": "Internal Server Error",
+          "success": false,
+          "responseData": {
+            "error": "Territory lookup failed",
+            "details": "9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/vibe-check-463816/firestore/indexes?create_composite=ClJwcm9qZWN0cy92aWJlLWNoZWNrLTQ2MzgxNi9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvYW5hbHlzZXMvaW5kZXhlcy9fEAEaFgoSbWV0YWRhdGEudGVycml0b3J5EAEaDQoJdGltZXN0YW1wEAIaDAoIX19uYW1lX18QAg"
+          },
+          "responseSize": 412,
+          "error": null
+        }
+      ]
+    },
+    "Monitoring": {
+      "success": 0,
+      "total": 3,
+      "endpoints": [
+        {
+          "category": "Monitoring",
+          "endpoint": "/monitoring-dashboard",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/monitoring-dashboard",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /monitoring-dashboard</pre>\n</body>\n</html>\n",
+          "responseSize": 175,
+          "error": null
+        },
+        {
+          "category": "Monitoring",
+          "endpoint": "/system-status",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/system-status",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /system-status</pre>\n</body>\n</html>\n",
+          "responseSize": 168,
+          "error": null
+        },
+        {
+          "category": "Monitoring",
+          "endpoint": "/health-check",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/health-check",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /health-check</pre>\n</body>\n</html>\n",
+          "responseSize": 167,
+          "error": null
+        }
+      ]
+    },
+    "ML Analytics": {
+      "success": 0,
+      "total": 3,
+      "endpoints": [
+        {
+          "category": "ML Analytics",
+          "endpoint": "/ml-model-stats",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/ml-model-stats",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /ml-model-stats</pre>\n</body>\n</html>\n",
+          "responseSize": 169,
+          "error": null
+        },
+        {
+          "category": "ML Analytics",
+          "endpoint": "/violation-forecast/MN_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/violation-forecast/MN_001",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /violation-forecast/MN_001</pre>\n</body>\n</html>\n",
+          "responseSize": 180,
+          "error": null
+        },
+        {
+          "category": "ML Analytics",
+          "endpoint": "/critical-zones",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/critical-zones",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /critical-zones</pre>\n</body>\n</html>\n",
+          "responseSize": 169,
+          "error": null
+        }
+      ]
+    },
+    "Vision Analysis": {
+      "success": 0,
+      "total": 3,
+      "endpoints": [
+        {
+          "category": "Vision Analysis",
+          "endpoint": "/analyze-image/MN_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/analyze-image/MN_001",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /analyze-image/MN_001</pre>\n</body>\n</html>\n",
+          "responseSize": 175,
+          "error": null
+        },
+        {
+          "category": "Vision Analysis",
+          "endpoint": "/get-analysis/MN_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-analysis/MN_001",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /get-analysis/MN_001</pre>\n</body>\n</html>\n",
+          "responseSize": 174,
+          "error": null
+        },
+        {
+          "category": "Vision Analysis",
+          "endpoint": "/vision-analysis",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/vision-analysis",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /vision-analysis</pre>\n</body>\n</html>\n",
+          "responseSize": 170,
+          "error": null
+        }
+      ]
+    },
+    "Adaptive Monitoring": {
+      "success": 0,
+      "total": 3,
+      "endpoints": [
+        {
+          "category": "Adaptive Monitoring",
+          "endpoint": "/adaptive-monitoring",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/adaptive-monitoring",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /adaptive-monitoring</pre>\n</body>\n</html>\n",
+          "responseSize": 174,
+          "error": null
+        },
+        {
+          "category": "Adaptive Monitoring",
+          "endpoint": "/sampling-frequencies",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/sampling-frequencies",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /sampling-frequencies</pre>\n</body>\n</html>\n",
+          "responseSize": 175,
+          "error": null
+        },
+        {
+          "category": "Adaptive Monitoring",
+          "endpoint": "/update-monitoring/MN_001",
+          "method": "GET",
+          "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/update-monitoring/MN_001",
+          "status": 404,
+          "statusText": "Not Found",
+          "success": false,
+          "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /update-monitoring/MN_001</pre>\n</body>\n</html>\n",
+          "responseSize": 179,
+          "error": null
+        }
+      ]
+    }
+  },
+  "results": [
+    {
+      "category": "Zone Analytics",
+      "endpoint": "/get-metrics/MN_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/MN_001",
+      "status": 200,
+      "statusText": "OK",
+      "success": true,
+      "responseData": {
+        "location": "MN_001",
+        "metrics_count": 0,
+        "violation_rates": {},
+        "latest_numerical_data": [],
+        "stored": true,
+        "retrieved": true
+      },
+      "responseSize": 118,
+      "error": null
+    },
+    {
+      "category": "Zone Analytics",
+      "endpoint": "/get-metrics/BK_042",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/BK_042",
+      "status": 200,
+      "statusText": "OK",
+      "success": true,
+      "responseData": {
+        "location": "BK_042",
+        "metrics_count": 0,
+        "violation_rates": {},
+        "latest_numerical_data": [],
+        "stored": true,
+        "retrieved": true
+      },
+      "responseSize": 118,
+      "error": null
+    },
+    {
+      "category": "Zone Analytics",
+      "endpoint": "/get-metrics/QN_123",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/QN_123",
+      "status": 200,
+      "statusText": "OK",
+      "success": true,
+      "responseData": {
+        "location": "QN_123",
+        "metrics_count": 0,
+        "violation_rates": {},
+        "latest_numerical_data": [],
+        "stored": true,
+        "retrieved": true
+      },
+      "responseSize": 118,
+      "error": null
+    },
+    {
+      "category": "Zone Analytics",
+      "endpoint": "/get-metrics/SI_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/SI_001",
+      "status": 200,
+      "statusText": "OK",
+      "success": true,
+      "responseData": {
+        "location": "SI_001",
+        "metrics_count": 0,
+        "violation_rates": {},
+        "latest_numerical_data": [],
+        "stored": true,
+        "retrieved": true
+      },
+      "responseSize": 118,
+      "error": null
+    },
+    {
+      "category": "Zone Analytics",
+      "endpoint": "/get-metrics/BX_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/BX_001",
+      "status": 200,
+      "statusText": "OK",
+      "success": true,
+      "responseData": {
+        "location": "BX_001",
+        "metrics_count": 0,
+        "violation_rates": {},
+        "latest_numerical_data": [],
+        "stored": true,
+        "retrieved": true
+      },
+      "responseSize": 118,
+      "error": null
+    },
+    {
+      "category": "Camera Network",
+      "endpoint": "/get-camera-image/MN_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-camera-image/MN_001",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /get-camera-image/MN_001</pre>\n</body>\n</html>\n",
+      "responseSize": 178,
+      "error": null
+    },
+    {
+      "category": "Camera Network",
+      "endpoint": "/get-camera-image/BK_042",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-camera-image/BK_042",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /get-camera-image/BK_042</pre>\n</body>\n</html>\n",
+      "responseSize": 178,
+      "error": null
+    },
+    {
+      "category": "Camera Network",
+      "endpoint": "/camera-network",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/camera-network",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /camera-network</pre>\n</body>\n</html>\n",
+      "responseSize": 169,
+      "error": null
+    },
+    {
+      "category": "Camera Network",
+      "endpoint": "/voronoi-map",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/voronoi-map",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /voronoi-map</pre>\n</body>\n</html>\n",
+      "responseSize": 166,
+      "error": null
+    },
+    {
+      "category": "Camera Network",
+      "endpoint": "/territory/MN_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/territory/MN_001",
+      "status": 500,
+      "statusText": "Internal Server Error",
+      "success": false,
+      "responseData": {
+        "error": "Territory lookup failed",
+        "details": "9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/vibe-check-463816/firestore/indexes?create_composite=ClJwcm9qZWN0cy92aWJlLWNoZWNrLTQ2MzgxNi9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvYW5hbHlzZXMvaW5kZXhlcy9fEAEaFgoSbWV0YWRhdGEudGVycml0b3J5EAEaDQoJdGltZXN0YW1wEAIaDAoIX19uYW1lX18QAg"
+      },
+      "responseSize": 412,
+      "error": null
+    },
+    {
+      "category": "Monitoring",
+      "endpoint": "/monitoring-dashboard",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/monitoring-dashboard",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /monitoring-dashboard</pre>\n</body>\n</html>\n",
+      "responseSize": 175,
+      "error": null
+    },
+    {
+      "category": "Monitoring",
+      "endpoint": "/system-status",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/system-status",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /system-status</pre>\n</body>\n</html>\n",
+      "responseSize": 168,
+      "error": null
+    },
+    {
+      "category": "Monitoring",
+      "endpoint": "/health-check",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/health-check",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /health-check</pre>\n</body>\n</html>\n",
+      "responseSize": 167,
+      "error": null
+    },
+    {
+      "category": "ML Analytics",
+      "endpoint": "/ml-model-stats",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/ml-model-stats",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /ml-model-stats</pre>\n</body>\n</html>\n",
+      "responseSize": 169,
+      "error": null
+    },
+    {
+      "category": "ML Analytics",
+      "endpoint": "/violation-forecast/MN_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/violation-forecast/MN_001",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /violation-forecast/MN_001</pre>\n</body>\n</html>\n",
+      "responseSize": 180,
+      "error": null
+    },
+    {
+      "category": "ML Analytics",
+      "endpoint": "/critical-zones",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/critical-zones",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /critical-zones</pre>\n</body>\n</html>\n",
+      "responseSize": 169,
+      "error": null
+    },
+    {
+      "category": "Vision Analysis",
+      "endpoint": "/analyze-image/MN_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/analyze-image/MN_001",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /analyze-image/MN_001</pre>\n</body>\n</html>\n",
+      "responseSize": 175,
+      "error": null
+    },
+    {
+      "category": "Vision Analysis",
+      "endpoint": "/get-analysis/MN_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-analysis/MN_001",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /get-analysis/MN_001</pre>\n</body>\n</html>\n",
+      "responseSize": 174,
+      "error": null
+    },
+    {
+      "category": "Vision Analysis",
+      "endpoint": "/vision-analysis",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/vision-analysis",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /vision-analysis</pre>\n</body>\n</html>\n",
+      "responseSize": 170,
+      "error": null
+    },
+    {
+      "category": "Adaptive Monitoring",
+      "endpoint": "/adaptive-monitoring",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/adaptive-monitoring",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /adaptive-monitoring</pre>\n</body>\n</html>\n",
+      "responseSize": 174,
+      "error": null
+    },
+    {
+      "category": "Adaptive Monitoring",
+      "endpoint": "/sampling-frequencies",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/sampling-frequencies",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /sampling-frequencies</pre>\n</body>\n</html>\n",
+      "responseSize": 175,
+      "error": null
+    },
+    {
+      "category": "Adaptive Monitoring",
+      "endpoint": "/update-monitoring/MN_001",
+      "method": "GET",
+      "url": "https://us-central1-vibe-check-463816.cloudfunctions.net/api/update-monitoring/MN_001",
+      "status": 404,
+      "statusText": "Not Found",
+      "success": false,
+      "responseData": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /update-monitoring/MN_001</pre>\n</body>\n</html>\n",
+      "responseSize": 179,
+      "error": null
+    }
+  ]
+}

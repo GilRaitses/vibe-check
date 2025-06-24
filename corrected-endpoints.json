@@ -1,0 +1,38 @@
+{
+  "cameraImage": [],
+  "zoneAnalytics": [
+    "/get-metrics/MN_001",
+    "/get-metrics/BK_042",
+    "/get-metrics/QN_123"
+  ],
+  "systemStatus": [
+    "/health",
+    "/status"
+  ],
+  "allWorking": [
+    "/health",
+    "/status",
+    "/get-metrics/MN_001",
+    "/get-metrics/BK_042",
+    "/get-metrics/QN_123",
+    "/metrics/dashboard",
+    "/metrics/recent-analysis",
+    "/metrics/calculate-trends",
+    "/dashboard/camera-zones",
+    "/dashboard/map-zones",
+    "/monitoring/status",
+    "/ml-stats",
+    "/ml-forecast/MN_001",
+    "/ml-forecast/BK_042",
+    "/metrics/charts/violation-rates",
+    "/metrics/charts/trend-analysis",
+    "/metrics/charts/location-comparison",
+    "/metrics/charts/time-series",
+    "/alerts/recent",
+    "/retention-status",
+    "/backup-status",
+    "/test-collection/analyses",
+    "/test-collection/reports",
+    "/query-performance-test"
+  ]
+}

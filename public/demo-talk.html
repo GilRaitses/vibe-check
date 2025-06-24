@@ -500,29 +500,7 @@
 
         function loadCameraForZone(zoneId) {
             const cameraFeed = document.getElementById('camera-feed');
-            cameraFeed.innerHTML = 'Loading camera feed...';
-            cameraFeed.classList.add('loading');
-            
-            // Try to get actual camera URL from API - NO FALLBACKS
-            fetch(`${API_BASE}/get-camera-image/${zoneId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.imageUrl) {
-                        cameraFeed.innerHTML = `<img src="${data.imageUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
-                    } else {
-                        cameraFeed.innerHTML = `<div style="color: #cc0000; text-align: center;">❌ NO IMAGE URL<br>Zone: ${zoneId}<br>API returned: ${JSON.stringify(data)}</div>`;
-                    }
-                    cameraFeed.classList.remove('loading');
-                })
-                .catch(error => {
-                    cameraFeed.innerHTML = `<div style="color: #cc0000; text-align: center;">❌ API ERROR<br>${error.message}<br>Zone: ${zoneId}<br>URL: ${API_BASE}/get-camera-image/${zoneId}</div>`;
-                    cameraFeed.classList.remove('loading');
-                });
+            cameraFeed.innerHTML = `<div style="color: #cc0000; text-align: center;">❌ CAMERA IMAGES NOT AVAILABLE<br>All camera image endpoints return 404<br>Zone: ${zoneId}<br><br>Available data: Zone analytics only</div>`;
         }
 
         async function testZone(zoneId) {
@@ -532,6 +510,9 @@
             
             try {
                 const response = await fetch(`${API_BASE}/get-metrics/${zoneId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 const data = await response.json();
                 
                 responseDiv.innerHTML = `
@@ -550,35 +531,29 @@
 
         async function loadCameraImage(zoneId) {
             const responseDiv = document.getElementById('api-response');
-            responseDiv.innerHTML = 'Loading camera image...';
+            responseDiv.innerHTML = 'Testing working dashboard endpoints...';
             responseDiv.classList.add('loading');
             
             try {
-                const response = await fetch(`${API_BASE}/get-camera-image/${zoneId}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                // Test working dashboard endpoints instead of broken camera endpoints
+                const dashboardResponse = await fetch(`${API_BASE}/dashboard/camera-zones`);
+                if (!dashboardResponse.ok) {
+                    throw new Error(`HTTP ${dashboardResponse.status}: ${dashboardResponse.statusText}`);
                 }
-                const data = await response.json();
+                const dashboardData = await dashboardResponse.json();
                 
-                if (data.imageUrl) {
-                    responseDiv.innerHTML = `
-                        <strong>📸 Camera Image Loaded</strong><br>
-                        <img src="${data.imageUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 10px;">
-                        <br><small>Zone: ${zoneId}</small>
-                    `;
-                } else {
-                    responseDiv.innerHTML = `
-                        <strong>❌ NO IMAGE URL</strong><br>
-                        API Response: <pre>${JSON.stringify(data, null, 2)}</pre>
-                        <br><small>Zone: ${zoneId}</small>
-                    `;
-                }
+                responseDiv.innerHTML = `
+                    <strong>✅ Dashboard Data Working</strong><br>
+                    <pre>${JSON.stringify(dashboardData, null, 2)}</pre>
+                    <br><strong>❌ Camera Images Unavailable</strong><br>
+                    <small>All camera image endpoints return 404 - no images available</small>
+                `;
                 responseDiv.classList.remove('loading');
             } catch (error) {
                 responseDiv.innerHTML = `
-                    <strong>❌ API ERROR</strong><br>
+                    <strong>❌ Dashboard Error</strong><br>
                     ${error.message}<br>
-                    URL: ${API_BASE}/get-camera-image/${zoneId}<br>
+                    URL: ${API_BASE}/dashboard/camera-zones<br>
                     <small>Zone: ${zoneId}</small>
                 `;
                 responseDiv.classList.remove('loading');

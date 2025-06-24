@@ -203,9 +203,19 @@
                    Test Zone MN_001 API
                 </a>
                 
-                <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/BK_042" 
+                <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/ml-stats" 
                    class="api-link" target="_blank" onclick="trackAPIClick(this)">
-                   Test Zone BK_042 API
+                   Test ML Analytics API
+                </a>
+
+                <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/dashboard/camera-zones" 
+                   class="api-link" target="_blank" onclick="trackAPIClick(this)">
+                   Test Dashboard Data API
+                </a>
+
+                <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/health" 
+                   class="api-link" target="_blank" onclick="trackAPIClick(this)">
+                   Test System Health API
                 </a>
                 
                 <div class="error-display" id="api-error"></div>
@@ -290,8 +300,10 @@
         async function checkSystemStatus() {
             const statusDiv = document.getElementById('system-status');
             const checks = [
-                { name: 'Firebase Functions', url: `${API_BASE}/get-metrics/MN_001` },
-                { name: 'Zone Data', url: `${API_BASE}/get-camera-image/MN_001` },
+                { name: 'Firebase Functions', url: `${API_BASE}/health` },
+                { name: 'Zone Analytics', url: `${API_BASE}/get-metrics/MN_001` },
+                { name: 'ML Analytics', url: `${API_BASE}/ml-stats` },
+                { name: 'Dashboard Data', url: `${API_BASE}/dashboard/camera-zones` },
                 { name: 'Demo Hosting', url: 'https://vibe-check-463816.web.app/demo-talk.html' }
             ];
 
@@ -309,6 +321,12 @@
                     statusHTML += `<p>❌ ${check.name}: ${error.message}</p>`;
                 }
             }
+
+            // Add known broken endpoints
+            statusHTML += '<br><strong>Known Issues:</strong>';
+            statusHTML += '<p>❌ Camera Images: All image endpoints return 404</p>';
+            statusHTML += '<p>❌ Territory Analysis: All territory endpoints return 500</p>';
+            statusHTML += '<p>✅ Zone Analytics: Working perfectly</p>';
 
             statusDiv.innerHTML = statusHTML;
         }
