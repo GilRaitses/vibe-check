@@ -3142,53 +3142,78 @@ async function getRecentDashboardActivity(): Promise<any[]> {
 // ... existing code ...
 
 /**
- * Dashboard - Proxy Camera Images (handles CORS)
+ * Dashboard - Proxy Camera Images (Real NYC Traffic Camera API)
  */
 app.get('/dashboard/camera/:camera_id/image', async (req: Request, res: Response) => {
   try {
     const { camera_id } = req.params;
     
-    // Get camera info
-    const scheduleDoc = await db.collection('monitoring_schedules').doc(camera_id).get();
+    // Convert camera_id to real NYC traffic camera UUID if needed
+    // For now, we'll try to extract UUID from existing data or use direct UUID
+    let realCameraId = camera_id;
     
-    if (!scheduleDoc.exists) {
-      return res.status(404).json({ error: 'Camera not found' });
-      return;
+    // Check if camera_id is already a UUID format
+    if (!camera_id.includes('-')) {
+      // Try to find real camera UUID from monitoring schedules
+      const scheduleDoc = await db.collection('monitoring_schedules').doc(camera_id).get();
+      
+      if (scheduleDoc.exists) {
+        const schedule = scheduleDoc.data();
+        const storedImageUrl = schedule?.camera?.imageUrl;
+        
+        // Extract UUID from stored URL if it's in the correct format
+        if (storedImageUrl && storedImageUrl.includes('/api/cameras/')) {
+          const match = storedImageUrl.match(/\/api\/cameras\/([^\/]+)\/image/);
+          if (match) {
+            realCameraId = match[1];
+          }
+        }
+      }
     }
     
-    const schedule = scheduleDoc.data();
-    const imageUrl = schedule?.camera?.imageUrl;
+    // Use real NYC Traffic Management Center API (same as proxy server)
+    const nycApiUrl = `https://webcams.nyctmc.org/api/cameras/${realCameraId}/image`;
     
-    if (!imageUrl) {
-      return res.status(404).json({ error: 'Camera image URL not available' });
-      return;
-    }
+    console.log(`📸 [CAMERA] Fetching real NYC camera image: ${nycApiUrl}`);
     
-    // Proxy the image to handle CORS
-    const imageResponse = await fetch(imageUrl, {
+    // Fetch from real NYC API with proper headers
+    const imageResponse = await fetch(nycApiUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (compatible; NYC-Camera-Proxy/1.0)'
       }
     });
     
     if (!imageResponse.ok) {
-      return res.status(imageResponse.status).json({ error: 'Failed to fetch camera image' });
-      return;
+      console.log(`❌ [CAMERA] NYC API failed for ${realCameraId}: ${imageResponse.status}`);
+      
+      // Return error with helpful info instead of placeholder
+      return res.status(imageResponse.status).json({ 
+        error: 'NYC Traffic Camera API failed',
+        camera_id: camera_id,
+        real_camera_id: realCameraId,
+        api_url: nycApiUrl,
+        status: imageResponse.status,
+        details: 'Real camera may be offline or ID invalid'
+      });
     }
     
-    // Forward the image
+    // Forward the real image
     res.set('Content-Type', imageResponse.headers.get('content-type') || 'image/jpeg');
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Cache-Control', 'public, max-age=30');
     res.set('Access-Control-Allow-Origin', '*');
     
     const imageBuffer = await imageResponse.arrayBuffer();
+    console.log(`✅ [CAMERA] Real image served for ${realCameraId} (${imageBuffer.byteLength} bytes)`);
+    
     return res.send(Buffer.from(imageBuffer));
     
   } catch (error) {
-    console.error(`❌ [DASHBOARD] Camera image proxy failed for ${req.params.camera_id}:`, error);
+    console.error(`❌ [CAMERA] Real camera image fetch failed for ${req.params.camera_id}:`, error);
     return res.status(500).json({
-      error: 'Camera image proxy failed',
-      details: error instanceof Error ? error.message : String(error)
+      error: 'Real camera image fetch failed',
+      camera_id: req.params.camera_id,
+      details: error instanceof Error ? error.message : String(error),
+      solution: 'Check if camera UUID is valid with NYC Traffic Management Center'
     });
   }
 });
