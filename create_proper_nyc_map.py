@@ -175,12 +175,12 @@ def create_constrained_voronoi_tessellation():
         for feature in geojson_data['features']:
             if feature['geometry']['type'] == 'Polygon':
                 coords = feature['geometry']['coordinates'][0]
-                polygon = MplPolygon(coords, fill=False, edgecolor='white', linewidth=2.5, alpha=0.9)
+                polygon = MplPolygon(coords, fill=False, edgecolor='#1a237e', linewidth=2.5, alpha=0.9)
                 ax.add_patch(polygon)
             elif feature['geometry']['type'] == 'MultiPolygon':
                 for poly_coords in feature['geometry']['coordinates']:
                     coords = poly_coords[0]
-                    polygon = MplPolygon(coords, fill=False, edgecolor='white', linewidth=2.5, alpha=0.9)
+                    polygon = MplPolygon(coords, fill=False, edgecolor='#1a237e', linewidth=2.5, alpha=0.9)
                     ax.add_patch(polygon)
     
     # Create more vibrant color palette for boroughs
@@ -227,7 +227,7 @@ def create_constrained_voronoi_tessellation():
         # Create and add CLIPPED polygon with crisp styling
         polygon = MplPolygon(clipped_coords, 
                            facecolor=color, 
-                           edgecolor='white', 
+                           edgecolor='#1a237e', 
                            linewidth=0.8,
                            alpha=0.85)
         ax.add_patch(polygon)
@@ -235,7 +235,7 @@ def create_constrained_voronoi_tessellation():
     # Plot camera points as small elegant dots
     camera_lngs = [cam['lng'] for cam in cameras]
     camera_lats = [cam['lat'] for cam in cameras]
-    ax.scatter(camera_lngs, camera_lats, c='#FF4444', s=4, alpha=0.95, zorder=5, edgecolors='white', linewidths=0.3)
+    ax.scatter(camera_lngs, camera_lats, c='#FF4444', s=4, alpha=0.95, zorder=5, edgecolors='#1a237e', linewidths=0.3)
     
     # Set NYC bounds
     ax.set_xlim(-74.3, -73.7)
