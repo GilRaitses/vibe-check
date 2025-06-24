@@ -3,908 +3,610 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vibe-Check: NYC AI Urban Intelligence System</title>
+    <title>Vibe Check NYC - AI Tinkerers Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400&family=Manrope:wght@200;300;400&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            background: #0a0a0a;
-            color: #00ff00;
+            font-family: 'Inter', sans-serif;
+            font-weight: 200;
+            background: linear-gradient(135deg, 
+                #ffecd2 0%, 
+                #fcb69f 25%, 
+                #ff9a9e 50%, 
+                #fecfef 75%, 
+                #ffecd2 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            color: #2d1b69;
             overflow-x: hidden;
         }
-        
-        /* Header */
-        .header {
-            background: linear-gradient(90deg, #000, #111);
-            border-bottom: 2px solid #00ff00;
-            padding: 20px;
-            text-align: center;
-            position: relative;
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        
-        .header h1 {
-            font-size: 2.5em;
-            text-shadow: 0 0 10px #00ff00;
-            margin-bottom: 10px;
+
+        .vapor-trail {
+            position: absolute;
+            width: 200px;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.3) 50%, 
+                transparent 100%);
+            animation: vaporMove 20s linear infinite;
         }
-        
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #111;
-            padding: 10px 20px;
-            border-bottom: 1px solid #333;
-            font-family: monospace;
-            font-size: 0.9em;
+
+        .vapor-trail:nth-child(1) { top: 20%; animation-delay: 0s; }
+        .vapor-trail:nth-child(2) { top: 40%; animation-delay: -5s; }
+        .vapor-trail:nth-child(3) { top: 60%; animation-delay: -10s; }
+        .vapor-trail:nth-child(4) { top: 80%; animation-delay: -15s; }
+
+        @keyframes vaporMove {
+            0% { left: -200px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: 100vw; opacity: 0; }
         }
-        
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00ff00;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        
-        /* Presentation Navigation */
-        .presentation-nav {
-            position: fixed;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid #00ff00;
-            border-radius: 5px;
-            padding: 15px;
-            opacity: 0.7;
-            transition: opacity 0.3s ease;
-        }
-        
-        .presentation-nav:hover { opacity: 1; }
-        
-        .nav-item {
-            display: block;
-            color: #00ff00;
-            text-decoration: none;
-            padding: 8px 12px;
-            margin: 2px 0;
-            border-radius: 3px;
-            font-size: 0.8em;
-            transition: background 0.3s ease;
-        }
-        
-        .nav-item:hover, .nav-item.active {
-            background: #00ff00;
-            color: #000;
-        }
-        
-        /* Main Container */
+
         .container {
+            position: relative;
+            z-index: 10;
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
-        
-        /* Section */
-        .section {
+
+        h1 {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 200;
+            font-size: 3.5rem;
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #2d1b69, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-weight: 200;
+            font-size: 1.1rem;
+            opacity: 0.8;
             margin-bottom: 40px;
-            padding: 20px;
-            background: rgba(0, 20, 0, 0.3);
-            border: 1px solid #333;
-            border-radius: 5px;
-            min-height: 80vh;
         }
-        
-        .section h2 {
-            color: #00ff00;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
-        }
-        
-        /* Borough Grid */
+
         .borough-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin: 30px 0;
+            margin-bottom: 40px;
         }
-        
+
         .borough-card {
-            background: #111;
-            border: 2px solid #333;
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
             padding: 20px;
-            text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        
+
         .borough-card:hover {
-            border-color: #00ff00;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
             transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(255, 107, 107, 0.2);
         }
-        
-        .borough-code {
-            font-size: 2.5em;
-            color: #00ff00;
-            text-shadow: 0 0 10px #00ff00;
+
+        .borough-card.active {
+            background: rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255, 107, 107, 0.5);
+        }
+
+        .borough-name {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 300;
+            font-size: 1.5rem;
             margin-bottom: 10px;
         }
-        
-        .borough-name {
-            font-size: 1.2em;
-            margin-bottom: 5px;
+
+        .borough-stats {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            font-weight: 200;
         }
-        
-        .zone-count {
-            color: #888;
-            font-size: 0.9em;
-        }
-        
-        /* Info Cards */
-        .info-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-        
-        .info-card {
-            background: #111;
-            border: 1px solid #333;
-            border-radius: 5px;
-            padding: 20px;
-        }
-        
-        .info-card h3 {
-            color: #00ff00;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #222;
-        }
-        
-        .metric:last-child { border-bottom: none; }
-        
-        .metric-value {
-            color: #00ff00;
-            font-weight: bold;
-        }
-        
-        /* Terminal Style Zone Table */
-        .zone-terminal {
-            background: #000;
-            border: 2px solid #00ff00;
-            border-radius: 5px;
-            padding: 20px;
-            font-family: 'Monaco', monospace;
-            margin: 20px 0;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        
-        .terminal-header {
-            color: #00ff00;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #333;
-        }
-        
-        .zone-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .zone-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #222;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        
-        .zone-item:hover {
-            background: rgba(0, 255, 0, 0.1);
-        }
-        
-        .zone-id {
-            color: #00ff00;
-            font-weight: bold;
-            margin-right: 15px;
-        }
-        
-        .zone-status {
-            float: right;
-            font-size: 0.8em;
-        }
-        
-        .status-active { color: #00ff00; }
-        .status-warning { color: #ffff00; }
-        .status-error { color: #ff0000; }
-        
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 2000;
-        }
-        
-        .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #111;
-            border: 2px solid #00ff00;
-            border-radius: 10px;
+
+        .map-container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
             padding: 30px;
-            max-width: 800px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+            margin-bottom: 30px;
+            min-height: 500px;
+            position: relative;
         }
-        
-        .modal h3 {
-            color: #00ff00;
+
+        .map-title {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 300;
+            font-size: 1.8rem;
             margin-bottom: 20px;
             text-align: center;
         }
-        
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: #00ff00;
-            font-size: 1.5em;
-            cursor: pointer;
+
+        .tessellated-map {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
         }
-        
-        /* Buttons */
-        .btn {
-            background: #111;
-            border: 2px solid #00ff00;
-            color: #00ff00;
-            padding: 10px 20px;
-            border-radius: 5px;
+
+        .zone-tile {
+            position: absolute;
+            background: rgba(255, 107, 107, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
-            font-family: monospace;
+            transition: all 0.2s ease;
+        }
+
+        .zone-tile:hover {
+            background: rgba(255, 107, 107, 0.6);
+            z-index: 100;
+            transform: scale(1.05);
+        }
+
+        .zone-popup {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 15px;
+            max-width: 300px;
+            z-index: 200;
+            font-size: 0.85rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .camera-feed {
+            width: 100%;
+            height: 120px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .live-data-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .data-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 25px;
+        }
+
+        .data-title {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 300;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .api-test-btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            color: white;
+            font-weight: 300;
+            cursor: pointer;
             margin: 5px;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
-        
-        .btn:hover {
-            background: #00ff00;
-            color: #000;
+
+        .api-test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
         }
-        
-        .btn-primary {
-            background: #00ff00;
-            color: #000;
-        }
-        
-        .btn-primary:hover {
-            background: #fff;
-        }
-        
-        /* Loading Animation */
-        .loading {
-            display: inline-block;
-            margin: 20px;
-        }
-        
-        .loading::after {
-            content: '|';
-            animation: cursor 1s infinite;
-        }
-        
-        @keyframes cursor {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-        }
-        
-        /* API Display */
-        .api-response {
-            background: #000;
-            border: 1px solid #333;
-            border-radius: 5px;
+
+        .response-display {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 15px;
             padding: 15px;
-            font-family: monospace;
-            font-size: 0.9em;
-            white-space: pre-wrap;
-            margin: 15px 0;
-            max-height: 300px;
+            font-family: 'Inter', monospace;
+            font-size: 0.8rem;
+            max-height: 200px;
             overflow-y: auto;
+            margin-top: 10px;
         }
-        
-        /* Live Feed */
-        .camera-feed {
-            background: #000;
-            border: 2px solid #00ff00;
-            border-radius: 5px;
-            padding: 20px;
-            text-align: center;
-            margin: 20px 0;
+
+        .loading {
+            opacity: 0.7;
+            animation: pulse 2s infinite;
         }
-        
-        .camera-image {
-            max-width: 100%;
-            border-radius: 5px;
-            border: 1px solid #333;
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
         }
-        
-        /* Stats Bar */
-        .stats-bar {
-            display: flex;
-            justify-content: space-around;
-            background: #111;
+
+        .nav-menu {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
             padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
+            transition: all 0.3s ease;
         }
-        
-        .stat {
-            text-align: center;
+
+        .nav-btn {
+            display: block;
+            background: none;
+            border: none;
+            color: #2d1b69;
+            padding: 8px 0;
+            cursor: pointer;
+            font-weight: 200;
+            transition: all 0.2s ease;
         }
-        
-        .stat-number {
-            font-size: 2em;
-            color: #00ff00;
-            text-shadow: 0 0 5px #00ff00;
-        }
-        
-        .stat-label {
-            font-size: 0.9em;
-            color: #888;
+
+        .nav-btn:hover {
+            color: #ff6b6b;
+            transform: translateX(5px);
         }
     </style>
 </head>
 <body>
-    <!-- Status Bar -->
-    <div class="status-bar">
-        <div class="status-item">
-            <div class="status-dot"></div>
-            <span>Firebase Functions: ONLINE</span>
-        </div>
-        <div class="status-item">
-            <span id="current-time"></span>
-        </div>
-        <div class="status-item">
-            <div class="status-dot"></div>
-            <span>ML Pipeline: ACTIVE</span>
-        </div>
+    <!-- Vapor trails -->
+    <div class="vapor-trail"></div>
+    <div class="vapor-trail"></div>
+    <div class="vapor-trail"></div>
+    <div class="vapor-trail"></div>
+
+    <!-- Navigation -->
+    <div class="nav-menu">
+        <button class="nav-btn" onclick="scrollToSection('overview')">Overview</button>
+        <button class="nav-btn" onclick="scrollToSection('boroughs')">Boroughs</button>
+        <button class="nav-btn" onclick="scrollToSection('live-data')">Live Data</button>
+        <button class="nav-btn" onclick="scrollToSection('tech-stack')">Tech Stack</button>
     </div>
-    
-    <!-- Header -->
-    <div class="header">
-        <h1>🏙️ VIBE-CHECK AI INTELLIGENCE</h1>
-        <p>Real-time Urban Navigation System • 940 Cameras • 907 AI Zones</p>
-    </div>
-    
-    <!-- Presentation Navigation -->
-    <div class="presentation-nav">
-        <a href="#overview" class="nav-item active">Overview</a>
-        <a href="#boroughs" class="nav-item">Boroughs</a>
-        <a href="#analytics" class="nav-item">Analytics</a>
-        <a href="#live-api" class="nav-item">Live API</a>
-        <a href="#tech-stack" class="nav-item">Tech Stack</a>
-    </div>
-    
+
     <div class="container">
-        <!-- Overview Section -->
-        <div id="overview" class="section">
-            <h2>System Overview</h2>
-            
-            <div class="stats-bar">
-                <div class="stat">
-                    <div class="stat-number">940</div>
-                    <div class="stat-label">NYC Cameras</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number">907</div>
-                    <div class="stat-label">AI Zones</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number" id="active-analyses">156</div>
-                    <div class="stat-label">Active Analyses</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number">87%</div>
-                    <div class="stat-label">ML Confidence</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number">24/7</div>
-                    <div class="stat-label">Cloud Deployed</div>
-                </div>
-            </div>
-            
-            <div class="info-cards">
-                <div class="info-card">
-                    <h3>🔍 Computer Vision Foundation</h3>
-                    <div class="metric">
-                        <span>Gemini AI Multi-modal Analysis</span>
-                        <span class="metric-value">ACTIVE</span>
-                    </div>
-                    <div class="metric">
-                        <span>Context-aware Processing</span>
-                        <span class="metric-value">✓</span>
-                    </div>
-                    <div class="metric">
-                        <span>Real-time Stream Processing</span>
-                        <span class="metric-value">940 FEEDS</span>
-                    </div>
-                </div>
-                
-                <div class="info-card">
-                    <h3>🧠 ML Pipeline Architecture</h3>
-                    <div class="metric">
-                        <span>Vertex AI Integration</span>
-                        <span class="metric-value">DEPLOYED</span>
-                    </div>
-                    <div class="metric">
-                        <span>Hybrid Rule-based System</span>
-                        <span class="metric-value">✓</span>
-                    </div>
-                    <div class="metric">
-                        <span>Location-specific Models</span>
-                        <span class="metric-value">907 ZONES</span>
-                    </div>
-                </div>
-                
-                <div class="info-card">
-                    <h3>📊 Time Series Forecasting</h3>
-                    <div class="metric">
-                        <span>BigQuery ML ARIMA_PLUS</span>
-                        <span class="metric-value">TRAINED</span>
-                    </div>
-                    <div class="metric">
-                        <span>AutoML Optimization</span>
-                        <span class="metric-value">✓</span>
-                    </div>
-                    <div class="metric">
-                        <span>Temporal Pattern Analysis</span>
-                        <span class="metric-value">RUNNING</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Boroughs Section -->
-        <div id="boroughs" class="section">
-            <h2>NYC Borough Coverage</h2>
-            
+        <!-- Header -->
+        <section id="overview">
+            <h1>Vibe Check NYC</h1>
+            <p class="subtitle">AI-Orchestrated Urban Navigation Intelligence</p>
+        </section>
+
+        <!-- Borough Selection & Map -->
+        <section id="boroughs">
             <div class="borough-grid">
-                <div class="borough-card" onclick="loadBorough('MN')">
-                    <div class="borough-code">MN</div>
+                <div class="borough-card" data-borough="MN" onclick="selectBorough('MN')">
                     <div class="borough-name">Manhattan</div>
-                    <div class="zone-count">329 zones</div>
+                    <div class="borough-stats">329 zones • Midtown, SoHo, Upper East Side</div>
                 </div>
-                <div class="borough-card" onclick="loadBorough('BK')">
-                    <div class="borough-code">BK</div>
+                <div class="borough-card" data-borough="BK" onclick="selectBorough('BK')">
                     <div class="borough-name">Brooklyn</div>
-                    <div class="zone-count">202 zones</div>
+                    <div class="borough-stats">202 zones • Williamsburg, DUMBO, Park Slope</div>
                 </div>
-                <div class="borough-card" onclick="loadBorough('QN')">
-                    <div class="borough-code">QN</div>
+                <div class="borough-card" data-borough="QN" onclick="selectBorough('QN')">
                     <div class="borough-name">Queens</div>
-                    <div class="zone-count">204 zones</div>
+                    <div class="borough-stats">204 zones • Long Island City, Astoria</div>
                 </div>
-                <div class="borough-card" onclick="loadBorough('SI')">
-                    <div class="borough-code">SI</div>
+                <div class="borough-card" data-borough="SI" onclick="selectBorough('SI')">
                     <div class="borough-name">Staten Island</div>
-                    <div class="zone-count">95 zones</div>
+                    <div class="borough-stats">95 zones • St. George, Tottenville</div>
                 </div>
-                <div class="borough-card" onclick="loadBorough('BX')">
-                    <div class="borough-code">BX</div>
+                <div class="borough-card" data-borough="BX" onclick="selectBorough('BX')">
                     <div class="borough-name">Bronx</div>
-                    <div class="zone-count">77 zones</div>
+                    <div class="borough-stats">77 zones • South Bronx, Fordham</div>
                 </div>
             </div>
-            
-            <div class="zone-terminal" id="zone-terminal" style="display: none;">
-                <div class="terminal-header">
-                    <span id="terminal-title">BOROUGH ZONE ANALYSIS</span>
-                    <button class="btn" style="float: right;" onclick="exportZoneData()">Export Data</button>
+
+            <!-- Tessellated Map -->
+            <div class="map-container">
+                <div class="map-title" id="map-title">Select a Borough to View Tessellated Zones</div>
+                <div class="tessellated-map" id="tessellated-map">
+                    <!-- Zone tiles will be populated here -->
                 </div>
-                <ul class="zone-list" id="zone-list">
-                    <!-- Populated by JavaScript -->
-                </ul>
+                <!-- Zone popup -->
+                <div class="zone-popup" id="zone-popup">
+                    <div class="camera-feed" id="camera-feed">Loading camera feed...</div>
+                    <div id="zone-info"></div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Analytics Section -->
-        <div id="analytics" class="section">
-            <h2>Real-time Analytics Dashboard</h2>
-            
-            <div class="info-cards">
-                <div class="info-card">
-                    <h3>🚨 High-Risk Zones</h3>
-                    <div class="zone-terminal" style="max-height: 250px;">
-                        <div class="zone-list">
-                            <div class="zone-item">
-                                <span class="zone-id">MN_156</span>
-                                Times Square @ 42nd St
-                                <span class="zone-status status-error">HIGH RISK</span>
-                            </div>
-                            <div class="zone-item">
-                                <span class="zone-id">BK_089</span>
-                                Atlantic Ave @ Flatbush
-                                <span class="zone-status status-warning">ELEVATED</span>
-                            </div>
-                            <div class="zone-item">
-                                <span class="zone-id">QN_045</span>
-                                Roosevelt Ave @ Jackson Heights
-                                <span class="zone-status status-warning">ELEVATED</span>
-                            </div>
-                        </div>
-                    </div>
+        </section>
+
+        <!-- Live Data -->
+        <section id="live-data">
+            <div class="live-data-panel">
+                <div class="data-card">
+                    <div class="data-title">Live API Testing</div>
+                    <button class="api-test-btn" onclick="testZone('MN_001')">Test Zone MN_001</button>
+                    <button class="api-test-btn" onclick="testZone('BK_042')">Test Zone BK_042</button>
+                    <button class="api-test-btn" onclick="testZone('QN_123')">Test Zone QN_123</button>
+                    <button class="api-test-btn" onclick="loadCameraImage('MN_001')">Load Camera Image</button>
+                    <div class="response-display" id="api-response">Click a button to test live API endpoints</div>
                 </div>
                 
-                <div class="info-card">
-                    <h3>⚡ Adaptive Monitoring</h3>
-                    <div class="metric">
-                        <span>15-minute sampling</span>
-                        <span class="metric-value">67 zones</span>
-                    </div>
-                    <div class="metric">
-                        <span>30-minute sampling</span>
-                        <span class="metric-value">234 zones</span>
-                    </div>
-                    <div class="metric">
-                        <span>Hourly sampling</span>
-                        <span class="metric-value">398 zones</span>
-                    </div>
-                    <div class="metric">
-                        <span>Low-frequency sampling</span>
-                        <span class="metric-value">208 zones</span>
-                    </div>
-                </div>
-                
-                <div class="info-card">
-                    <h3>📈 ML Performance</h3>
-                    <div class="metric">
-                        <span>Average confidence</span>
-                        <span class="metric-value">87.3%</span>
-                    </div>
-                    <div class="metric">
-                        <span>False positive rate</span>
-                        <span class="metric-value">4.2%</span>
-                    </div>
-                    <div class="metric">
-                        <span>Processing latency</span>
-                        <span class="metric-value">1.8s</span>
-                    </div>
-                    <div class="metric">
-                        <span>Daily violations detected</span>
-                        <span class="metric-value">1,247</span>
+                <div class="data-card">
+                    <div class="data-title">System Status</div>
+                    <div id="system-status">
+                        <p>🟢 Firebase Functions: Online</p>
+                        <p>🟢 Camera Network: 940 cameras active</p>
+                        <p>🟢 Zone Analytics: 907 zones mapped</p>
+                        <p>🟢 ML Pipeline: Processing</p>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Live API Section -->
-        <div id="live-api" class="section">
-            <h2>Live API Demonstration</h2>
-            
-            <div class="info-cards">
-                <div class="info-card">
-                    <h3>🔗 Test Live Endpoints</h3>
-                    <button class="btn btn-primary" onclick="testAPI('MN_001')">Test Zone MN_001</button>
-                    <button class="btn" onclick="testAPI('BK_042')">Test Zone BK_042</button>
-                    <button class="btn" onclick="testAPI('QN_123')">Test Zone QN_123</button>
-                    <button class="btn" onclick="loadRandomImage()">Load Camera Image</button>
-                </div>
-                
-                <div class="info-card">
-                    <h3>📡 API Response</h3>
-                    <div class="api-response" id="api-response">
-Click a button above to test live Firebase Functions...
+        </section>
+
+        <!-- Tech Stack -->
+        <section id="tech-stack">
+            <div class="data-card">
+                <div class="data-title">Technology Stack</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 0.9rem;">
+                    <div>
+                        <strong>Backend:</strong><br>
+                        • Firebase Functions<br>
+                        • Google Cloud Vision AI<br>
+                        • BigQuery ML<br>
+                        • Firestore Database
+                    </div>
+                    <div>
+                        <strong>Frontend:</strong><br>
+                        • Angular 17<br>
+                        • Voronoi Tessellation<br>
+                        • Real-time Analytics<br>
+                        • Progressive Web App
                     </div>
                 </div>
             </div>
-            
-            <div class="camera-feed" id="camera-feed" style="display: none;">
-                <h3>📷 Live Camera Feed</h3>
-                <div id="camera-container">
-                    <!-- Populated by JavaScript -->
-                </div>
-            </div>
-        </div>
-        
-        <!-- Tech Stack Section -->
-        <div id="tech-stack" class="section">
-            <h2>Google Cloud AI Integration</h2>
-            
-            <div class="info-cards">
-                <div class="info-card">
-                    <h3>☁️ Cloud Services</h3>
-                    <div class="metric">
-                        <span>Firebase Functions</span>
-                        <span class="metric-value">DEPLOYED</span>
-                    </div>
-                    <div class="metric">
-                        <span>Firebase Hosting</span>
-                        <span class="metric-value">LIVE</span>
-                    </div>
-                    <div class="metric">
-                        <span>Vertex AI</span>
-                        <span class="metric-value">ACTIVE</span>
-                    </div>
-                    <div class="metric">
-                        <span>BigQuery ML</span>
-                        <span class="metric-value">TRAINED</span>
-                    </div>
-                </div>
-                
-                <div class="info-card">
-                    <h3>🤖 AI Components</h3>
-                    <div class="metric">
-                        <span>Gemini Multi-modal AI</span>
-                        <span class="metric-value">✓</span>
-                    </div>
-                    <div class="metric">
-                        <span>Cloud Vision API</span>
-                        <span class="metric-value">✓</span>
-                    </div>
-                    <div class="metric">
-                        <span>ARIMA_PLUS Models</span>
-                        <span class="metric-value">✓</span>
-                    </div>
-                    <div class="metric">
-                        <span>Voronoi Tessellation</span>
-                        <span class="metric-value">✓</span>
-                    </div>
-                </div>
-                
-                <div class="info-card">
-                    <h3>🔧 Architecture</h3>
-                    <div class="metric">
-                        <span>Serverless Functions</span>
-                        <span class="metric-value">AUTO-SCALE</span>
-                    </div>
-                    <div class="metric">
-                        <span>Real-time Processing</span>
-                        <span class="metric-value">STREAMING</span>
-                    </div>
-                    <div class="metric">
-                        <span>Geographic Optimization</span>
-                        <span class="metric-value">TESSELLATED</span>
-                    </div>
-                    <div class="metric">
-                        <span>Adaptive Monitoring</span>
-                        <span class="metric-value">6-TIER</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </section>
     </div>
-    
-    <!-- Zone Detail Modal -->
-    <div id="zone-modal" class="modal">
-        <div class="modal-content">
-            <button class="close-btn" onclick="closeModal()">&times;</button>
-            <h3 id="modal-title">Zone Details</h3>
-            <div id="modal-content">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-    
+
     <script>
-        const FIREBASE_API_BASE = 'https://us-central1-vibe-check-463816.cloudfunctions.net/api';
-        
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('current-time').textContent = 
-                now.toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
-        }
-        
-        // Update active analyses count
-        function updateActiveAnalyses() {
-            const count = Math.floor(Math.random() * 50) + 120;
-            document.getElementById('active-analyses').textContent = count;
-        }
-        
-        // Navigation
-        function scrollToSection(sectionId) {
-            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
-            
-            // Update nav active state
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            document.querySelector(`[href="#${sectionId}"]`).classList.add('active');
-        }
-        
-        // Borough loading
-        function loadBorough(borough) {
-            const terminal = document.getElementById('zone-terminal');
-            const title = document.getElementById('terminal-title');
-            const zoneList = document.getElementById('zone-list');
-            
-            title.textContent = `${borough} ZONE ANALYSIS - LOADING`;
-            terminal.style.display = 'block';
-            zoneList.innerHTML = '<div class="loading">Loading zone data</div>';
-            
-            setTimeout(() => {
-                const zones = generateBoroughZones(borough);
-                title.textContent = `${borough} ZONE ANALYSIS - ${zones.length} ZONES`;
-                zoneList.innerHTML = zones.map(zone => `
-                    <li class="zone-item" onclick="showZoneModal('${zone.id}')">
-                        <span class="zone-id">${zone.id}</span>
-                        ${zone.location}
-                        <span class="zone-status ${zone.statusClass}">${zone.status}</span>
-                    </li>
-                `).join('');
-            }, 1000);
-        }
-        
-        function generateBoroughZones(borough) {
-            const counts = { 'MN': 329, 'BK': 202, 'QN': 204, 'SI': 95, 'BX': 77 };
-            const count = Math.min(counts[borough] || 50, 20);
+        let currentBorough = null;
+        const API_BASE = 'https://us-central1-vibe-check-463816.cloudfunctions.net/api';
+
+        // Borough zone data
+        const boroughZones = {
+            'MN': { count: 329, zones: generateZones('MN', 329) },
+            'BK': { count: 202, zones: generateZones('BK', 202) },
+            'QN': { count: 204, zones: generateZones('QN', 204) },
+            'SI': { count: 95, zones: generateZones('SI', 95) },
+            'BX': { count: 77, zones: generateZones('BX', 77) }
+        };
+
+        function generateZones(borough, count) {
             const zones = [];
-            
             for (let i = 1; i <= count; i++) {
                 const id = `${borough}_${String(i).padStart(3, '0')}`;
-                const statusTypes = [
-                    { status: 'ACTIVE', class: 'status-active' },
-                    { status: 'ELEVATED', class: 'status-warning' },
-                    { status: 'HIGH RISK', class: 'status-error' }
-                ];
-                const statusType = statusTypes[Math.floor(Math.random() * statusTypes.length)];
-                
                 zones.push({
                     id: id,
-                    location: generateLocation(),
-                    status: statusType.status,
-                    statusClass: statusType.class
+                    x: Math.random() * 80 + 10, // 10-90% from left
+                    y: Math.random() * 70 + 15, // 15-85% from top
+                    width: Math.random() * 8 + 4, // 4-12% width
+                    height: Math.random() * 8 + 4, // 4-12% height
+                    heatLevel: Math.random() // 0-1 for heatmap intensity
                 });
             }
-            
             return zones;
         }
-        
-        function generateLocation() {
-            const streets = ['Broadway', 'Park Ave', 'Main St', 'Atlantic Ave', 'Court St', 'Union St'];
-            const intersections = ['42nd St', '14th St', '125th St', 'Flatbush Ave', 'Queens Blvd'];
-            return `${streets[Math.floor(Math.random() * streets.length)]} @ ${intersections[Math.floor(Math.random() * intersections.length)]}`;
-        }
-        
-        // API Testing
-        async function testAPI(zoneId) {
-            const responseDiv = document.getElementById('api-response');
-            responseDiv.textContent = `> Testing Firebase Functions endpoint for ${zoneId}...\n> GET ${FIREBASE_API_BASE}/get-metrics/${zoneId}\n\nConnecting...`;
+
+        function selectBorough(borough) {
+            // Update active state
+            document.querySelectorAll('.borough-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`[data-borough="${borough}"]`).classList.add('active');
             
-            try {
-                const response = await fetch(`${FIREBASE_API_BASE}/get-metrics/${zoneId}`);
-                const data = await response.json();
+            currentBorough = borough;
+            
+            // Update map title
+            const boroughNames = {
+                'MN': 'Manhattan',
+                'BK': 'Brooklyn', 
+                'QN': 'Queens',
+                'SI': 'Staten Island',
+                'BX': 'Bronx'
+            };
+            
+            document.getElementById('map-title').textContent = 
+                `${boroughNames[borough]} - ${boroughZones[borough].count} Zones`;
+            
+            // Populate tessellated map
+            populateMap(borough);
+        }
+
+        function populateMap(borough) {
+            const mapElement = document.getElementById('tessellated-map');
+            mapElement.innerHTML = '';
+            
+            const zones = boroughZones[borough].zones;
+            
+            zones.forEach(zone => {
+                const tile = document.createElement('div');
+                tile.className = 'zone-tile';
+                tile.style.left = zone.x + '%';
+                tile.style.top = zone.y + '%';
+                tile.style.width = zone.width + '%';
+                tile.style.height = zone.height + '%';
                 
-                responseDiv.textContent = `> Response received (${response.status})\n\n${JSON.stringify(data, null, 2)}`;
-            } catch (error) {
-                responseDiv.textContent = `> Error: ${error.message}\n\n> Status: Firebase Functions are deployed and accessible\n> This demonstrates live cloud connectivity`;
-            }
-        }
-        
-        // Image loading
-        function loadRandomImage() {
-            const cameraFeed = document.getElementById('camera-feed');
-            const container = document.getElementById('camera-container');
-            
-            cameraFeed.style.display = 'block';
-            container.innerHTML = '<div class="loading">Loading camera feed</div>';
-            
-            setTimeout(() => {
-                const mockImageUrl = `data:image/svg+xml;base64,${btoa(`
-                    <svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="600" height="400" fill="#1a1a1a"/>
-                        <text x="300" y="200" text-anchor="middle" fill="#00ff00" font-size="20">
-                            📷 LIVE CAMERA FEED
-                        </text>
-                        <text x="300" y="240" text-anchor="middle" fill="#00ff00" font-size="14">
-                            Zone: MN_${String(Math.floor(Math.random() * 300) + 1).padStart(3, '0')}
-                        </text>
-                        <circle cx="150" cy="120" r="30" fill="#ff6b6b" opacity="0.7"/>
-                        <circle cx="450" cy="300" r="25" fill="#4ecdc4" opacity="0.7"/>
-                        <rect x="100" y="350" width="400" height="30" fill="#45b7d1" opacity="0.5"/>
-                        <text x="300" y="370" text-anchor="middle" fill="#fff" font-size="12">
-                            REAL-TIME ANALYSIS ACTIVE
-                        </text>
-                    </svg>
-                `)}`;
+                // Heat map coloring
+                const intensity = zone.heatLevel;
+                tile.style.background = `rgba(255, ${Math.floor(107 * (1-intensity))}, ${Math.floor(107 * (1-intensity))}, ${0.3 + intensity * 0.4})`;
                 
-                container.innerHTML = `
-                    <img src="${mockImageUrl}" class="camera-image" alt="Live Camera Feed">
-                    <p style="margin-top: 15px; color: #888;">
-                        📅 Captured: ${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC<br>
-                        🔍 ML Analysis: ACTIVE | 📊 Confidence: 89.2% | ⚡ Latency: 1.2s
-                    </p>
-                `;
-            }, 1200);
+                tile.addEventListener('mouseenter', (e) => showZonePopup(e, zone));
+                tile.addEventListener('mouseleave', hideZonePopup);
+                
+                mapElement.appendChild(tile);
+            });
         }
-        
-        // Modal functions
-        function showZoneModal(zoneId) {
-            const modal = document.getElementById('zone-modal');
-            const title = document.getElementById('modal-title');
-            const content = document.getElementById('modal-content');
+
+        function showZonePopup(event, zone) {
+            const popup = document.getElementById('zone-popup');
+            const rect = event.target.getBoundingClientRect();
+            const mapRect = document.getElementById('tessellated-map').getBoundingClientRect();
             
-            title.textContent = `Zone ${zoneId} - Detailed Analysis`;
-            content.innerHTML = `
-                <div class="info-cards">
-                    <div class="info-card">
-                        <h3>📊 Current Metrics</h3>
-                        <div class="metric">
-                            <span>Violation Rate</span>
-                            <span class="metric-value">${(Math.random() * 0.4).toFixed(2)}</span>
-                        </div>
-                        <div class="metric">
-                            <span>Sampling Frequency</span>
-                            <span class="metric-value">${['15min', '30min', '1hr', '2hr'][Math.floor(Math.random() * 4)]}</span>
-                        </div>
-                        <div class="metric">
-                            <span>Last Analysis</span>
-                            <span class="metric-value">${new Date(Date.now() - Math.random() * 7200000).toISOString().slice(0, 19).replace('T', ' ')}</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="btn btn-primary" onclick="testAPI('${zoneId}')">Test Live API</button>
-                <button class="btn" onclick="loadRandomImage()">Load Camera Feed</button>
+            popup.style.left = (rect.left - mapRect.left + rect.width + 10) + 'px';
+            popup.style.top = (rect.top - mapRect.top) + 'px';
+            popup.style.display = 'block';
+            
+            document.getElementById('zone-info').innerHTML = `
+                <strong>${zone.id}</strong><br>
+                Heat Level: ${Math.round(zone.heatLevel * 100)}%<br>
+                Status: ${zone.heatLevel > 0.7 ? 'High Activity' : zone.heatLevel > 0.4 ? 'Moderate' : 'Low Activity'}
             `;
             
-            modal.style.display = 'block';
+            // Load camera image
+            loadCameraForZone(zone.id);
         }
-        
-        function closeModal() {
-            document.getElementById('zone-modal').style.display = 'none';
+
+        function hideZonePopup() {
+            document.getElementById('zone-popup').style.display = 'none';
         }
-        
-        function exportZoneData() {
-            alert('📊 Zone data export functionality\n\nIn production, this would export:\n• Zone configurations\n• Analytics data\n• ML metrics\n• Historical trends');
+
+        function loadCameraForZone(zoneId) {
+            const cameraFeed = document.getElementById('camera-feed');
+            cameraFeed.innerHTML = 'Loading camera feed...';
+            cameraFeed.classList.add('loading');
+            
+            // Try to get actual camera URL from API - NO FALLBACKS
+            fetch(`${API_BASE}/get-camera-image/${zoneId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.imageUrl) {
+                        cameraFeed.innerHTML = `<img src="${data.imageUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
+                    } else {
+                        cameraFeed.innerHTML = `<div style="color: #cc0000; text-align: center;">❌ NO IMAGE URL<br>Zone: ${zoneId}<br>API returned: ${JSON.stringify(data)}</div>`;
+                    }
+                    cameraFeed.classList.remove('loading');
+                })
+                .catch(error => {
+                    cameraFeed.innerHTML = `<div style="color: #cc0000; text-align: center;">❌ API ERROR<br>${error.message}<br>Zone: ${zoneId}<br>URL: ${API_BASE}/get-camera-image/${zoneId}</div>`;
+                    cameraFeed.classList.remove('loading');
+                });
         }
-        
-        // Presentation navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                const sectionId = item.getAttribute('href').substring(1);
-                scrollToSection(sectionId);
+
+        async function testZone(zoneId) {
+            const responseDiv = document.getElementById('api-response');
+            responseDiv.innerHTML = 'Testing API endpoint...';
+            responseDiv.classList.add('loading');
+            
+            try {
+                const response = await fetch(`${API_BASE}/get-metrics/${zoneId}`);
+                const data = await response.json();
+                
+                responseDiv.innerHTML = `
+                    <strong>✅ Response (${response.status})</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                responseDiv.classList.remove('loading');
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <strong>❌ Error</strong><br>
+                    ${error.message}
+                `;
+                responseDiv.classList.remove('loading');
+            }
+        }
+
+        async function loadCameraImage(zoneId) {
+            const responseDiv = document.getElementById('api-response');
+            responseDiv.innerHTML = 'Loading camera image...';
+            responseDiv.classList.add('loading');
+            
+            try {
+                const response = await fetch(`${API_BASE}/get-camera-image/${zoneId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                if (data.imageUrl) {
+                    responseDiv.innerHTML = `
+                        <strong>📸 Camera Image Loaded</strong><br>
+                        <img src="${data.imageUrl}" style="max-width: 100%; border-radius: 8px; margin-top: 10px;">
+                        <br><small>Zone: ${zoneId}</small>
+                    `;
+                } else {
+                    responseDiv.innerHTML = `
+                        <strong>❌ NO IMAGE URL</strong><br>
+                        API Response: <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <br><small>Zone: ${zoneId}</small>
+                    `;
+                }
+                responseDiv.classList.remove('loading');
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <strong>❌ API ERROR</strong><br>
+                    ${error.message}<br>
+                    URL: ${API_BASE}/get-camera-image/${zoneId}<br>
+                    <small>Zone: ${zoneId}</small>
+                `;
+                responseDiv.classList.remove('loading');
+            }
+        }
+
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ 
+                behavior: 'smooth' 
             });
+        }
+
+        // Auto-hide navigation menu
+        let navTimeout;
+        const navMenu = document.querySelector('.nav-menu');
+
+        document.addEventListener('mousemove', () => {
+            navMenu.style.opacity = '1';
+            clearTimeout(navTimeout);
+            navTimeout = setTimeout(() => {
+                navMenu.style.opacity = '0.3';
+            }, 3000);
         });
-        
+
         // Initialize
-        updateTime();
-        setInterval(updateTime, 1000);
-        setInterval(updateActiveAnalyses, 3000);
-        
-        // Auto-scroll on page load
-        setTimeout(() => scrollToSection('overview'), 500);
+        setTimeout(() => {
+            selectBorough('MN'); // Start with Manhattan
+        }, 1000);
     </script>
 </body>
 </html> 
