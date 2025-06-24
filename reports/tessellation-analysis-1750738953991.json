@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-06-24T04:22:33.985Z",
+  "scores": {
+    "geographic_accuracy": 85,
+    "water_exclusion": 100,
+    "bridge_handling": 100,
+    "coastline_precision": 90,
+    "overall_quality": 85
+  },
+  "total_score": 92,
+  "issues": [],
+  "achievements": [
+    "✅ Perfect water exclusion - zero zones over water",
+    "✅ 18 bridge zones with special handling",
+    "✅ 18 zones with exact bridge shapes",
+    "✅ High-resolution coastline (311 boundary points)"
+  ],
+  "improvements": [
+    "📈 Very good! Apply minor refinements:",
+    "  • Increase coastline boundary point resolution"
+  ]
+}

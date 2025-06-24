@@ -8,14 +8,7 @@ import { AuthService } from './services/auth.service';
   selector: 'app-root',
   standalone: true,
   imports: [RouterModule, CommonModule, NavigationComponent],
-  template: `
-    <div class="app-container">
-      <app-navigation></app-navigation>
-      <main class="main-content">
-        <router-outlet></router-outlet>
-      </main>
-    </div>
-  `,
+  templateUrl: './app.html',
   styles: [`
     .app-container {
       min-height: 100vh;

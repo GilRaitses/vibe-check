@@ -1,0 +1,245 @@
+{
+  "numerical_handling": {
+    "array_structure_validation": {
+      "success": true,
+      "message": "Array structure validation passed",
+      "details": {
+        "expected_length": 17,
+        "actual_length": 17
+      }
+    },
+    "numerical_bounds_checking": {
+      "success": true,
+      "message": "Bounds checking works correctly",
+      "details": {
+        "valid_passed": true,
+        "invalid_rejected": true
+      }
+    },
+    "type_validation": {
+      "success": true,
+      "message": "Type validation correctly rejects mixed types",
+      "details": {
+        "valid": false,
+        "message": "Non-numeric value at index 2: 3",
+        "index": 2,
+        "type": "string"
+      }
+    },
+    "confidence_score_handling": {
+      "success": true,
+      "message": "Confidence score integration working",
+      "details": {
+        "valid": true,
+        "message": "Confidence integration valid",
+        "confidence": 0.85
+      }
+    },
+    "error_handling_invalid_arrays": {
+      "success": true,
+      "message": "Handled 6/6 invalid arrays correctly",
+      "details": {
+        "correct_rejections": 6,
+        "total_tests": 6
+      }
+    }
+  },
+  "llm_agent_interventions": {
+    "gemini_api_connectivity": {
+      "success": true,
+      "message": "Gemini API connectivity confirmed",
+      "details": {
+        "status": 200,
+        "data": {
+          "status": "healthy",
+          "timestamp": 1750715774990,
+          "version": "1.0.0"
+        }
+      }
+    },
+    "numerical_processing": {
+      "success": false,
+      "message": "Gemini numerical processing failed",
+      "details": {
+        "error": "Missing required fields: imageData, metadata"
+      }
+    },
+    "escalation_protocols": {
+      "success": false,
+      "message": "Escalation test failed: Gemini agent communication failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    "decision_making_logic": {
+      "success": false,
+      "message": "Decision logic test failed: Gemini agent communication failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    "context_analysis": {
+      "success": false,
+      "message": "Context analysis test failed: Gemini agent communication failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    "intervention_triggers": {
+      "success": false,
+      "message": "Intervention triggers test failed: Gemini agent communication failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    }
+  },
+  "data_store_tests": {
+    "firebase_connection": {
+      "success": false,
+      "message": "Firebase connection confirmed",
+      "details": {
+        "status": "operational",
+        "metrics": {
+          "totalAnalyses": 0,
+          "pendingReports": 0,
+          "successRate": 1,
+          "avgResponseTime": "2.3s",
+          "systemHealth": "good"
+        },
+        "services": {
+          "geminiAI": "operational",
+          "firestore": "operational",
+          "storage": "operational"
+        },
+        "lastUpdated": 1750715778199
+      }
+    },
+    "firestore_collections": {
+      "success": false,
+      "message": "Firestore collections: 0/7 accessible",
+      "details": {
+        "accessible": 0,
+        "required": 7
+      }
+    },
+    "statistical_storage": {
+      "success": false,
+      "message": "Statistical storage test failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    "data_retention_policies": {
+      "success": false,
+      "message": "Data retention test failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    "indexing_performance": {
+      "success": false,
+      "message": "Indexing performance test failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    "backup_integrity": {
+      "success": false,
+      "message": "Backup integrity test failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    }
+  },
+  "visual_confirmation": {
+    "dashboard_loading": {
+      "success": false,
+      "message": "Dashboard loads successfully",
+      "details": {
+        "status": 200,
+        "has_navigation": false,
+        "has_main_content": true,
+        "has_scripts": true
+      }
+    },
+    "real_time_updates": {
+      "success": false,
+      "message": "Real-time updates failed",
+      "details": {
+        "post_success": false,
+        "status_success": true
+      }
+    },
+    "chart_rendering": {
+      "success": false,
+      "message": "Chart rendering: 0/4 endpoints working",
+      "details": {
+        "working_charts": 0,
+        "total_charts": 4
+      }
+    },
+    "alert_visualization": {
+      "success": false,
+      "message": "Alert visualization failed",
+      "details": {}
+    },
+    "metrics_display": {
+      "success": false,
+      "message": "Metrics display test failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    "mobile_responsiveness": {
+      "success": true,
+      "message": "Mobile responsiveness configured",
+      "details": {
+        "has_viewport": true,
+        "has_responsive_css": false,
+        "has_touch_friendly": false
+      }
+    }
+  },
+  "end_to_end_pipeline": {
+    "complete_analysis_workflow": {
+      "success": false,
+      "message": "Complete workflow test failed: Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    "data_flow_integrity": {
+      "success": false,
+      "message": "Data flow integrity compromised",
+      "details": {
+        "submit_success": false,
+        "storage_checks": [
+          false,
+          false,
+          false
+        ],
+        "test_id": "integrity_test_1750715785365"
+      }
+    },
+    "error_recovery": {
+      "success": true,
+      "message": "Error recovery: 4/4 scenarios handled",
+      "details": {
+        "recovered": 4,
+        "total": 4
+      }
+    },
+    "performance_benchmarks": {
+      "success": true,
+      "message": "Performance benchmarks: 3/3 within thresholds",
+      "details": [
+        {
+          "test": "analysis_response",
+          "time": 72,
+          "threshold": 5000
+        },
+        {
+          "test": "dashboard_loading",
+          "time": 70,
+          "threshold": 2000
+        },
+        {
+          "test": "statistical_calculation",
+          "time": 71,
+          "threshold": 3000
+        }
+      ]
+    },
+    "concurrent_processing": {
+      "success": false,
+      "message": "Concurrent processing: 0/5 successful, avg 21.2ms",
+      "details": {
+        "successful": 0,
+        "total": 5,
+        "average_time": 21.2,
+        "total_time": 106
+      }
+    },
+    "system_resilience": {
+      "success": false,
+      "message": "System resilience: 1/3 stress tests passed",
+      "details": {
+        "passed": 1,
+        "total": 3
+      }
+    }
+  },
+  "overall_score": 31,
+  "passed_tests": 9,
+  "total_tests": 29
+}

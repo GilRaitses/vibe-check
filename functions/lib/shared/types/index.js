@@ -1,0 +1,4 @@
+"use strict";
+// Shared types for vibe-check system
+Object.defineProperty(exports, "__esModule", { value: true });
+//# sourceMappingURL=index.js.map

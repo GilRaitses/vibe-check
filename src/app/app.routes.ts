@@ -6,10 +6,10 @@ import { map } from 'rxjs/operators';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'map', pathMatch: 'full' },
-  { path: 'dashboard', loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-  { path: 'analysis', loadComponent: () => import('./components/analysis-interface/analysis-interface.component').then(m => m.AnalysisInterfaceComponent) },
-  { path: 'reporting', loadComponent: () => import('./components/user-reporting/user-reporting.component').then(m => m.UserReportingComponent) },
-  { path: 'map', loadComponent: () => import('./components/territory-map/territory-map.component').then(m => m.TerritoryMapComponent) },
+    { path: 'dashboard', loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+    { path: 'analysis', loadComponent: () => import('./components/analysis-interface/analysis-interface.component').then(m => m.AnalysisInterfaceComponent) },
+    { path: 'reporting', loadComponent: () => import('./components/user-reporting/user-reporting.component').then(m => m.UserReportingComponent) },
+    { path: 'map', loadComponent: () => import('./components/territory-map/territory-map.component').then(m => m.TerritoryMapComponent) },
   { path: 'territories', loadComponent: () => import('./components/territory-viewer/territory-viewer.component').then(m => m.TerritoryViewerComponent) },
   { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
   { path: 'register', loadComponent: () => import('./components/register/register.component').then(m => m.RegistrationComponent) },

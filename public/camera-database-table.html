@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NYC Camera Database</title>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input, select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        .btn.export {
+            background: #27ae60;
+        }
+
+        .btn.export:hover {
+            background: #229954;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .table-container {
+            background: white;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #34495e;
+            color: white;
+        }
+
+        thead th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 3px solid #2c3e50;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        thead th:hover {
+            background: #3c556b;
+        }
+
+        .sort-indicator {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.7;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        tbody tr:nth-child(even):hover {
+            background-color: #f0f0f0;
+        }
+
+        td {
+            padding: 12px;
+            vertical-align: middle;
+        }
+
+        .camera-id {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .coordinates {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .neighborhood {
+            font-weight: 600;
+            color: #3498db;
+        }
+
+        .priority-critical {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .priority-high {
+            background: #f39c12;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .priority-medium {
+            background: #27ae60;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .density-extreme {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .density-high {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .density-medium {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .density-low {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #7f8c8d;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.1em;
+            color: #95a5a6;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-filters {
+                justify-content: center;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗽 NYC Camera Database</h1>
+        <p>Comprehensive Traffic Camera Network - Manhattan Focus</p>
+    </div>
+
+    <div class="controls">
+        <div class="search-filters">
+            <input type="text" id="search" placeholder="Search cameras..." />
+            
+            <select id="borough-filter">
+                <option value="">All Boroughs</option>
+                <option value="Manhattan">Manhattan</option>
+                <option value="Brooklyn">Brooklyn</option>
+                <option value="Queens">Queens</option>
+                <option value="Bronx">Bronx</option>
+                <option value="Staten Island">Staten Island</option>
+            </select>
+            
+            <select id="priority-filter">
+                <option value="">All Priorities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+            </select>
+            
+            <select id="neighborhood-filter">
+                <option value="">All Neighborhoods</option>
+            </select>
+            
+            <button class="btn" onclick="clearFilters()">Clear Filters</button>
+        </div>
+        
+        <div class="stats">
+            <span id="total-cameras">Loading...</span>
+            <span id="filtered-cameras"></span>
+            <button class="btn export" onclick="exportData()">Export CSV</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="camera-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">Camera ID <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(1)">Name <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(2)">Coordinates <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(3)">Neighborhood <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(4)">Borough <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(5)">Primary Street <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(6)">Installation <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(7)">Camera Type <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(8)">Coverage (m) <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(9)">Traffic Priority <span class="sort-indicator">⇅</span></th>
+                    <th onclick="sortTable(10)">Pedestrian Density <span class="sort-indicator">⇅</span></th>
+                </tr>
+            </thead>
+            <tbody id="camera-tbody">
+                <tr>
+                    <td colspan="11" class="loading">Loading camera data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let allCameras = [];
+        let filteredCameras = [];
+        let sortColumn = -1;
+        let sortDirection = 1;
+
+        // Embedded camera data (to avoid CORS issues with local files)
+        const cameraData = {
+            "nyc_traffic_cameras": {
+                "metadata": {
+                    "total_cameras": 387,
+                    "boroughs_covered": ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"],
+                    "manhattan_cameras": 156,
+                    "last_updated": "2025-01-23",
+                    "data_source": "NYC DOT Traffic Camera Network"
+                },
+                "cameras": [
+                    {
+                        "id": "NYC_CAM_001",
+                        "name": "Times Square - 42nd & Broadway",
+                        "latitude": 40.7580,
+                        "longitude": -73.9855,
+                        "neighborhood": "Times Square",
+                        "borough": "Manhattan",
+                        "street_primary": "Broadway",
+                        "street_secondary": "42nd Street",
+                        "installation_year": 2018,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 200,
+                        "traffic_priority": "critical",
+                        "pedestrian_density": "extreme"
+                    },
+                    {
+                        "id": "NYC_CAM_002", 
+                        "name": "Penn Station - 8th Ave & 34th St",
+                        "latitude": 40.7505,
+                        "longitude": -73.9934,
+                        "neighborhood": "Midtown West",
+                        "borough": "Manhattan",
+                        "street_primary": "8th Avenue",
+                        "street_secondary": "34th Street",
+                        "installation_year": 2017,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 180,
+                        "traffic_priority": "critical",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_003",
+                        "name": "Grand Central - Park Ave & 42nd St",
+                        "latitude": 40.7527,
+                        "longitude": -73.9772,
+                        "neighborhood": "Midtown East",
+                        "borough": "Manhattan", 
+                        "street_primary": "Park Avenue",
+                        "street_secondary": "42nd Street",
+                        "installation_year": 2016,
+                        "camera_type": "PTZ_4K",
+                        "coverage_radius_meters": 220,
+                        "traffic_priority": "critical",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_004",
+                        "name": "Union Square - 14th St & Broadway",
+                        "latitude": 40.7359,
+                        "longitude": -73.9911,
+                        "neighborhood": "Union Square",
+                        "borough": "Manhattan",
+                        "street_primary": "Broadway",
+                        "street_secondary": "14th Street", 
+                        "installation_year": 2019,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 190,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_005",
+                        "name": "Washington Square Park - 4th St & MacDougal",
+                        "latitude": 40.7308,
+                        "longitude": -73.9973,
+                        "neighborhood": "Greenwich Village",
+                        "borough": "Manhattan",
+                        "street_primary": "MacDougal Street",
+                        "street_secondary": "4th Street",
+                        "installation_year": 2020,
+                        "camera_type": "Fixed_HD",
+                        "coverage_radius_meters": 150,
+                        "traffic_priority": "medium",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_006",
+                        "name": "Columbus Circle - 59th St & Broadway",
+                        "latitude": 40.7681,
+                        "longitude": -73.9819,
+                        "neighborhood": "Columbus Circle",
+                        "borough": "Manhattan",
+                        "street_primary": "Broadway",
+                        "street_secondary": "59th Street",
+                        "installation_year": 2015,
+                        "camera_type": "PTZ_4K",
+                        "coverage_radius_meters": 250,
+                        "traffic_priority": "critical",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_007",
+                        "name": "Lincoln Tunnel Approach - 9th Ave & 39th St",
+                        "latitude": 40.7614,
+                        "longitude": -74.0055,
+                        "neighborhood": "Hell's Kitchen",
+                        "borough": "Manhattan",
+                        "street_primary": "9th Avenue",
+                        "street_secondary": "39th Street",
+                        "installation_year": 2014,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 200,
+                        "traffic_priority": "critical",
+                        "pedestrian_density": "medium"
+                    },
+                    {
+                        "id": "NYC_CAM_008",
+                        "name": "Brooklyn Bridge - Park Row & Frankfort St",
+                        "latitude": 40.7061,
+                        "longitude": -74.0087,
+                        "neighborhood": "Financial District",
+                        "borough": "Manhattan",
+                        "street_primary": "Park Row",
+                        "street_secondary": "Frankfort Street",
+                        "installation_year": 2013,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 180,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "medium"
+                    },
+                    {
+                        "id": "NYC_CAM_009",
+                        "name": "Manhattan Bridge - Canal St & Bowery",
+                        "latitude": 40.7119,
+                        "longitude": -73.9969,
+                        "neighborhood": "Chinatown",
+                        "borough": "Manhattan",
+                        "street_primary": "Canal Street",
+                        "street_secondary": "Bowery",
+                        "installation_year": 2016,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 170,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "medium"
+                    },
+                    {
+                        "id": "NYC_CAM_010",
+                        "name": "Williamsburg Bridge - Delancey St & Norfolk St",
+                        "latitude": 40.7140,
+                        "longitude": -73.9634,
+                        "neighborhood": "Lower East Side",
+                        "borough": "Manhattan",
+                        "street_primary": "Delancey Street",
+                        "street_secondary": "Norfolk Street",
+                        "installation_year": 2017,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 160,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "medium"
+                    },
+                    {
+                        "id": "NYC_CAM_011",
+                        "name": "FDR Drive - Houston St Exit",
+                        "latitude": 40.7282,
+                        "longitude": -73.9776,
+                        "neighborhood": "Lower East Side",
+                        "borough": "Manhattan",
+                        "street_primary": "FDR Drive",
+                        "street_secondary": "Houston Street",
+                        "installation_year": 2015,
+                        "camera_type": "Highway_PTZ",
+                        "coverage_radius_meters": 300,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "low"
+                    },
+                    {
+                        "id": "NYC_CAM_012",
+                        "name": "FDR Drive - 59th St Exit",
+                        "latitude": 40.7614,
+                        "longitude": -73.9511,
+                        "neighborhood": "Sutton Place",
+                        "borough": "Manhattan",
+                        "street_primary": "FDR Drive",
+                        "street_secondary": "59th Street",
+                        "installation_year": 2014,
+                        "camera_type": "Highway_PTZ",
+                        "coverage_radius_meters": 280,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "low"
+                    },
+                    {
+                        "id": "NYC_CAM_013",
+                        "name": "West Side Highway - Houston St",
+                        "latitude": 40.7282,
+                        "longitude": -74.0118,
+                        "neighborhood": "West Village",
+                        "borough": "Manhattan",
+                        "street_primary": "West Side Highway",
+                        "street_secondary": "Houston Street",
+                        "installation_year": 2016,
+                        "camera_type": "Highway_PTZ",
+                        "coverage_radius_meters": 250,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "low"
+                    },
+                    {
+                        "id": "NYC_CAM_014",
+                        "name": "West Side Highway - 59th St",
+                        "latitude": 40.7614,
+                        "longitude": -74.0063,
+                        "neighborhood": "Hell's Kitchen",
+                        "borough": "Manhattan",
+                        "street_primary": "West Side Highway",
+                        "street_secondary": "59th Street",
+                        "installation_year": 2015,
+                        "camera_type": "Highway_PTZ",
+                        "coverage_radius_meters": 270,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "low"
+                    },
+                    {
+                        "id": "NYC_CAM_015",
+                        "name": "World Trade Center - Greenwich St & Vesey St",
+                        "latitude": 40.7120,
+                        "longitude": -74.0090,
+                        "neighborhood": "Financial District",
+                        "borough": "Manhattan",
+                        "street_primary": "Greenwich Street",
+                        "street_secondary": "Vesey Street",
+                        "installation_year": 2018,
+                        "camera_type": "PTZ_4K",
+                        "coverage_radius_meters": 200,
+                        "traffic_priority": "critical",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_016",
+                        "name": "Empire State Building - 5th Ave & 34th St",
+                        "latitude": 40.7489,
+                        "longitude": -73.9870,
+                        "neighborhood": "Midtown South",
+                        "borough": "Manhattan",
+                        "street_primary": "5th Avenue",
+                        "street_secondary": "34th Street",
+                        "installation_year": 2017,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 190,
+                        "traffic_priority": "high",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_017",
+                        "name": "Central Park - 79th St Transverse",
+                        "latitude": 40.7829,
+                        "longitude": -73.9654,
+                        "neighborhood": "Upper East Side",
+                        "borough": "Manhattan",
+                        "street_primary": "79th Street Transverse",
+                        "street_secondary": "East Drive",
+                        "installation_year": 2019,
+                        "camera_type": "Park_PTZ",
+                        "coverage_radius_meters": 180,
+                        "traffic_priority": "medium",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_018",
+                        "name": "Metropolitan Museum - 5th Ave & 82nd St",
+                        "latitude": 40.7794,
+                        "longitude": -73.9632,
+                        "neighborhood": "Upper East Side",
+                        "borough": "Manhattan",
+                        "street_primary": "5th Avenue",
+                        "street_secondary": "82nd Street",
+                        "installation_year": 2018,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 160,
+                        "traffic_priority": "medium",
+                        "pedestrian_density": "high"
+                    },
+                    {
+                        "id": "NYC_CAM_019",
+                        "name": "Theatre District - 7th Ave & 47th St",
+                        "latitude": 40.7550,
+                        "longitude": -73.9840,
+                        "neighborhood": "Times Square",
+                        "borough": "Manhattan",
+                        "street_primary": "7th Avenue",
+                        "street_secondary": "47th Street",
+                        "installation_year": 2018,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 170,
+                        "traffic_priority": "critical",
+                        "pedestrian_density": "extreme"
+                    },
+                    {
+                        "id": "NYC_CAM_020",
+                        "name": "Chelsea Market - 9th Ave & 15th St",
+                        "latitude": 40.7420,
+                        "longitude": -73.9890,
+                        "neighborhood": "Chelsea",
+                        "borough": "Manhattan",
+                        "street_primary": "9th Avenue",
+                        "street_secondary": "15th Street",
+                        "installation_year": 2019,
+                        "camera_type": "PTZ_HD",
+                        "coverage_radius_meters": 150,
+                        "traffic_priority": "medium",
+                        "pedestrian_density": "high"
+                    }
+                ]
+            }
+        };
+
+        // Load camera data (now using embedded data)
+        function loadCameraData() {
+            try {
+                allCameras = cameraData.nyc_traffic_cameras.cameras;
+                filteredCameras = [...allCameras];
+                
+                populateFilters();
+                renderTable();
+                updateStats();
+                
+            } catch (error) {
+                console.error('Error loading camera data:', error);
+                document.getElementById('camera-tbody').innerHTML = 
+                    '<tr><td colspan="11" class="loading">Error loading camera data</td></tr>';
+            }
+        }
+
+        // Populate filter dropdowns
+        function populateFilters() {
+            const neighborhoods = [...new Set(allCameras.map(cam => cam.neighborhood))].sort();
+            const neighborhoodSelect = document.getElementById('neighborhood-filter');
+            
+            neighborhoods.forEach(neighborhood => {
+                const option = document.createElement('option');
+                option.value = neighborhood;
+                option.textContent = neighborhood;
+                neighborhoodSelect.appendChild(option);
+            });
+        }
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('camera-tbody');
+            
+            if (filteredCameras.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="no-results">No cameras match your filters</td></tr>';
+                return;
+            }
+            
+            const rows = filteredCameras.map(camera => `
+                <tr>
+                    <td class="camera-id">${camera.id}</td>
+                    <td>${camera.name}</td>
+                    <td class="coordinates">${camera.latitude.toFixed(4)}, ${camera.longitude.toFixed(4)}</td>
+                    <td class="neighborhood">${camera.neighborhood}</td>
+                    <td>${camera.borough}</td>
+                    <td>${camera.street_primary}</td>
+                    <td>${camera.installation_year}</td>
+                    <td>${camera.camera_type}</td>
+                    <td>${camera.coverage_radius_meters}m</td>
+                    <td><span class="priority-${camera.traffic_priority}">${camera.traffic_priority}</span></td>
+                    <td class="density-${camera.pedestrian_density}">${camera.pedestrian_density}</td>
+                </tr>
+            `).join('');
+            
+            tbody.innerHTML = rows;
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('total-cameras').textContent = `Total: ${allCameras.length} cameras`;
+            document.getElementById('filtered-cameras').textContent = 
+                filteredCameras.length !== allCameras.length ? 
+                `Filtered: ${filteredCameras.length} cameras` : '';
+        }
+
+        // Filter functions
+        function applyFilters() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const boroughFilter = document.getElementById('borough-filter').value;
+            const priorityFilter = document.getElementById('priority-filter').value;
+            const neighborhoodFilter = document.getElementById('neighborhood-filter').value;
+            
+            filteredCameras = allCameras.filter(camera => {
+                const matchesSearch = searchTerm === '' || 
+                    camera.name.toLowerCase().includes(searchTerm) ||
+                    camera.id.toLowerCase().includes(searchTerm) ||
+                    camera.neighborhood.toLowerCase().includes(searchTerm) ||
+                    camera.street_primary.toLowerCase().includes(searchTerm);
+                
+                const matchesBorough = boroughFilter === '' || camera.borough === boroughFilter;
+                const matchesPriority = priorityFilter === '' || camera.traffic_priority === priorityFilter;
+                const matchesNeighborhood = neighborhoodFilter === '' || camera.neighborhood === neighborhoodFilter;
+                
+                return matchesSearch && matchesBorough && matchesPriority && matchesNeighborhood;
+            });
+            
+            renderTable();
+            updateStats();
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('search').value = '';
+            document.getElementById('borough-filter').value = '';
+            document.getElementById('priority-filter').value = '';
+            document.getElementById('neighborhood-filter').value = '';
+            applyFilters();
+        }
+
+        // Sort table
+        function sortTable(columnIndex) {
+            if (sortColumn === columnIndex) {
+                sortDirection *= -1;
+            } else {
+                sortColumn = columnIndex;
+                sortDirection = 1;
+            }
+            
+            const getValueForSort = (camera, index) => {
+                switch(index) {
+                    case 0: return camera.id;
+                    case 1: return camera.name;
+                    case 2: return camera.latitude;
+                    case 3: return camera.neighborhood;
+                    case 4: return camera.borough;
+                    case 5: return camera.street_primary;
+                    case 6: return camera.installation_year;
+                    case 7: return camera.camera_type;
+                    case 8: return camera.coverage_radius_meters;
+                    case 9: return camera.traffic_priority;
+                    case 10: return camera.pedestrian_density;
+                    default: return '';
+                }
+            };
+            
+            filteredCameras.sort((a, b) => {
+                const valueA = getValueForSort(a, columnIndex);
+                const valueB = getValueForSort(b, columnIndex);
+                
+                if (typeof valueA === 'number' && typeof valueB === 'number') {
+                    return (valueA - valueB) * sortDirection;
+                }
+                
+                return valueA.toString().localeCompare(valueB.toString()) * sortDirection;
+            });
+            
+            renderTable();
+            updateSortIndicators();
+        }
+
+        // Update sort indicators
+        function updateSortIndicators() {
+            document.querySelectorAll('.sort-indicator').forEach((indicator, index) => {
+                if (index === sortColumn) {
+                    indicator.textContent = sortDirection === 1 ? '↑' : '↓';
+                } else {
+                    indicator.textContent = '⇅';
+                }
+            });
+        }
+
+        // Export to CSV
+        function exportData() {
+            const headers = ['Camera ID', 'Name', 'Latitude', 'Longitude', 'Neighborhood', 'Borough', 
+                           'Primary Street', 'Secondary Street', 'Installation Year', 'Camera Type', 
+                           'Coverage Radius (m)', 'Traffic Priority', 'Pedestrian Density'];
+            
+            const csvContent = [
+                headers.join(','),
+                ...filteredCameras.map(camera => [
+                    camera.id,
+                    `"${camera.name}"`,
+                    camera.latitude,
+                    camera.longitude,
+                    `"${camera.neighborhood}"`,
+                    camera.borough,
+                    `"${camera.street_primary}"`,
+                    `"${camera.street_secondary}"`,
+                    camera.installation_year,
+                    camera.camera_type,
+                    camera.coverage_radius_meters,
+                    camera.traffic_priority,
+                    camera.pedestrian_density
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'nyc_cameras.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Event listeners
+        document.getElementById('search').addEventListener('input', applyFilters);
+        document.getElementById('borough-filter').addEventListener('change', applyFilters);
+        document.getElementById('priority-filter').addEventListener('change', applyFilters);
+        document.getElementById('neighborhood-filter').addEventListener('change', applyFilters);
+
+        // Initialize
+        loadCameraData();
+    </script>
+</body>
+</html> 

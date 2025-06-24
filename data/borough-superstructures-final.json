@@ -1,0 +1,1617 @@
+{
+  "Manhattan": {
+    "borough": "Manhattan",
+    "total_zones": 340,
+    "total_area_km2": 87.09636423129254,
+    "bounding_box": {
+      "north": 40.871794874620086,
+      "south": 40.69986530668639,
+      "east": -73.90515699277653,
+      "west": -74.01876997863985,
+      "width_km": 9.577672016286071,
+      "height_km": 19.11769569441791
+    },
+    "border_zones": {
+      "count": 7,
+      "cameras": [
+        {
+          "handle": "MNWSHBE-",
+          "integer_id": 401,
+          "name": "West Side HWY BPU Entrance -148.54",
+          "coordinates": [
+            40.7051851,
+            -74.0166288
+          ]
+        },
+        {
+          "handle": "MN2CSBB",
+          "integer_id": 198,
+          "name": "2nd Camera South Bound BPU-148.57",
+          "coordinates": [
+            40.704515,
+            -74.016696
+          ]
+        },
+        {
+          "handle": "MNWSABP",
+          "integer_id": 474,
+          "name": "West st and Battery place",
+          "coordinates": [
+            40.704944,
+            -74.017341
+          ]
+        },
+        {
+          "handle": "MN1CNBB-",
+          "integer_id": 385,
+          "name": "1st camera North Bound BPU -148.51",
+          "coordinates": [
+            40.701349,
+            -74.012679
+          ]
+        },
+        {
+          "handle": "MNSSBS",
+          "integer_id": 175,
+          "name": "South St @ Broad St",
+          "coordinates": [
+            40.701797,
+            -74.011144
+          ]
+        },
+        {
+          "handle": "MNFDBE",
+          "integer_id": 333,
+          "name": "FDR Dr @ BPU Entrance",
+          "coordinates": [
+            40.701797,
+            -74.010764
+          ]
+        },
+        {
+          "handle": "MN207S9A",
+          "integer_id": 166,
+          "name": "207 ST @ 9 Ave",
+          "coordinates": [
+            40.862836,
+            -73.917003
+          ]
+        }
+      ]
+    },
+    "density_analysis": {
+      "area_distribution": {
+        "min_m2": 3704,
+        "max_m2": 5079258,
+        "median_m2": 146303,
+        "q1_m2": 58206,
+        "q3_m2": 301907
+      },
+      "reach_distribution": {
+        "min_m": 32,
+        "max_m": 1168,
+        "median_m": 198,
+        "avg_m": 223
+      }
+    },
+    "coverage_metrics": {
+      "avg_zone_area_m2": 256166,
+      "smallest_zone": {
+        "integer_id": 718,
+        "handle": "MNB4S",
+        "nyc_id": "76faba94-f9e5-42d7-981e-0cbbbfd4bc21",
+        "name": "Broadway @ 46 Street",
+        "borough": "Manhattan",
+        "coordinates": [
+          40.758711,
+          -73.985366
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/76faba94-f9e5-42d7-981e-0cbbbfd4bc21/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -73.985366,
+                40.758994729392064
+              ],
+              [
+                -73.98510113392297,
+                40.75891162697715
+              ],
+              [
+                -73.98499142280166,
+                40.758711
+              ],
+              [
+                -73.98510113392297,
+                40.758510373022844
+              ],
+              [
+                -73.985366,
+                40.75842727060793
+              ],
+              [
+                -73.98563086607703,
+                40.758510373022844
+              ],
+              [
+                -73.98574057719834,
+                40.758711
+              ],
+              [
+                -73.98563086607703,
+                40.75891162697715
+              ],
+              [
+                -73.985366,
+                40.758994729392064
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 3703.7069424193296,
+        "nearest_neighbors": [
+          {
+            "integer_id": 917,
+            "handle": "MNB4SQN",
+            "distance_m": 1
+          },
+          {
+            "integer_id": 779,
+            "handle": "MNB4SQE",
+            "distance_m": 2
+          },
+          {
+            "integer_id": 183,
+            "handle": "MNB4SQS",
+            "distance_m": 2
+          }
+        ],
+        "bounding_box": {
+          "north": 40.758994729392064,
+          "south": 40.75842727060793,
+          "east": -73.98499142280166,
+          "west": -73.98574057719834,
+          "width_degrees": 0.0007491543966864356,
+          "height_degrees": 0.0005674587841326684,
+          "center": [
+            -73.985366,
+            40.758711
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 32,
+          "south_reach_m": 32,
+          "east_reach_m": 32,
+          "west_reach_m": 32,
+          "max_reach_m": 32,
+          "total_span_m": {
+            "north_south": 63,
+            "east_west": 63
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 193,
+          "is_border_zone": false,
+          "density_rank": 1,
+          "last_updated": "2025-06-24T02:55:50.586Z"
+        }
+      },
+      "largest_zone": {
+        "integer_id": 564,
+        "handle": "MNQUETA",
+        "nyc_id": "b963b25c-9fcf-4a12-b502-c57468510315",
+        "name": "QBB UL Entrance @ Thomson Ave",
+        "borough": "Manhattan",
+        "coordinates": [
+          40.745235,
+          -73.9377
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/b963b25c-9fcf-4a12-b502-c57468510315/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -73.9377,
+                40.755743244500145
+              ],
+              [
+                -73.92789236804889,
+                40.75266545094442
+              ],
+              [
+                -73.92382991387997,
+                40.745235
+              ],
+              [
+                -73.92789236804889,
+                40.73780454905558
+              ],
+              [
+                -73.9377,
+                40.73472675549986
+              ],
+              [
+                -73.94750763195113,
+                40.73780454905558
+              ],
+              [
+                -73.95157008612004,
+                40.745235
+              ],
+              [
+                -73.94750763195113,
+                40.75266545094442
+              ],
+              [
+                -73.9377,
+                40.755743244500145
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 5079258.053420102,
+        "nearest_neighbors": [
+          {
+            "integer_id": 553,
+            "handle": "MNQSWC",
+            "distance_m": 2157
+          },
+          {
+            "integer_id": 523,
+            "handle": "MNSP5S",
+            "distance_m": 2304
+          },
+          {
+            "integer_id": 604,
+            "handle": "MNFE5S",
+            "distance_m": 2318
+          }
+        ],
+        "bounding_box": {
+          "north": 40.755743244500145,
+          "south": 40.73472675549986,
+          "east": -73.92382991387997,
+          "west": -73.95157008612004,
+          "width_degrees": 0.027740172240072525,
+          "height_degrees": 0.02101648900028863,
+          "center": [
+            -73.9377,
+            40.745235
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 1168,
+          "south_reach_m": 1168,
+          "east_reach_m": 1168,
+          "west_reach_m": 1168,
+          "max_reach_m": 1168,
+          "total_span_m": {
+            "north_south": 2337,
+            "east_west": 2337
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 7154,
+          "is_border_zone": false,
+          "density_rank": 903,
+          "last_updated": "2025-06-24T02:55:50.586Z"
+        }
+      },
+      "avg_reach_m": 223
+    },
+    "zone_composition": {
+      "high_density": 31,
+      "medium_density": 151,
+      "low_density": 158
+    },
+    "assembly_metadata": {
+      "generated_at": "2025-06-24T02:57:10.070Z",
+      "source_zones": 340,
+      "tessellation_complete": true,
+      "boundary_continuity": {
+        "neighbor_connections": 1020,
+        "expected_connections": 1020,
+        "continuity_score": 1,
+        "is_continuous": true
+      }
+    },
+    "street_boundaries": {
+      "northernmost_area": "Grand Concourse & Bedford Park Blvd",
+      "southernmost_area": "C2-BQE-19-WB_at_Kent_Ave",
+      "easternmost_area": "Major Deegan Expwy & 225 St",
+      "westernmost_area": "Belt Pkwy & Bay 8th St",
+      "boundary_cameras": {
+        "north": {
+          "handle": "MN207S9A",
+          "name": "207 ST @ 9 Ave"
+        },
+        "south": {
+          "handle": "MN1CNBB-",
+          "name": "1st camera North Bound BPU -148.51"
+        },
+        "east": {
+          "handle": "MN207S9A",
+          "name": "207 ST @ 9 Ave"
+        },
+        "west": {
+          "handle": "MNWSABP",
+          "name": "West st and Battery place"
+        }
+      }
+    }
+  },
+  "Brooklyn": {
+    "borough": "Brooklyn",
+    "total_zones": 212,
+    "total_area_km2": 249.7401011713546,
+    "bounding_box": {
+      "north": 40.74078609108113,
+      "south": 40.56705001226961,
+      "east": -73.8011910923329,
+      "west": -74.04421348549204,
+      "width_km": 20.527783528872295,
+      "height_km": 19.318570538959733
+    },
+    "border_zones": {
+      "count": 4,
+      "cameras": [
+        {
+          "handle": "BKBP6S",
+          "integer_id": 643,
+          "name": "Belt Pkwy @ 68 St",
+          "coordinates": [
+            40.639889,
+            -74.036124
+          ]
+        },
+        {
+          "handle": "BKMBGS",
+          "integer_id": 88,
+          "name": "McGuinness Blvd @ Green St",
+          "coordinates": [
+            40.734007,
+            -73.952283
+          ]
+        },
+        {
+          "handle": "BKOPSASB",
+          "integer_id": 753,
+          "name": "Ocean Pkwy @ Surf Av @ Sea Breeze Ave",
+          "coordinates": [
+            40.575219,
+            -73.968764
+          ]
+        },
+        {
+          "handle": "BKAA1S",
+          "integer_id": 8,
+          "name": "Atlantic Ave @ 111 St",
+          "coordinates": [
+            40.692157,
+            -73.834927
+          ]
+        }
+      ]
+    },
+    "density_analysis": {
+      "area_distribution": {
+        "min_m2": 5826,
+        "max_m2": 30072743,
+        "median_m2": 238603,
+        "q1_m2": 86329,
+        "q3_m2": 1027728
+      },
+      "reach_distribution": {
+        "min_m": 40,
+        "max_m": 2844,
+        "median_m": 253,
+        "avg_m": 408
+      }
+    },
+    "coverage_metrics": {
+      "avg_zone_area_m2": 1178019,
+      "smallest_zone": {
+        "integer_id": 122,
+        "handle": "BKBNRBTE",
+        "nyc_id": "83404149-7deb-43ee-81b5-66fe804c0feb",
+        "name": "BB-63 North Rdwy@ Bklyn Twr East",
+        "borough": "Brooklyn",
+        "coordinates": [
+          40.703912,
+          -73.994062
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/83404149-7deb-43ee-81b5-66fe804c0feb/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -73.994062,
+                40.704267997151675
+              ],
+              [
+                -73.99372994435646,
+                40.70416372800003
+              ],
+              [
+                -73.99359240240544,
+                40.703912
+              ],
+              [
+                -73.99372994435646,
+                40.70366027199997
+              ],
+              [
+                -73.994062,
+                40.70355600284833
+              ],
+              [
+                -73.99439405564354,
+                40.70366027199997
+              ],
+              [
+                -73.99453159759456,
+                40.703912
+              ],
+              [
+                -73.99439405564354,
+                40.70416372800003
+              ],
+              [
+                -73.994062,
+                40.704267997151675
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 5825.904186675848,
+        "nearest_neighbors": [
+          {
+            "integer_id": 321,
+            "handle": "BKBSRBTS",
+            "distance_m": 13
+          },
+          {
+            "integer_id": 242,
+            "handle": "BKBNEBT",
+            "distance_m": 30
+          },
+          {
+            "integer_id": 594,
+            "handle": "BKBBT-NR",
+            "distance_m": 34
+          }
+        ],
+        "bounding_box": {
+          "north": 40.704267997151675,
+          "south": 40.70355600284833,
+          "east": -73.99359240240544,
+          "west": -73.99453159759456,
+          "width_degrees": 0.000939195189118891,
+          "height_degrees": 0.0007119943033444542,
+          "center": [
+            -73.994062,
+            40.703912
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 40,
+          "south_reach_m": 40,
+          "east_reach_m": 40,
+          "west_reach_m": 40,
+          "max_reach_m": 40,
+          "total_span_m": {
+            "north_south": 79,
+            "east_west": 79
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 242,
+          "is_border_zone": false,
+          "density_rank": 11,
+          "last_updated": "2025-06-24T02:55:50.586Z"
+        }
+      },
+      "largest_zone": {
+        "integer_id": 8,
+        "handle": "BKAA1S",
+        "nyc_id": "0039e6bf-5244-4b4e-b7dc-d02056bbfdc9",
+        "name": "Atlantic Ave @ 111 St",
+        "borough": "Brooklyn",
+        "coordinates": [
+          40.692157,
+          -73.834927
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/0039e6bf-5244-4b4e-b7dc-d02056bbfdc9/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -73.834927,
+                40.71773636110252
+              ],
+              [
+                -73.81107211091911,
+                40.71024433969401
+              ],
+              [
+                -73.8011910923329,
+                40.692157
+              ],
+              [
+                -73.81107211091911,
+                40.674069660305996
+              ],
+              [
+                -73.834927,
+                40.666577638897486
+              ],
+              [
+                -73.85878188908087,
+                40.674069660305996
+              ],
+              [
+                -73.86866290766709,
+                40.692157
+              ],
+              [
+                -73.85878188908087,
+                40.71024433969401
+              ],
+              [
+                -73.834927,
+                40.71773636110252
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 30072743.032560855,
+        "nearest_neighbors": [
+          {
+            "integer_id": 692,
+            "handle": "BKAAHP(S",
+            "distance_m": 4119
+          },
+          {
+            "integer_id": 582,
+            "handle": "BKBPE",
+            "distance_m": 5272
+          },
+          {
+            "integer_id": 320,
+            "handle": "BKJRPJA",
+            "distance_m": 5520
+          }
+        ],
+        "bounding_box": {
+          "north": 40.71773636110252,
+          "south": 40.666577638897486,
+          "east": -73.8011910923329,
+          "west": -73.86866290766709,
+          "width_degrees": 0.06747181533418711,
+          "height_degrees": 0.051158722205030926,
+          "center": [
+            -73.834927,
+            40.692157
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 2844,
+          "south_reach_m": 2844,
+          "east_reach_m": 2844,
+          "west_reach_m": 2844,
+          "max_reach_m": 2844,
+          "total_span_m": {
+            "north_south": 5689,
+            "east_west": 5689
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 17415,
+          "is_border_zone": false,
+          "density_rank": 936,
+          "last_updated": "2025-06-24T02:55:50.586Z"
+        }
+      },
+      "avg_reach_m": 408
+    },
+    "zone_composition": {
+      "high_density": 24,
+      "medium_density": 29,
+      "low_density": 159
+    },
+    "assembly_metadata": {
+      "generated_at": "2025-06-24T02:57:10.071Z",
+      "source_zones": 212,
+      "tessellation_complete": true,
+      "boundary_continuity": {
+        "neighbor_connections": 636,
+        "expected_connections": 636,
+        "continuity_score": 1,
+        "is_continuous": true
+      }
+    },
+    "street_boundaries": {
+      "northernmost_area": "5 Ave & 23 St",
+      "southernmost_area": "Unknown",
+      "easternmost_area": "Rockaway Blvd & Van Wyck Expy W S/R",
+      "westernmost_area": "Unknown",
+      "boundary_cameras": {
+        "north": {
+          "handle": "BKMBGS",
+          "name": "McGuinness Blvd @ Green St"
+        },
+        "south": {
+          "handle": "BKOPSASB",
+          "name": "Ocean Pkwy @ Surf Av @ Sea Breeze Ave"
+        },
+        "east": {
+          "handle": "BKAA1S",
+          "name": "Atlantic Ave @ 111 St"
+        },
+        "west": {
+          "handle": "BKBP6S",
+          "name": "Belt Pkwy @ 68 St"
+        }
+      }
+    }
+  },
+  "Queens": {
+    "borough": "Queens",
+    "total_zones": 212,
+    "total_area_km2": 1137.2932022195016,
+    "bounding_box": {
+      "north": 40.863641013347156,
+      "south": 40.43768514988959,
+      "east": -73.70065186405377,
+      "west": -74.332516565757,
+      "width_km": 53.475718446905695,
+      "height_km": 47.36413099098382
+    },
+    "border_zones": {
+      "count": 3,
+      "cameras": [
+        {
+          "handle": "QNHALNP",
+          "integer_id": 5,
+          "name": "Hillside Ave @ Little Neck Pkwy",
+          "coordinates": [
+            40.736207,
+            -73.713777
+          ]
+        },
+        {
+          "handle": "QNHRPWA",
+          "integer_id": 9,
+          "name": "Hutchhinson River Pkwy @ Waterbury Ave",
+          "coordinates": [
+            40.83536,
+            -73.83849
+          ]
+        },
+        {
+          "handle": "QNRAAKR-",
+          "integer_id": 749,
+          "name": "Richmond Ave @ Arthur Kill Rd - quad - ptz - 141.131",
+          "coordinates": [
+            40.56106,
+            -74.17012
+          ]
+        }
+      ]
+    },
+    "density_analysis": {
+      "area_distribution": {
+        "min_m2": 43042,
+        "max_m2": 698223449,
+        "median_m2": 1126900,
+        "q1_m2": 594636,
+        "q3_m2": 1970616
+      },
+      "reach_distribution": {
+        "min_m": 108,
+        "max_m": 13719,
+        "median_m": 551,
+        "avg_m": 691
+      }
+    },
+    "coverage_metrics": {
+      "avg_zone_area_m2": 5364591,
+      "smallest_zone": {
+        "integer_id": 94,
+        "handle": "QNQPN2(",
+        "nyc_id": "76ce9adc-f73d-46b7-9ca7-fe6d7521b603",
+        "name": "Queens Plaza North @ 2811 (Westside)",
+        "borough": "Queens",
+        "coordinates": [
+          40.750267,
+          -73.938607
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/76ce9adc-f73d-46b7-9ca7-fe6d7521b603/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -73.938607,
+                40.7512342975844
+              ],
+              [
+                -73.9377041263959,
+                40.75095098268136
+              ],
+              [
+                -73.93733014390396,
+                40.750267
+              ],
+              [
+                -73.9377041263959,
+                40.74958301731864
+              ],
+              [
+                -73.938607,
+                40.7492997024156
+              ],
+              [
+                -73.93950987360411,
+                40.74958301731864
+              ],
+              [
+                -73.93988385609605,
+                40.750267
+              ],
+              [
+                -73.93950987360411,
+                40.75095098268136
+              ],
+              [
+                -73.938607,
+                40.7512342975844
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 43042.05603517955,
+        "nearest_neighbors": [
+          {
+            "integer_id": 24,
+            "handle": "QNQPNNB",
+            "distance_m": 87
+          },
+          {
+            "integer_id": 715,
+            "handle": "QNQPS2S",
+            "distance_m": 105
+          },
+          {
+            "integer_id": 533,
+            "handle": "QNQBJA",
+            "distance_m": 180
+          }
+        ],
+        "bounding_box": {
+          "north": 40.7512342975844,
+          "south": 40.7492997024156,
+          "east": -73.93733014390396,
+          "west": -73.93988385609605,
+          "width_degrees": 0.0025537121920820027,
+          "height_degrees": 0.001934595168805231,
+          "center": [
+            -73.938607,
+            40.750267
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 108,
+          "south_reach_m": 108,
+          "east_reach_m": 108,
+          "west_reach_m": 108,
+          "max_reach_m": 108,
+          "total_span_m": {
+            "north_south": 215,
+            "east_west": 215
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 659,
+          "is_border_zone": false,
+          "density_rank": 104,
+          "last_updated": "2025-06-24T02:55:50.587Z"
+        }
+      },
+      "largest_zone": {
+        "integer_id": 749,
+        "handle": "QNRAAKR-",
+        "nyc_id": "7980448b-0d57-49ad-8b87-50174e5d3065",
+        "name": "Richmond Ave @ Arthur Kill Rd - quad - ptz - 141.131",
+        "borough": "Queens",
+        "coordinates": [
+          40.56106,
+          -74.17012
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/7980448b-0d57-49ad-8b87-50174e5d3065/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -74.17012,
+                40.68443485011041
+              ],
+              [
+                -74.05528828711182,
+                40.64829919314094
+              ],
+              [
+                -74.00772343424299,
+                40.56106
+              ],
+              [
+                -74.05528828711182,
+                40.47382080685905
+              ],
+              [
+                -74.17012,
+                40.43768514988959
+              ],
+              [
+                -74.28495171288817,
+                40.47382080685905
+              ],
+              [
+                -74.332516565757,
+                40.56106
+              ],
+              [
+                -74.28495171288817,
+                40.64829919314094
+              ],
+              [
+                -74.17012,
+                40.68443485011041
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 698223448.9933575,
+        "nearest_neighbors": [
+          {
+            "integer_id": 349,
+            "handle": "QNBCDB1S",
+            "distance_m": 26280
+          },
+          {
+            "integer_id": 30,
+            "handle": "QNLIEQPB",
+            "distance_m": 27286
+          },
+          {
+            "integer_id": 746,
+            "handle": "QNJA1S",
+            "distance_m": 27400
+          }
+        ],
+        "bounding_box": {
+          "north": 40.68443485011041,
+          "south": 40.43768514988959,
+          "east": -74.00772343424299,
+          "west": -74.332516565757,
+          "width_degrees": 0.32479313151401357,
+          "height_degrees": 0.24674970022081766,
+          "center": [
+            -74.17012,
+            40.56106
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 13719,
+          "south_reach_m": 13719,
+          "east_reach_m": 13719,
+          "west_reach_m": 13719,
+          "max_reach_m": 13719,
+          "total_span_m": {
+            "north_south": 27437,
+            "east_west": 27437
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 83998,
+          "is_border_zone": true,
+          "density_rank": 940,
+          "last_updated": "2025-06-24T02:55:50.587Z"
+        }
+      },
+      "avg_reach_m": 691
+    },
+    "zone_composition": {
+      "high_density": 0,
+      "medium_density": 6,
+      "low_density": 206
+    },
+    "assembly_metadata": {
+      "generated_at": "2025-06-24T02:57:10.072Z",
+      "source_zones": 212,
+      "tessellation_complete": true,
+      "boundary_continuity": {
+        "neighbor_connections": 636,
+        "expected_connections": 636,
+        "continuity_score": 1,
+        "is_continuous": true
+      }
+    },
+    "street_boundaries": {
+      "northernmost_area": "Pelham Shore Rd & City Island Rd",
+      "southernmost_area": "Unknown",
+      "easternmost_area": "Unknown",
+      "westernmost_area": "Unknown",
+      "boundary_cameras": {
+        "north": {
+          "handle": "QNHRPWA",
+          "name": "Hutchhinson River Pkwy @ Waterbury Ave"
+        },
+        "south": {
+          "handle": "QNRAAKR-",
+          "name": "Richmond Ave @ Arthur Kill Rd - quad - ptz - 141.131"
+        },
+        "east": {
+          "handle": "QNHALNP",
+          "name": "Hillside Ave @ Little Neck Pkwy"
+        },
+        "west": {
+          "handle": "QNRAAKR-",
+          "name": "Richmond Ave @ Arthur Kill Rd - quad - ptz - 141.131"
+        }
+      }
+    }
+  },
+  "Staten Island": {
+    "borough": "Staten Island",
+    "total_zones": 98,
+    "total_area_km2": 180.8902977199989,
+    "bounding_box": {
+      "north": 40.656050135086836,
+      "south": 40.496700672856534,
+      "east": -74.05573070380237,
+      "west": -74.24450393456809,
+      "width_km": 15.962178821996282,
+      "height_km": 17.71885176354839
+    },
+    "border_zones": {
+      "count": 3,
+      "cameras": [
+        {
+          "handle": "SISRBS",
+          "integer_id": 896,
+          "name": "School Rd @ Bay St",
+          "coordinates": [
+            40.607106,
+            -74.060997
+          ]
+        },
+        {
+          "handle": "SIHAPA",
+          "integer_id": 73,
+          "name": "Hylan Ave @ Page Ave",
+          "coordinates": [
+            40.507726,
+            -74.230003
+          ]
+        },
+        {
+          "handle": "SIBSRT",
+          "integer_id": 705,
+          "name": "Bay St @ Richmond Terr.",
+          "coordinates": [
+            40.642219,
+            -74.075142
+          ]
+        }
+      ]
+    },
+    "density_analysis": {
+      "area_distribution": {
+        "min_m2": 189490,
+        "max_m2": 8785856,
+        "median_m2": 1439132,
+        "q1_m2": 689395,
+        "q3_m2": 2329397
+      },
+      "reach_distribution": {
+        "min_m": 226,
+        "max_m": 1538,
+        "median_m": 623,
+        "avg_m": 642
+      }
+    },
+    "coverage_metrics": {
+      "avg_zone_area_m2": 1845819,
+      "smallest_zone": {
+        "integer_id": 324,
+        "handle": "SIC",
+        "nyc_id": "261853c1-91c6-4007-9d52-ed530d1a826a",
+        "name": "C3-SIE-15-EB_at_Fingerboard_Rd_Ex15",
+        "borough": "Staten Island",
+        "coordinates": [
+          40.603743,
+          -74.069126
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/261853c1-91c6-4007-9d52-ed530d1a826a/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -74.069126,
+                40.60577481551245
+              ],
+              [
+                -74.06723367117655,
+                40.60517971052697
+              ],
+              [
+                -74.06644984291341,
+                40.603743
+              ],
+              [
+                -74.06723367117655,
+                40.602306289473034
+              ],
+              [
+                -74.069126,
+                40.601711184487556
+              ],
+              [
+                -74.07101832882344,
+                40.602306289473034
+              ],
+              [
+                -74.07180215708658,
+                40.603743
+              ],
+              [
+                -74.07101832882344,
+                40.60517971052697
+              ],
+              [
+                -74.069126,
+                40.60577481551245
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 189490.23095608712,
+        "nearest_neighbors": [
+          {
+            "integer_id": 693,
+            "handle": "SIC",
+            "distance_m": 0
+          },
+          {
+            "integer_id": 218,
+            "handle": "SINRSFR",
+            "distance_m": 22
+          },
+          {
+            "integer_id": 176,
+            "handle": "SILPASR",
+            "distance_m": 319
+          }
+        ],
+        "bounding_box": {
+          "north": 40.60577481551245,
+          "south": 40.601711184487556,
+          "east": -74.06644984291341,
+          "west": -74.07180215708658,
+          "width_degrees": 0.005352314173165951,
+          "height_degrees": 0.004063631024891379,
+          "center": [
+            -74.069126,
+            40.603743
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 226,
+          "south_reach_m": 226,
+          "east_reach_m": 226,
+          "west_reach_m": 226,
+          "max_reach_m": 226,
+          "total_span_m": {
+            "north_south": 452,
+            "east_west": 452
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 1383,
+          "is_border_zone": false,
+          "density_rank": 301,
+          "last_updated": "2025-06-24T02:55:50.588Z"
+        }
+      },
+      "largest_zone": {
+        "integer_id": 705,
+        "handle": "SIBSRT",
+        "nyc_id": "d125f801-5576-4e42-874c-a643a86019c0",
+        "name": "Bay St @ Richmond Terr.",
+        "borough": "Staten Island",
+        "coordinates": [
+          40.642219,
+          -74.075142
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/d125f801-5576-4e42-874c-a643a86019c0/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -74.075142,
+                40.656050135086836
+              ],
+              [
+                -74.06225296725363,
+                40.65199908941141
+              ],
+              [
+                -74.05691415508421,
+                40.642219
+              ],
+              [
+                -74.06225296725363,
+                40.63243891058858
+              ],
+              [
+                -74.075142,
+                40.62838786491316
+              ],
+              [
+                -74.08803103274637,
+                40.63243891058858
+              ],
+              [
+                -74.09336984491578,
+                40.642219
+              ],
+              [
+                -74.08803103274637,
+                40.65199908941141
+              ],
+              [
+                -74.075142,
+                40.656050135086836
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 8785856.36629856,
+        "nearest_neighbors": [
+          {
+            "integer_id": 593,
+            "handle": "SIVBBS",
+            "distance_m": 503
+          },
+          {
+            "integer_id": 713,
+            "handle": "SIVBJS",
+            "distance_m": 1025
+          },
+          {
+            "integer_id": 759,
+            "handle": "SIHBBS",
+            "distance_m": 3222
+          }
+        ],
+        "bounding_box": {
+          "north": 40.656050135086836,
+          "south": 40.62838786491316,
+          "east": -74.05691415508421,
+          "west": -74.09336984491578,
+          "width_degrees": 0.03645568983156977,
+          "height_degrees": 0.027662270173678394,
+          "center": [
+            -74.075142,
+            40.642219
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 1538,
+          "south_reach_m": 1538,
+          "east_reach_m": 1538,
+          "west_reach_m": 1538,
+          "max_reach_m": 1538,
+          "total_span_m": {
+            "north_south": 3076,
+            "east_west": 3076
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 9417,
+          "is_border_zone": false,
+          "density_rank": 929,
+          "last_updated": "2025-06-24T02:55:50.588Z"
+        }
+      },
+      "avg_reach_m": 642
+    },
+    "zone_composition": {
+      "high_density": 0,
+      "medium_density": 0,
+      "low_density": 98
+    },
+    "assembly_metadata": {
+      "generated_at": "2025-06-24T02:57:10.072Z",
+      "source_zones": 98,
+      "tessellation_complete": true,
+      "boundary_continuity": {
+        "neighbor_connections": 294,
+        "expected_connections": 294,
+        "continuity_score": 1,
+        "is_continuous": true
+      }
+    },
+    "street_boundaries": {
+      "northernmost_area": "McDonald Ave & 10th Ave / 20th St",
+      "southernmost_area": "Unknown",
+      "easternmost_area": "Unknown",
+      "westernmost_area": "Unknown",
+      "boundary_cameras": {
+        "north": {
+          "handle": "SIBSRT",
+          "name": "Bay St @ Richmond Terr."
+        },
+        "south": {
+          "handle": "SIHAPA",
+          "name": "Hylan Ave @ Page Ave"
+        },
+        "east": {
+          "handle": "SISRBS",
+          "name": "School Rd @ Bay St"
+        },
+        "west": {
+          "handle": "SIHAPA",
+          "name": "Hylan Ave @ Page Ave"
+        }
+      }
+    }
+  },
+  "Bronx": {
+    "borough": "Bronx",
+    "total_zones": 78,
+    "total_area_km2": 311.44151396820206,
+    "bounding_box": {
+      "north": 40.918394837712256,
+      "south": 40.63953628200067,
+      "east": -73.79697796828239,
+      "west": -74.10056862844189,
+      "width_km": 25.616106248935022,
+      "height_km": 31.00765664655747
+    },
+    "border_zones": {
+      "count": 3,
+      "cameras": [
+        {
+          "handle": "BXC",
+          "integer_id": 432,
+          "name": "C1-CBX-18-Med_at_Pennyfield_Av-TNB",
+          "coordinates": [
+            40.819367,
+            -73.81055
+          ]
+        },
+        {
+          "handle": "BXBRPWA",
+          "integer_id": 237,
+          "name": "Bronx River Pkwy @ Wakefield Ave",
+          "coordinates": [
+            40.906302,
+            -73.856407
+          ]
+        },
+        {
+          "handle": "BX2CNBB-",
+          "integer_id": 280,
+          "name": "2nd Camera North Bound BPU -148.52",
+          "coordinates": [
+            40.7029534,
+            -74.016916
+          ]
+        }
+      ]
+    },
+    "density_analysis": {
+      "area_distribution": {
+        "min_m2": 457133,
+        "max_m2": 184874513,
+        "median_m2": 1242310,
+        "q1_m2": 701064,
+        "q3_m2": 1978022
+      },
+      "reach_distribution": {
+        "min_m": 350,
+        "max_m": 7052,
+        "median_m": 577,
+        "avg_m": 705
+      }
+    },
+    "coverage_metrics": {
+      "avg_zone_area_m2": 3992840,
+      "smallest_zone": {
+        "integer_id": 311,
+        "handle": "BXES3A",
+        "nyc_id": "c145d543-b5f5-4dec-9bb8-7866eafdf054",
+        "name": "Exterior St @ 3 Ave",
+        "borough": "Bronx",
+        "coordinates": [
+          40.809314,
+          -73.929538
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/c145d543-b5f5-4dec-9bb8-7866eafdf054/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -73.929538,
+                40.81246495113319
+              ],
+              [
+                -73.92659429302739,
+                40.81154205891346
+              ],
+              [
+                -73.92537496967569,
+                40.809314
+              ],
+              [
+                -73.92659429302739,
+                40.80708594108654
+              ],
+              [
+                -73.929538,
+                40.806163048866814
+              ],
+              [
+                -73.9324817069726,
+                40.80708594108654
+              ],
+              [
+                -73.9337010303243,
+                40.809314
+              ],
+              [
+                -73.9324817069726,
+                40.81154205891346
+              ],
+              [
+                -73.929538,
+                40.81246495113319
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 457132.59965021414,
+        "nearest_neighbors": [
+          {
+            "integer_id": 781,
+            "handle": "BXBBLA",
+            "distance_m": 182
+          },
+          {
+            "integer_id": 762,
+            "handle": "BXC",
+            "distance_m": 403
+          },
+          {
+            "integer_id": 684,
+            "handle": "BXE1SMD",
+            "distance_m": 508
+          }
+        ],
+        "bounding_box": {
+          "north": 40.81246495113319,
+          "south": 40.806163048866814,
+          "east": -73.92537496967569,
+          "west": -73.9337010303243,
+          "width_degrees": 0.00832606064861352,
+          "height_degrees": 0.0063019022663723945,
+          "center": [
+            -73.929538,
+            40.809314
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 350,
+          "south_reach_m": 350,
+          "east_reach_m": 350,
+          "west_reach_m": 350,
+          "max_reach_m": 350,
+          "total_span_m": {
+            "north_south": 701,
+            "east_west": 701
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 2145,
+          "is_border_zone": false,
+          "density_rank": 470,
+          "last_updated": "2025-06-24T02:55:50.588Z"
+        }
+      },
+      "largest_zone": {
+        "integer_id": 280,
+        "handle": "BX2CNBB-",
+        "nyc_id": "b6ce5739-ca1f-4a8d-bfd7-5979d6ff6dfc",
+        "name": "2nd Camera North Bound BPU -148.52",
+        "borough": "Bronx",
+        "coordinates": [
+          40.7029534,
+          -74.016916
+        ],
+        "image_url": "https://webcams.nyctmc.org/api/cameras/b6ce5739-ca1f-4a8d-bfd7-5979d6ff6dfc/image",
+        "is_online": true,
+        "last_analysis": null,
+        "voronoi_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -74.016916,
+                40.76637051799933
+              ],
+              [
+                -73.95776465916465,
+                40.747796074180634
+              ],
+              [
+                -73.9332633715581,
+                40.7029534
+              ],
+              [
+                -73.95776465916465,
+                40.65811072581936
+              ],
+              [
+                -74.016916,
+                40.63953628200067
+              ],
+              [
+                -74.07606734083534,
+                40.65811072581936
+              ],
+              [
+                -74.10056862844189,
+                40.7029534
+              ],
+              [
+                -74.07606734083534,
+                40.747796074180634
+              ],
+              [
+                -74.016916,
+                40.76637051799933
+              ]
+            ]
+          ]
+        },
+        "zone_area_sqm": 184874513.46459603,
+        "nearest_neighbors": [
+          {
+            "integer_id": 781,
+            "handle": "BXBBLA",
+            "distance_m": 13777
+          },
+          {
+            "integer_id": 311,
+            "handle": "BXES3A",
+            "distance_m": 13930
+          },
+          {
+            "integer_id": 836,
+            "handle": "BXC",
+            "distance_m": 13956
+          }
+        ],
+        "bounding_box": {
+          "north": 40.76637051799933,
+          "south": 40.63953628200067,
+          "east": -73.9332633715581,
+          "west": -74.10056862844189,
+          "width_degrees": 0.16730525688379316,
+          "height_degrees": 0.12683423599865762,
+          "center": [
+            -74.016916,
+            40.7029534
+          ]
+        },
+        "zone_reach": {
+          "north_reach_m": 7052,
+          "south_reach_m": 7052,
+          "east_reach_m": 7052,
+          "west_reach_m": 7052,
+          "max_reach_m": 7052,
+          "total_span_m": {
+            "north_south": 14103,
+            "east_west": 14103
+          }
+        },
+        "zone_metadata": {
+          "vertices_count": 8,
+          "perimeter_m": 43177,
+          "is_border_zone": false,
+          "density_rank": 939,
+          "last_updated": "2025-06-24T02:55:50.588Z"
+        }
+      },
+      "avg_reach_m": 705
+    },
+    "zone_composition": {
+      "high_density": 0,
+      "medium_density": 0,
+      "low_density": 78
+    },
+    "assembly_metadata": {
+      "generated_at": "2025-06-24T02:57:10.072Z",
+      "source_zones": 78,
+      "tessellation_complete": true,
+      "boundary_continuity": {
+        "neighbor_connections": 234,
+        "expected_connections": 234,
+        "continuity_score": 1,
+        "is_continuous": true
+      }
+    },
+    "street_boundaries": {
+      "northernmost_area": "Unknown",
+      "southernmost_area": "3 Ave & 65 St - Ent. EB BQE/Gowanus",
+      "easternmost_area": "Unknown",
+      "westernmost_area": "Unknown",
+      "boundary_cameras": {
+        "north": {
+          "handle": "BXBRPWA",
+          "name": "Bronx River Pkwy @ Wakefield Ave"
+        },
+        "south": {
+          "handle": "BX2CNBB-",
+          "name": "2nd Camera North Bound BPU -148.52"
+        },
+        "east": {
+          "handle": "BXC",
+          "name": "C1-CBX-18-Med_at_Pennyfield_Av-TNB"
+        },
+        "west": {
+          "handle": "BX2CNBB-",
+          "name": "2nd Camera North Bound BPU -148.52"
+        }
+      }
+    }
+  }
+}

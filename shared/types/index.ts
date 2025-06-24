@@ -164,3 +164,110 @@ export interface AgentMetrics {
   errorCount: number;
   configChanges: number;
 } 
+
+export interface CameraMetadata {
+  id: string;
+  name: string;
+  location: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+    intersection?: string;
+    neighborhood: string;
+    borough: string;
+  };
+  specifications: {
+    model?: string;
+    resolution?: string;
+    field_of_view?: number;
+    installation_date?: string;
+    last_maintenance?: string;
+  };
+  coverage: {
+    primary_streets: string[];
+    coverage_radius_meters: number;
+    viewing_angles: number[];
+  };
+  status: {
+    operational: boolean;
+    last_ping?: string;
+    uptime_percentage?: number;
+    issues?: string[];
+  };
+  analysis_history: {
+    total_analyses: number;
+    last_analysis?: string;
+    average_daily_analyses: number;
+    first_analysis?: string;
+  };
+}
+
+export interface VoronoiTerritory {
+  id: string;
+  camera_id: string;
+  geometry: {
+    type: 'Polygon';
+    coordinates: number[][][]; // GeoJSON polygon coordinates
+  };
+  properties: {
+    area_square_meters: number;
+    perimeter_meters: number;
+    center: [number, number]; // [longitude, latitude]
+    bounds: {
+      north: number;
+      south: number;
+      east: number;
+      west: number;
+    };
+  };
+  neighbors: {
+    camera_id: string;
+    shared_border_length: number;
+    direction: 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest';
+  }[];
+  risk_analysis: {
+    current_risk_score: number;
+    historical_average: number;
+    peak_risk_times: string[];
+    violation_density: number;
+  };
+  metadata: {
+    generated_at: string;
+    computation_method: string;
+    vertices_count: number;
+    is_border_territory: boolean;
+    water_adjacent: boolean;
+  };
+}
+
+export interface ManhattanCameraNetwork {
+  territories: { [territoryId: string]: VoronoiTerritory };
+  cameras: { [cameraId: string]: CameraMetadata };
+  network_metadata: {
+    total_cameras: number;
+    total_coverage_area: number;
+    generation_timestamp: string;
+    manhattan_bounds: {
+      north: number;
+      south: number;
+      east: number;
+      west: number;
+    };
+    tessellation_complete: boolean;
+  };
+}
+
+export interface TerritoryAnalysisResult {
+  territory_id: string;
+  camera_id: string;
+  analysis_timestamp: string;
+  violations_detected: any[]; // Using any[] temporarily for ViolationEvent
+  territory_risk_score: number;
+  neighboring_influence: {
+    camera_id: string;
+    influence_score: number;
+    shared_violations: number;
+  }[];
+  coverage_efficiency: number;
+  recommended_actions: string[];
+} 

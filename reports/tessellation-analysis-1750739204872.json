@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-06-24T04:26:44.866Z",
+  "scores": {
+    "geographic_accuracy": 85,
+    "water_exclusion": 100,
+    "bridge_handling": 100,
+    "coastline_precision": 80,
+    "overall_quality": 90
+  },
+  "total_score": 91,
+  "issues": [
+    "❌ Low coastline resolution may affect precision"
+  ],
+  "achievements": [
+    "✅ Perfect water exclusion - zero zones over water",
+    "✅ 18 bridge zones with special handling",
+    "✅ 18 zones with exact bridge shapes",
+    "✅ Reasonable total coverage area: 673.6 km²",
+    "✅ Good average zone size: 0.717 km²"
+  ],
+  "improvements": [
+    "📈 Very good! Apply minor refinements:",
+    "  • Increase coastline boundary point resolution"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "total_boroughs": 5,
+  "total_zones": 940,
+  "total_area_km2": 1966.4614793103497,
+  "by_borough": [
+    {
+      "name": "Manhattan",
+      "zones": 340,
+      "area_km2": 87,
+      "avg_zone_size_m2": 256166,
+      "border_zones": 7
+    },
+    {
+      "name": "Brooklyn",
+      "zones": 212,
+      "area_km2": 250,
+      "avg_zone_size_m2": 1178019,
+      "border_zones": 4
+    },
+    {
+      "name": "Queens",
+      "zones": 212,
+      "area_km2": 1137,
+      "avg_zone_size_m2": 5364591,
+      "border_zones": 3
+    },
+    {
+      "name": "Staten Island",
+      "zones": 98,
+      "area_km2": 181,
+      "avg_zone_size_m2": 1845819,
+      "border_zones": 3
+    },
+    {
+      "name": "Bronx",
+      "zones": 78,
+      "area_km2": 311,
+      "avg_zone_size_m2": 3992840,
+      "border_zones": 3
+    }
+  ],
+  "tessellation_complete": true,
+  "assembly_date": "2025-06-24T02:57:10.072Z"
+}

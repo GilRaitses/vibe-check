@@ -1,0 +1,32 @@
+{
+  "total_zones": 940,
+  "total_area_km2": 1966.4614793103497,
+  "by_borough": [
+    {
+      "name": "Manhattan",
+      "zone_count": 340,
+      "area_km2": 87.09636423129261
+    },
+    {
+      "name": "Brooklyn",
+      "zone_count": 212,
+      "area_km2": 249.74010117135458
+    },
+    {
+      "name": "Queens",
+      "zone_count": 212,
+      "area_km2": 1137.2932022195016
+    },
+    {
+      "name": "Bronx",
+      "zone_count": 78,
+      "area_km2": 311.441513968202
+    },
+    {
+      "name": "Staten Island",
+      "zone_count": 98,
+      "area_km2": 180.89029771999893
+    }
+  ],
+  "generated_at": "2025-06-24T02:52:02.176Z"
+}

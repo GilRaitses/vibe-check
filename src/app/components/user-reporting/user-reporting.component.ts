@@ -19,7 +19,7 @@ import { FormsModule } from '@angular/forms';
               <input type="number" [(ngModel)]="report.latitude" name="latitude" 
                      placeholder="40.7128" step="any">
             </div>
-            <div class="form-group">
+        <div class="form-group">
               <label>Longitude:</label>
               <input type="number" [(ngModel)]="report.longitude" name="longitude" 
                      placeholder="-74.0060" step="any">
@@ -29,10 +29,10 @@ import { FormsModule } from '@angular/forms';
             📍 Get Current Location
           </button>
         </div>
-        
+
         <div class="form-section">
           <h3>⚠️ Issue Details</h3>
-          <div class="form-group">
+        <div class="form-group">
             <label>Issue Type:</label>
             <select [(ngModel)]="report.issueType" name="issueType">
               <option value="">Select issue type</option>
@@ -59,16 +59,16 @@ import { FormsModule } from '@angular/forms';
                 <input type="radio" [(ngModel)]="report.severity" name="severity" value="high">
                 <span class="severity-high">🔴 High</span>
               </label>
-            </div>
           </div>
-          
-          <div class="form-group">
+        </div>
+
+        <div class="form-group">
             <label>Description:</label>
             <textarea [(ngModel)]="report.description" name="description" 
                       placeholder="Describe the safety issue..." rows="4"></textarea>
           </div>
         </div>
-        
+
         <div class="submit-section">
           <button type="submit" [disabled]="isSubmitting" class="submit-btn">
             {{isSubmitting ? '🔄 Submitting...' : '🚀 Submit Report'}}
@@ -274,7 +274,7 @@ export class UserReportingComponent {
 
   onSubmit(): void {
     if (!this.validateForm()) return;
-    
+
     this.isSubmitting = true;
     this.statusMessage = '';
     
@@ -298,7 +298,7 @@ export class UserReportingComponent {
     if (!this.report.latitude || !this.report.longitude) {
       this.showStatus('Please provide location coordinates.', 'error');
       return false;
-    }
+        }
     
     if (!this.report.issueType) {
       this.showStatus('Please select an issue type.', 'error');

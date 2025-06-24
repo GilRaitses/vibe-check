@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NYC Camera Zone Tessellation - 940 Zones</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .camera-popup {
+            background: white;
+            color: black;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 250px;
+        }
+        
+        .camera-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .camera-details {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .zone-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .loading {
+            color: #888;
+            font-style: italic;
+        }
+        
+        .borough-legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="info-panel">
+        <h3>NYC Camera Zone Tessellation</h3>
+        <div id="stats">
+            <div class="zone-info">
+                <strong>Total Zones:</strong> <span id="total-zones">Loading...</span><br>
+                <strong>Coverage:</strong> <span id="total-area">Loading...</span><br>
+                <strong>Hover:</strong> Over any zone to see camera details
+            </div>
+        </div>
+        <div id="camera-info" style="display: none;">
+            <div class="zone-info">
+                <strong>Camera:</strong> <span id="camera-handle"></span><br>
+                <strong>ID:</strong> <span id="camera-id"></span><br>
+                <strong>Location:</strong> <span id="camera-location"></span><br>
+                <strong>Zone Size:</strong> <span id="zone-size"></span><br>
+                <strong>Neighbors:</strong> <span id="neighbors"></span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="borough-legend">
+        <h4>Boroughs</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF6B6B;"></div>
+            <span>Manhattan (340 zones)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4ECDC4;"></div>
+            <span>Brooklyn (212 zones)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #45B7D1;"></div>
+            <span>Queens (212 zones)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #96CEB4;"></div>
+            <span>Bronx (78 zones)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FECA57;"></div>
+            <span>Staten Island (98 zones)</span>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map centered on NYC
+        const map = L.map('map').setView([40.7128, -73.9860], 11);
+        
+        // Add dark tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Borough colors
+        const boroughColors = {
+            'Manhattan': '#FF6B6B',
+            'Brooklyn': '#4ECDC4', 
+            'Queens': '#45B7D1',
+            'Bronx': '#96CEB4',
+            'Staten Island': '#FECA57'
+        };
+        
+        let cameraZones = [];
+        let zonePolygons = [];
+        
+        // Load camera zone data
+        async function loadCameraZones() {
+            try {
+                console.log('Loading camera zones...');
+                
+                // Load the tessellation summary
+                const summaryResponse = await fetch('/data/tessellation-summary.json');
+                const summary = await summaryResponse.json();
+                
+                document.getElementById('total-zones').textContent = summary.total_zones;
+                document.getElementById('total-area').textContent = `${summary.total_area_km2.toFixed(1)} km²`;
+                
+                // Load camera zones (first 100 for demo - full 940 would be heavy)
+                const zonesResponse = await fetch('/data/camera-zones-complete.json');
+                cameraZones = await zonesResponse.json();
+                
+                console.log(`Loaded ${cameraZones.length} camera zones`);
+                
+                // Add zones to map
+                addZonesToMap(cameraZones.slice(0, 200)); // Show first 200 zones for performance
+                
+            } catch (error) {
+                console.error('Error loading camera zones:', error);
+                document.getElementById('total-zones').textContent = 'Error loading';
+            }
+        }
+        
+        function addZonesToMap(zones) {
+            zones.forEach(zone => {
+                if (!zone.voronoi_polygon || !zone.voronoi_polygon.coordinates) {
+                    return;
+                }
+                
+                const coordinates = zone.voronoi_polygon.coordinates[0];
+                const latLngs = coordinates.map(coord => [coord[1], coord[0]]); // Convert [lng, lat] to [lat, lng]
+                
+                const polygon = L.polygon(latLngs, {
+                    color: boroughColors[zone.borough] || '#FFFFFF',
+                    weight: 1,
+                    opacity: 0.8,
+                    fillColor: boroughColors[zone.borough] || '#FFFFFF',
+                    fillOpacity: 0.2
+                }).addTo(map);
+                
+                // Add hover events
+                polygon.on('mouseover', function(e) {
+                    this.setStyle({
+                        weight: 3,
+                        fillOpacity: 0.5
+                    });
+                    showCameraInfo(zone);
+                });
+                
+                polygon.on('mouseout', function(e) {
+                    this.setStyle({
+                        weight: 1,
+                        fillOpacity: 0.2
+                    });
+                    hideCameraInfo();
+                });
+                
+                // Add click popup with camera image
+                polygon.on('click', function(e) {
+                    showCameraPopup(zone, e.latlng);
+                });
+                
+                zonePolygons.push(polygon);
+            });
+        }
+        
+        function showCameraInfo(zone) {
+            const infoDiv = document.getElementById('camera-info');
+            const areaKm2 = (zone.zone_area_sqm / 1000000).toFixed(3);
+            const areaSqM = Math.round(zone.zone_area_sqm);
+            
+            document.getElementById('camera-handle').textContent = zone.handle;
+            document.getElementById('camera-id').textContent = `#${zone.integer_id}`;
+            document.getElementById('camera-location').textContent = zone.name;
+            document.getElementById('zone-size').textContent = `${areaSqM.toLocaleString()} m² (${areaKm2} km²)`;
+            
+            const neighbors = zone.nearest_neighbors.map(n => 
+                `${n.handle} (${n.distance_m}m)`
+            ).join(', ');
+            document.getElementById('neighbors').textContent = neighbors;
+            
+            infoDiv.style.display = 'block';
+        }
+        
+        function hideCameraInfo() {
+            document.getElementById('camera-info').style.display = 'none';
+        }
+        
+        function showCameraPopup(zone, latlng) {
+            const popupContent = `
+                <div class="camera-popup">
+                    <img src="${zone.image_url}" alt="Camera ${zone.handle}" class="camera-image" 
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNHB4IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Q2FtZXJhIE9mZmxpbmU8L3RleHQ+PC9zdmc+'" />
+                    
+                    <div class="camera-details">
+                        <strong>${zone.handle}</strong> (#${zone.integer_id})<br>
+                        <strong>Location:</strong> ${zone.name}<br>
+                        <strong>Borough:</strong> ${zone.borough}<br>
+                        <strong>Coordinates:</strong> ${zone.coordinates[0].toFixed(4)}, ${zone.coordinates[1].toFixed(4)}<br>
+                        <strong>Zone Area:</strong> ${Math.round(zone.zone_area_sqm).toLocaleString()} m²<br>
+                        <strong>Status:</strong> ${zone.is_online ? '🟢 Online' : '🔴 Offline'}<br>
+                        <strong>Nearest:</strong> ${zone.nearest_neighbors[0].handle} (${zone.nearest_neighbors[0].distance_m}m)
+                    </div>
+                </div>
+            `;
+            
+            L.popup()
+                .setLatLng(latlng)
+                .setContent(popupContent)
+                .openOn(map);
+        }
+        
+        // Load data when page loads
+        loadCameraZones();
+        
+        // Add camera point markers (optional - can be toggled)
+        function toggleCameraPoints() {
+            // Add small dots for camera centers
+            cameraZones.slice(0, 200).forEach(zone => {
+                L.circleMarker([zone.coordinates[0], zone.coordinates[1]], {
+                    radius: 2,
+                    fillColor: '#FFFFFF',
+                    color: '#000000',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map).bindTooltip(zone.handle, {permanent: false});
+            });
+        }
+        
+        // Add keyboard shortcut to toggle camera points
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'c' || e.key === 'C') {
+                toggleCameraPoints();
+            }
+        });
+        
+        console.log('Camera Zone Map initialized');
+        console.log('Press "C" to toggle camera point markers');
+    </script>
+</body>
+</html> 

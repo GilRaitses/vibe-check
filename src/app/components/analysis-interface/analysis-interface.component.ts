@@ -32,7 +32,7 @@ import { FormsModule } from '@angular/forms';
           </button>
         </div>
       </div>
-      
+
       <div *ngIf="analysisResult" class="results-section">
         <h3>🎯 Analysis Results</h3>
         <div class="result-card">
@@ -49,7 +49,7 @@ import { FormsModule } from '@angular/forms';
           <div class="analysis-details">
             <div class="detail-section">
               <h5>🚨 Detected Hazards</h5>
-              <ul>
+        <ul>
                 <li *ngFor="let hazard of analysisResult.hazards">{{hazard}}</li>
               </ul>
             </div>
@@ -58,12 +58,12 @@ import { FormsModule } from '@angular/forms';
               <h5>💡 Recommendations</h5>
               <ul>
                 <li *ngFor="let rec of analysisResult.recommendations">{{rec}}</li>
-              </ul>
+        </ul>
             </div>
           </div>
         </div>
       </div>
-      
+
       <div *ngIf="errorMessage" class="error-section">
         <p>❌ {{errorMessage}}</p>
       </div>

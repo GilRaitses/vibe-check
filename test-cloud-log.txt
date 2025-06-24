@@ -1,0 +1,7 @@
+🚀 Starting enhanced camera proxy server with zone analytics...
+✅ Loaded 907 zone lookups
+✅ Loaded 907 zones and 940 cameras
+🚀 Enhanced Camera Proxy Server running on http://localhost:3001
+🗽 DEV DASHBOARD: http://localhost:3001/dev-dashboard
+📊 Zones API: http://localhost:3001/api/zones
+🎯 Zone analytics: http://localhost:3001/api/zone-analytics/{cameraId}

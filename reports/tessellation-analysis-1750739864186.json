@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-06-24T04:37:44.183Z",
+  "scores": {
+    "geographic_accuracy": 95,
+    "water_exclusion": 100,
+    "bridge_handling": 90,
+    "coastline_precision": 80,
+    "overall_quality": 85
+  },
+  "total_score": 90,
+  "issues": [
+    "❌ Low coastline resolution may affect precision"
+  ],
+  "achievements": [
+    "✅ Correctly rejected water-located cameras",
+    "✅ Perfect water exclusion - zero zones over water",
+    "✅ 18 bridge zones with special handling"
+  ],
+  "improvements": [
+    "📈 Very good! Apply minor refinements:",
+    "  • Increase coastline boundary point resolution",
+    "  • Refine bridge shape definitions"
+  ]
+}

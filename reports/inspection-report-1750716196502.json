@@ -1,0 +1,467 @@
+{
+  "numerical_handling": {
+    "array_structure_validation": {
+      "success": true,
+      "message": "Array structure validation passed",
+      "details": {
+        "expected_length": 17,
+        "actual_length": 17
+      }
+    },
+    "numerical_bounds_checking": {
+      "success": true,
+      "message": "Bounds checking works correctly",
+      "details": {
+        "valid_passed": true,
+        "invalid_rejected": true
+      }
+    },
+    "type_validation": {
+      "success": true,
+      "message": "Type validation correctly rejects mixed types",
+      "details": {
+        "valid": false,
+        "message": "Non-numeric value at index 2: 3",
+        "index": 2,
+        "type": "string"
+      }
+    },
+    "confidence_score_handling": {
+      "success": true,
+      "message": "Confidence score integration working",
+      "details": {
+        "valid": true,
+        "message": "Confidence integration valid",
+        "confidence": 0.85
+      }
+    },
+    "error_handling_invalid_arrays": {
+      "success": true,
+      "message": "Handled 6/6 invalid arrays correctly",
+      "details": {
+        "correct_rejections": 6,
+        "total_tests": 6
+      }
+    }
+  },
+  "llm_agent_interventions": {
+    "gemini_api_connectivity": {
+      "success": true,
+      "message": "Gemini API connectivity confirmed",
+      "details": {
+        "status": 200,
+        "data": {
+          "status": "healthy",
+          "timestamp": 1750716172635,
+          "version": "1.0.0"
+        }
+      }
+    },
+    "numerical_processing": {
+      "success": true,
+      "message": "Gemini numerical processing working",
+      "details": {
+        "success": true,
+        "analysis_id": "numerical-analysis-1750716172950",
+        "alert_triggered": true,
+        "analysis": {
+          "id": "numerical-analysis-1750716172950",
+          "timestamp": 1750716175749,
+          "location": "test_intersection",
+          "analysis": {
+            "numerical_analysis": [
+              1,
+              2,
+              4,
+              3,
+              0,
+              3,
+              2,
+              2,
+              1,
+              1,
+              0,
+              0,
+              3,
+              2,
+              2,
+              1,
+              4
+            ],
+            "bike_red_light_violation": 4,
+            "alert_triggered": true,
+            "risk_level": "critical",
+            "safetyScore": 2,
+            "confidence": 0.85
+          },
+          "numerical_data": [
+            1,
+            2,
+            4,
+            3,
+            0,
+            3,
+            2,
+            2,
+            1,
+            1,
+            0,
+            0,
+            3,
+            2,
+            2,
+            1,
+            4
+          ],
+          "metadata": {},
+          "type": "numerical"
+        }
+      }
+    },
+    "escalation_protocols": {
+      "success": true,
+      "message": "Escalation protocols working",
+      "details": {
+        "escalation_level": "immediate",
+        "response_time": "5_minutes"
+      }
+    },
+    "decision_making_logic": {
+      "success": false,
+      "message": "Decision logic: 1/3 correct",
+      "details": {
+        "correct": 1,
+        "total": 3
+      }
+    },
+    "context_analysis": {
+      "success": 1.5,
+      "message": "Context analysis working",
+      "details": {
+        "context_factors": true,
+        "risk_adjustment": 1.5,
+        "weather_impact": 0.2,
+        "time_multiplier": 1.3
+      }
+    },
+    "intervention_triggers": {
+      "success": true,
+      "message": "Intervention triggers: 3/3 correct",
+      "details": {
+        "correct": 3,
+        "total": 3
+      }
+    }
+  },
+  "data_store_tests": {
+    "firebase_connection": {
+      "success": true,
+      "message": "Firebase connection confirmed",
+      "details": {
+        "status": "operational",
+        "firebase_connected": true,
+        "metrics": {
+          "totalAnalyses": 1,
+          "pendingReports": 0,
+          "successRate": 1,
+          "avgResponseTime": "2.3s",
+          "systemHealth": "good"
+        },
+        "services": {
+          "geminiAI": "operational",
+          "firestore": "operational",
+          "storage": "operational"
+        },
+        "recent_updates": [],
+        "active_alerts": [
+          {
+            "alert_id": "test-alert-1",
+            "severity": "medium",
+            "location": "test_location",
+            "time_active": 300
+          }
+        ],
+        "lastUpdated": 1750716176717
+      }
+    },
+    "firestore_collections": {
+      "success": true,
+      "message": "Firestore collections: 7/7 accessible",
+      "details": {
+        "accessible": 7,
+        "required": 7
+      }
+    },
+    "statistical_storage": {
+      "success": false,
+      "message": "Statistical storage failed",
+      "details": {
+        "stored": true,
+        "retrieved": false,
+        "data": {
+          "error": "9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/vibe-check-463816/firestore/indexes?create_composite=Cl1wcm9qZWN0cy92aWJlLWNoZWNrLTQ2MzgxNi9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvc3RhdGlzdGljYWxfbWV0cmljcy9pbmRleGVzL18QARoMCghsb2NhdGlvbhABGhQKEHN0b3JlZF90aW1lc3RhbXAQAhoMCghfX25hbWVfXxAC"
+        }
+      }
+    },
+    "data_retention_policies": {
+      "success": true,
+      "message": "Data retention policies: 4/4 configured",
+      "details": {
+        "configured": [
+          "minute_data",
+          "hourly_data",
+          "daily_data",
+          "monthly_data"
+        ],
+        "expected": [
+          "minute_data",
+          "hourly_data",
+          "daily_data",
+          "monthly_data"
+        ]
+      }
+    },
+    "indexing_performance": {
+      "success": true,
+      "message": "Query performance: 167ms (PASS)",
+      "details": {
+        "query_time_ms": 167,
+        "indexed_queries": 3
+      }
+    },
+    "backup_integrity": {
+      "success": true,
+      "message": "Backup integrity confirmed",
+      "details": {
+        "last_backup": "2025-06-23T22:02:58.185Z",
+        "backup_healthy": true,
+        "backup_frequency": "daily",
+        "retention_period": "30_days"
+      }
+    }
+  },
+  "visual_confirmation": {
+    "dashboard_loading": {
+      "success": false,
+      "message": "Dashboard loads successfully",
+      "details": {
+        "status": 200,
+        "has_navigation": false,
+        "has_main_content": true,
+        "has_scripts": true
+      }
+    },
+    "real_time_updates": {
+      "success": [
+        {
+          "id": "ryUsgOyTpI4ezbnCiK5X",
+          "timestamp": "2025-06-23T22:02:57.607Z",
+          "location": "test_location"
+        },
+        {
+          "id": "koFfNtRfIVTxZf78SRuF",
+          "timestamp": {
+            "_seconds": 1750716178,
+            "_nanoseconds": 425000000
+          },
+          "location": "test_real_time"
+        }
+      ],
+      "message": "Real-time updates working",
+      "details": {
+        "post_success": true,
+        "status_success": true,
+        "updates": [
+          {
+            "id": "ryUsgOyTpI4ezbnCiK5X",
+            "timestamp": "2025-06-23T22:02:57.607Z",
+            "location": "test_location"
+          },
+          {
+            "id": "koFfNtRfIVTxZf78SRuF",
+            "timestamp": {
+              "_seconds": 1750716178,
+              "_nanoseconds": 425000000
+            },
+            "location": "test_real_time"
+          }
+        ]
+      }
+    },
+    "chart_rendering": {
+      "success": true,
+      "message": "Chart rendering: 4/4 endpoints working",
+      "details": {
+        "working_charts": 4,
+        "total_charts": 4
+      }
+    },
+    "alert_visualization": {
+      "success": [
+        {
+          "alert_id": "test-alert-1",
+          "severity": "medium",
+          "location": "test_location",
+          "time_active": 300
+        }
+      ],
+      "message": "Alert visualization working",
+      "details": {
+        "alert_triggered": true,
+        "active_alerts": [
+          {
+            "alert_id": "test-alert-1",
+            "severity": "medium",
+            "location": "test_location",
+            "time_active": 300
+          }
+        ]
+      }
+    },
+    "metrics_display": {
+      "success": true,
+      "message": "Metrics display: 4/4 metrics available",
+      "details": {
+        "available": 4,
+        "required": 4,
+        "data": {
+          "current_violation_rates": {
+            "bike_red_light_violations_per_hour": 0.3,
+            "pedestrian_walkway_violations_per_hour": 1.1,
+            "dangerous_positioning_violations_per_hour": 0.7
+          },
+          "trend_indicators": [
+            {
+              "metric": "bike_violations",
+              "direction": "decreasing",
+              "magnitude": 0.1
+            },
+            {
+              "metric": "pedestrian_safety",
+              "direction": "improving",
+              "magnitude": 0.2
+            }
+          ],
+          "system_health": [
+            {
+              "component": "gemini_ai",
+              "status": "operational",
+              "performance_score": 95
+            },
+            {
+              "component": "vision_api",
+              "status": "operational",
+              "performance_score": 92
+            },
+            {
+              "component": "firestore",
+              "status": "operational",
+              "performance_score": 98
+            }
+          ],
+          "quick_stats": [
+            {
+              "label": "Daily Analyses",
+              "value": "247",
+              "change_indicator": "+12%"
+            },
+            {
+              "label": "Critical Alerts",
+              "value": "3",
+              "change_indicator": "-25%"
+            },
+            {
+              "label": "System Uptime",
+              "value": "99.8%",
+              "change_indicator": "stable"
+            }
+          ]
+        }
+      }
+    },
+    "mobile_responsiveness": {
+      "success": true,
+      "message": "Mobile responsiveness configured",
+      "details": {
+        "has_viewport": true,
+        "has_responsive_css": false,
+        "has_touch_friendly": false
+      }
+    }
+  },
+  "end_to_end_pipeline": {
+    "complete_analysis_workflow": {
+      "success": false,
+      "message": "Workflow failed at one or more steps",
+      "details": {
+        "step1_analysis": false,
+        "step2_storage": true,
+        "step3_dashboard": true,
+        "step4_alerts": true
+      }
+    },
+    "data_flow_integrity": {
+      "success": false,
+      "message": "Data flow integrity compromised",
+      "details": {
+        "submit_success": true,
+        "storage_checks": [
+          false,
+          false,
+          false
+        ],
+        "test_id": "integrity_test_1750716184807"
+      }
+    },
+    "error_recovery": {
+      "success": false,
+      "message": "Error recovery: 2/4 scenarios handled",
+      "details": {
+        "recovered": 2,
+        "total": 4
+      }
+    },
+    "performance_benchmarks": {
+      "success": true,
+      "message": "Performance benchmarks: 3/3 within thresholds",
+      "details": [
+        {
+          "test": "analysis_response",
+          "time": 138,
+          "threshold": 5000
+        },
+        {
+          "test": "dashboard_loading",
+          "time": 73,
+          "threshold": 2000
+        },
+        {
+          "test": "statistical_calculation",
+          "time": 168,
+          "threshold": 3000
+        }
+      ]
+    },
+    "concurrent_processing": {
+      "success": true,
+      "message": "Concurrent processing: 5/5 successful, avg 720.8ms",
+      "details": {
+        "successful": 5,
+        "total": 5,
+        "average_time": 720.8,
+        "total_time": 3604
+      }
+    },
+    "system_resilience": {
+      "success": true,
+      "message": "System resilience: 3/3 stress tests passed",
+      "details": {
+        "passed": 3,
+        "total": 3
+      }
+    }
+  },
+  "overall_score": 77,
+  "passed_tests": 20,
+  "total_tests": 26
+}

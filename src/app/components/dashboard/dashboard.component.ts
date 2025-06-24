@@ -9,7 +9,7 @@ import { TerritoryService } from '../../services/territory.service';
   template: `
     <div class="dashboard">
       <h2>Vibe-Check Dashboard</h2>
-      
+
       <div class="status-grid">
         <div class="status-card">
           <h3>System Status</h3>
@@ -94,7 +94,7 @@ import { TerritoryService } from '../../services/territory.service';
   `]
 })
 export class DashboardComponent implements OnInit {
-  
+
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngOnInit(): void {
@@ -104,7 +104,7 @@ export class DashboardComponent implements OnInit {
         const timestampEl = document.getElementById('timestamp');
         if (timestampEl) {
           timestampEl.textContent = new Date().toLocaleTimeString();
-        }
+      }
       }, 100);
     }
   }

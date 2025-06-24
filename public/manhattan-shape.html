@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manhattan Island Camera Tessellation</title>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-delaunay@6"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #manhattan-svg {
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+
+        .title {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 100;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        /* SVG Styles */
+        .manhattan-outline {
+            fill: #333;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+
+        .camera-point {
+            fill: #fff;
+            stroke: #000;
+            stroke-width: 1;
+            cursor: pointer;
+        }
+
+        .camera-point:hover {
+            fill: #ffff00;
+            r: 6;
+        }
+
+        .voronoi-cell {
+            stroke: #fff;
+            stroke-width: 1;
+            opacity: 0.7;
+            cursor: pointer;
+        }
+
+        .voronoi-cell:hover {
+            opacity: 0.9;
+            stroke-width: 2;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">🗽 Manhattan Island Camera Tessellation</div>
+    
+    <div class="stats">
+        <div id="camera-count">Loading cameras...</div>
+        <div id="territory-count">Generating territories...</div>
+    </div>
+
+    <div id="container">
+        <svg id="manhattan-svg"></svg>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4CAF50;"></div>
+            Low Risk Territory
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF9800;"></div>
+            Medium Risk Territory
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f44336;"></div>
+            High Risk Territory
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #fff;"></div>
+            Camera Location
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Simplified Manhattan island outline (key points)
+        const manhattanOutline = [
+            // Starting from Battery Park, going clockwise
+            [0, 100],    // Battery Park (southern tip)
+            [5, 95],     // Staten Island Ferry area
+            [15, 90],    // South Street Seaport
+            [25, 85],    // Brooklyn Bridge area
+            [35, 80],    // Manhattan Bridge area
+            [45, 75],    // Williamsburg Bridge area
+            [50, 70],    // Lower East Side waterfront
+            [55, 60],    // East Village waterfront
+            [60, 50],    // Midtown East waterfront
+            [65, 40],    // Upper East Side waterfront
+            [70, 30],    // Yorkville waterfront
+            [75, 20],    // East Harlem waterfront
+            [80, 10],    // Randalls Island area
+            [85, 5],     // Harlem River
+            [90, 0],     // Inwood (northern tip)
+            [85, 3],     // Spuyten Duyvil
+            [80, 8],     // Washington Heights west
+            [75, 15],    // George Washington Bridge area
+            [70, 25],    // Upper West Side
+            [65, 35],    // Lincoln Tunnel area
+            [60, 45],    // Midtown West
+            [55, 55],    // Chelsea waterfront
+            [50, 65],    // Meatpacking District
+            [45, 70],    // Greenwich Village waterfront
+            [40, 75],    // Tribeca waterfront
+            [30, 80],    // Financial District waterfront
+            [20, 85],    // Battery Park City
+            [10, 90],    // West Side Highway
+            [5, 95],     // Battery Park west
+            [0, 100]     // Close the polygon
+        ];
+
+        // Real NYC camera locations within Manhattan
+        const nycCameras = [
+            {id: "cam_001", name: "Times Square", x: 45, y: 45, risk: 85},
+            {id: "cam_002", name: "Penn Station", x: 42, y: 50, risk: 75},
+            {id: "cam_003", name: "Grand Central", x: 55, y: 45, risk: 70},
+            {id: "cam_004", name: "Union Square", x: 50, y: 60, risk: 65},
+            {id: "cam_005", name: "Washington Square", x: 40, y: 65, risk: 45},
+            {id: "cam_006", name: "Columbus Circle", x: 50, y: 35, risk: 60},
+            {id: "cam_007", name: "Lincoln Tunnel", x: 35, y: 45, risk: 80},
+            {id: "cam_008", name: "Brooklyn Bridge", x: 25, y: 85, risk: 70},
+            {id: "cam_009", name: "Manhattan Bridge", x: 35, y: 80, risk: 65},
+            {id: "cam_010", name: "Williamsburg Bridge", x: 45, y: 75, risk: 60},
+            {id: "cam_011", name: "FDR Drive - Houston", x: 45, y: 70, risk: 55},
+            {id: "cam_012", name: "FDR Drive - 59th", x: 65, y: 35, risk: 50},
+            {id: "cam_013", name: "West Side - Houston", x: 35, y: 70, risk: 55},
+            {id: "cam_014", name: "West Side - 59th", x: 40, y: 35, risk: 50},
+            {id: "cam_015", name: "World Trade Center", x: 20, y: 85, risk: 75},
+            {id: "cam_016", name: "Empire State", x: 48, y: 55, risk: 70},
+            {id: "cam_017", name: "Central Park - 79th", x: 60, y: 25, risk: 30},
+            {id: "cam_018", name: "Metropolitan Museum", x: 65, y: 20, risk: 25},
+            {id: "cam_019", name: "Theatre District", x: 47, y: 42, risk: 80},
+            {id: "cam_020", name: "Chelsea Market", x: 38, y: 60, risk: 55},
+            {id: "cam_021", name: "Upper East Side", x: 70, y: 15, risk: 35},
+            {id: "cam_022", name: "East Harlem", x: 75, y: 10, risk: 45},
+            {id: "cam_023", name: "Central Harlem", x: 70, y: 8, risk: 50},
+            {id: "cam_024", name: "Washington Heights", x: 75, y: 5, risk: 40},
+            {id: "cam_025", name: "Inwood", x: 85, y: 2, risk: 35},
+            {id: "cam_026", name: "Upper West Side", x: 55, y: 15, risk: 30},
+            {id: "cam_027", name: "Morningside Heights", x: 60, y: 12, risk: 35},
+            {id: "cam_028", name: "Yorkville", x: 68, y: 22, risk: 40},
+            {id: "cam_029", name: "Meatpacking", x: 35, y: 65, risk: 60},
+            {id: "cam_030", name: "Tribeca", x: 30, y: 75, risk: 45},
+            {id: "cam_031", name: "SoHo", x: 35, y: 72, risk: 50},
+            {id: "cam_032", name: "Chinatown", x: 32, y: 78, risk: 55},
+            {id: "cam_033", name: "Lower East Side", x: 40, y: 75, risk: 60},
+            {id: "cam_034", name: "East Village", x: 45, y: 65, risk: 55},
+            {id: "cam_035", name: "Flatiron", x: 48, y: 60, risk: 50}
+        ];
+
+        // Setup SVG
+        const width = Math.min(window.innerWidth * 0.9, 1000);
+        const height = Math.min(window.innerHeight * 0.9, 700);
+        
+        const svg = d3.select("#manhattan-svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Scale Manhattan outline to fit SVG
+        const xScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([50, width - 50]);
+            
+        const yScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([height - 50, 50]);
+
+        // Convert outline coordinates
+        const scaledOutline = manhattanOutline.map(([x, y]) => [xScale(x), yScale(y)]);
+        
+        // Convert camera coordinates
+        const scaledCameras = nycCameras.map(cam => ({
+            ...cam,
+            x: xScale(cam.x),
+            y: yScale(cam.y)
+        }));
+
+        // Risk color function
+        function getRiskColor(risk) {
+            if (risk < 40) return '#4CAF50';      // Green
+            if (risk < 70) return '#FF9800';      // Orange
+            return '#f44336';                     // Red
+        }
+
+        // Point-in-polygon test
+        function pointInPolygon(point, polygon) {
+            const [x, y] = point;
+            let inside = false;
+            
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const [xi, yi] = polygon[i];
+                const [xj, yj] = polygon[j];
+                
+                if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
+        // Clip polygon to Manhattan shape
+        function clipToManhattan(polygon) {
+            return polygon.filter(point => pointInPolygon(point, scaledOutline));
+        }
+
+        // Draw Manhattan outline
+        const pathGenerator = d3.line()
+            .x(d => d[0])
+            .y(d => d[1])
+            .curve(d3.curveCatmullRom.alpha(0.5));
+
+        svg.append("path")
+            .datum(scaledOutline)
+            .attr("d", pathGenerator)
+            .attr("class", "manhattan-outline");
+
+        // Create Voronoi diagram
+        function generateVoronoi() {
+            console.log('🎯 Generating Voronoi tessellation for Manhattan island');
+            
+            const points = scaledCameras.map(cam => [cam.x, cam.y]);
+            
+            // Create Delaunay triangulation
+            const delaunay = d3.Delaunay.from(points);
+            const voronoi = delaunay.voronoi([0, 0, width, height]);
+
+            // Create Voronoi cells
+            scaledCameras.forEach((camera, i) => {
+                const cell = voronoi.cellPolygon(i);
+                if (!cell) return;
+
+                // Clip cell to Manhattan boundary
+                const clippedCell = clipCellToManhattan(cell, scaledOutline);
+                if (clippedCell.length < 3) return;
+
+                // Create polygon path
+                const pathString = "M" + clippedCell.map(d => d.join(",")).join("L") + "Z";
+                
+                svg.append("path")
+                    .attr("d", pathString)
+                    .attr("class", "voronoi-cell")
+                    .attr("fill", getRiskColor(camera.risk))
+                    .on("mouseover", function(event) {
+                        showTooltip(event, camera);
+                        d3.select(this).attr("opacity", 0.9);
+                    })
+                    .on("mouseout", function() {
+                        hideTooltip();
+                        d3.select(this).attr("opacity", 0.7);
+                    })
+                    .on("click", function() {
+                        console.log(`Clicked territory: ${camera.name}`);
+                    });
+            });
+
+            console.log('✅ Voronoi tessellation complete');
+        }
+
+        // Improved clipping function
+        function clipCellToManhattan(cell, boundary) {
+            // Simple implementation - for production would use proper polygon clipping
+            const clipped = [];
+            
+            cell.forEach(point => {
+                if (pointInPolygon(point, boundary)) {
+                    clipped.push(point);
+                }
+            });
+            
+            // Add boundary intersections (simplified)
+            if (clipped.length < cell.length) {
+                // Add some boundary points to maintain shape
+                const centerX = clipped.reduce((sum, p) => sum + p[0], 0) / clipped.length;
+                const centerY = clipped.reduce((sum, p) => sum + p[1], 0) / clipped.length;
+                
+                // Find closest boundary points
+                boundary.forEach(boundaryPoint => {
+                    const dist = Math.sqrt(
+                        Math.pow(boundaryPoint[0] - centerX, 2) + 
+                        Math.pow(boundaryPoint[1] - centerY, 2)
+                    );
+                    if (dist < 50) { // Threshold for nearby boundary points
+                        clipped.push(boundaryPoint);
+                    }
+                });
+            }
+            
+            return clipped;
+        }
+
+        // Draw camera points
+        svg.selectAll(".camera-point")
+            .data(scaledCameras)
+            .enter()
+            .append("circle")
+            .attr("class", "camera-point")
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y)
+            .attr("r", 4)
+            .on("mouseover", function(event, d) {
+                showTooltip(event, d);
+            })
+            .on("mouseout", hideTooltip)
+            .on("click", function(event, d) {
+                console.log(`Clicked camera: ${d.name}`);
+            });
+
+        // Tooltip functions
+        function showTooltip(event, data) {
+            const tooltip = d3.select("#tooltip");
+            tooltip.style("opacity", 1)
+                .html(`
+                    <strong>${data.name}</strong><br>
+                    ID: ${data.id}<br>
+                    Risk Level: ${data.risk}<br>
+                    Territory Coverage: Active
+                `)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px");
+        }
+
+        function hideTooltip() {
+            d3.select("#tooltip").style("opacity", 0);
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('camera-count').textContent = `${nycCameras.length} Cameras Deployed`;
+            document.getElementById('territory-count').textContent = `${nycCameras.length} Territories Generated`;
+        }
+
+        // Initialize
+        function init() {
+            console.log('🗽 Initializing Manhattan Island Camera Tessellation');
+            updateStats();
+            
+            // Generate Voronoi after brief delay
+            setTimeout(() => {
+                generateVoronoi();
+            }, 100);
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html> 

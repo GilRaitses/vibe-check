@@ -1,0 +1,14 @@
+{
+  "generated_at": "2025-06-24T13:00:00Z",
+  "algorithm": "proper_voronoi_complete_coverage",
+  "total_zones": 907,
+  "constrained_zones": 907,
+  "constraint_success_rate": 100.0,
+  "total_area_km2": 8869.016254641845,
+  "average_zone_size_km2": 9.778408219009753,
+  "average_vertices": 484.6185226019846,
+  "method": "complete_voronoi_partitioning_all_nyc_land",
+  "boundary_source": "nyc_boroughs_geojson",
+  "coverage_percentage": 863.3835838176882,
+  "complete_coverage": true
+}
