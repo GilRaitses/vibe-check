@@ -16,25 +16,50 @@ from shapely.ops import unary_union
 import geopandas as gpd
 
 def load_camera_data():
-    """Load real camera data from Firebase API"""
+    """Load all 907 cameras from zone-lookup.json instead of limited Firebase API"""
     try:
-        response = requests.get('https://us-central1-vibe-check-463816.cloudfunctions.net/api/dashboard/camera-zones')
-        data = response.json()
+        # Load from local zone-lookup.json which has all 907 cameras
+        with open('data/zone-lookup.json', 'r') as f:
+            zone_data = json.load(f)
         
-        if 'zones' in data:
-            cameras = []
-            for zone in data['zones']:
-                if zone.get('latitude') and zone.get('longitude'):
-                    cameras.append({
-                        'lat': float(zone['latitude']),
-                        'lng': float(zone['longitude']),
-                        'name': zone.get('name', 'Unknown'),
-                        'borough': zone.get('neighborhood', 'Unknown'),
-                        'zone_id': zone.get('zone_id', 'Unknown')
-                    })
-            return cameras
+        cameras = []
+        for camera_id, zone_info in zone_data.items():
+            if zone_info.get('coordinates') and len(zone_info['coordinates']) == 2:
+                cameras.append({
+                    'lat': float(zone_info['coordinates'][1]),  # lat is second in array
+                    'lng': float(zone_info['coordinates'][0]),  # lng is first in array  
+                    'name': zone_info.get('camera_name', 'Unknown'),
+                    'borough': zone_info.get('borough', 'Unknown'),
+                    'zone_id': zone_info.get('zone_id', 'Unknown'),
+                    'camera_id': camera_id
+                })
+        
+        print(f"✅ Loaded {len(cameras)} cameras from zone-lookup.json")
+        return cameras
+        
     except Exception as e:
-        print(f"Failed to load camera data: {e}")
+        print(f"Failed to load camera data from zone-lookup.json: {e}")
+        
+        # Fallback to Firebase API (limited to 100)
+        try:
+            response = requests.get('https://us-central1-vibe-check-463816.cloudfunctions.net/api/dashboard/camera-zones')
+            data = response.json()
+            
+            if 'zones' in data:
+                cameras = []
+                for zone in data['zones']:
+                    if zone.get('latitude') and zone.get('longitude'):
+                        cameras.append({
+                            'lat': float(zone['latitude']),
+                            'lng': float(zone['longitude']),
+                            'name': zone.get('name', 'Unknown'),
+                            'borough': zone.get('neighborhood', 'Unknown'),
+                            'zone_id': zone.get('zone_id', 'Unknown')
+                        })
+                print(f"⚠️ Fallback: Loaded {len(cameras)} cameras from Firebase API (limited)")
+                return cameras
+        except Exception as api_error:
+            print(f"Firebase API also failed: {api_error}")
     
     return []
 
