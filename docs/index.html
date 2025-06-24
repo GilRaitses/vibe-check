@@ -40,6 +40,48 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
+        .api-section {
+            background: rgba(0,0,0,0.3);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 40px 0;
+        }
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .api-card {
+            background: rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid #FFD700;
+            text-align: left;
+        }
+        .api-card h4 {
+            color: #FFD700;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        .endpoint-link {
+            background: rgba(255,255,255,0.1);
+            color: #FFD700;
+            padding: 8px 16px;
+            border-radius: 15px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+            border: 1px solid rgba(255,215,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .endpoint-link:hover {
+            background: #FFD700;
+            color: #333;
+            border-color: #FFD700;
+        }
         .project-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -60,6 +102,19 @@
             display: inline-block;
             font-size: 0.9em;
         }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff00;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
         .github-section {
             background: rgba(0,0,0,0.3);
             padding: 30px;
@@ -74,20 +129,92 @@
             <h1>🏙️ Vibe-Check</h1>
             <div class="subtitle">AI-Orchestrated Urban Navigation Intelligence System</div>
             <div class="subtitle">Built with Google Cloud AI • Firebase • Gemini • BigQuery ML</div>
+            <div style="margin-top: 20px;">
+                <span class="status-indicator"></span>
+                <strong>LIVE SYSTEM DEPLOYED</strong> • 24/7 Cloud Operations
+            </div>
         </div>
         
         <div class="demo-section">
-            <h2>🚀 Live System Demonstration</h2>
-            <p><strong>Experience the complete AI pipeline in action</strong></p>
+            <h2>🚀 NYC AI Tinkerers Demo</h2>
+            <p><strong>Complete AI pipeline demonstration with live cloud endpoints</strong></p>
             <a href="https://vibe-check-463816.web.app/demo-talk.html" class="demo-link" target="_blank">
-                🌐 Live Firebase Demo
+                🎥 Launch Demo Presentation
             </a>
-            <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/MN_001" class="demo-link" target="_blank">
-                📊 Test Live API
+            <a href="https://vibe-check-463816.web.app/" class="demo-link" target="_blank">
+                🌐 Firebase Hosting
             </a>
             <div style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
-                <p>24/7 deployed on Google Cloud Platform</p>
+                <p>Interactive presentation with live Firebase Functions</p>
                 <p>Real-time analysis of 940 NYC cameras across 907 AI-generated zones</p>
+            </div>
+        </div>
+        
+        <div class="api-section">
+            <h2>🔗 Live API Endpoints</h2>
+            <p>Test the Firebase Functions directly - deployed and accessible 24/7</p>
+            
+            <div class="api-grid">
+                <div class="api-card">
+                    <h4>📊 Zone Analytics</h4>
+                    <p>Real-time ML analysis for specific zones</p>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/MN_001" class="endpoint-link" target="_blank">
+                        GET /get-metrics/MN_001
+                    </a>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/BK_042" class="endpoint-link" target="_blank">
+                        GET /get-metrics/BK_042
+                    </a>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/get-metrics/QN_123" class="endpoint-link" target="_blank">
+                        GET /get-metrics/QN_123
+                    </a>
+                </div>
+                
+                <div class="api-card">
+                    <h4>🗺️ Monitoring Dashboard</h4>
+                    <p>Adaptive monitoring system overview</p>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/monitoring-dashboard" class="endpoint-link" target="_blank">
+                        GET /monitoring-dashboard
+                    </a>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/system-status" class="endpoint-link" target="_blank">
+                        GET /system-status
+                    </a>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/health-check" class="endpoint-link" target="_blank">
+                        GET /health-check
+                    </a>
+                </div>
+                
+                <div class="api-card">
+                    <h4>🏙️ Camera Network</h4>
+                    <p>Voronoi tessellation and camera data</p>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/camera-network" class="endpoint-link" target="_blank">
+                        GET /camera-network
+                    </a>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/voronoi-map" class="endpoint-link" target="_blank">
+                        GET /voronoi-map
+                    </a>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/territory/MN_001" class="endpoint-link" target="_blank">
+                        GET /territory/MN_001
+                    </a>
+                </div>
+                
+                <div class="api-card">
+                    <h4>📈 ML Analytics</h4>
+                    <p>BigQuery ML and prediction endpoints</p>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/ml-model-stats" class="endpoint-link" target="_blank">
+                        GET /ml-model-stats
+                    </a>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/violation-forecast/MN_001" class="endpoint-link" target="_blank">
+                        GET /violation-forecast/MN_001
+                    </a>
+                    <a href="https://us-central1-vibe-check-463816.cloudfunctions.net/api/critical-zones" class="endpoint-link" target="_blank">
+                        GET /critical-zones
+                    </a>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
+                <p><strong>Base URL:</strong> https://us-central1-vibe-check-463816.cloudfunctions.net/api</p>
+                <p><strong>All endpoints return JSON responses</strong> • CORS enabled • No authentication required for demo</p>
             </div>
         </div>
         
@@ -130,12 +257,14 @@
             <div style="margin-top: 20px; font-size: 0.9em;">
                 <p><strong>Technologies:</strong> Firebase Functions, Vertex AI, BigQuery ML, Cloud Vision API, Angular, Node.js</p>
                 <p><strong>Data:</strong> NYC Open Data, Real-time camera feeds, Geospatial boundaries</p>
+                <p><strong>Deployment:</strong> Firebase Hosting + Functions, GitHub Pages, Google Cloud AI Platform</p>
             </div>
         </div>
         
         <div style="margin-top: 60px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.3);">
             <p><strong>Vibe-Check: AI Urban Navigation Intelligence</strong></p>
             <p>Demonstrating rapid composition of Google Cloud AI tools for urban-scale sensing and insight</p>
+            <p style="color: #FFD700; margin-top: 20px;">Perfect for NYC AI Tinkerers • Infrastructure Specialists • Urban AI Applications</p>
         </div>
     </div>
 </body>
