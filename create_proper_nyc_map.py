@@ -128,7 +128,7 @@ def clip_voronoi_cell_to_nyc(cell_coords, nyc_landmass):
     
     return []
 
-def create_constrained_voronoi_tessellation():
+def create_constrained_voronoi_tessellation(transparent_bg=False, output_filename='nyc_vibe_check_camera_map.png'):
     """Create Voronoi tessellation constrained to NYC boundaries"""
     
     # Load real camera data
@@ -154,21 +154,22 @@ def create_constrained_voronoi_tessellation():
     # Create the figure with square aspect ratio
     fig, ax = plt.subplots(1, 1, figsize=(12, 12))
     
-    # Add solid charcoal background layer first
-    ax.add_patch(patches.Rectangle((-74.3, 40.5), 0.6, 0.42, facecolor='#2F2F2F', zorder=0))
-    
-    # Create beautiful peachy sunset gradient background
-    gradient = np.linspace(0, 1, 256).reshape(1, -1)
-    gradient = np.vstack((gradient, gradient))
-    
-    # Set up the gradient colors (peachy sunset)
-    from matplotlib.colors import LinearSegmentedColormap
-    colors = ['#FF6B6B', '#FF8E53', '#FF6B35', '#F7931E', '#FFB347', '#FFCF48']
-    n_bins = 256
-    cmap = LinearSegmentedColormap.from_list('sunset', colors, N=n_bins)
-    
-    # Apply gradient background with 66% opacity over charcoal
-    ax.imshow(gradient, aspect='auto', cmap=cmap, extent=(-74.3, -73.7, 40.5, 40.92), alpha=0.66)
+    if not transparent_bg:
+        # Add solid charcoal background layer first
+        ax.add_patch(patches.Rectangle((-74.3, 40.5), 0.6, 0.42, facecolor='#2F2F2F', zorder=0))
+        
+        # Create beautiful peachy sunset gradient with blue streaks (cool spots)
+        gradient = np.linspace(0, 1, 256).reshape(1, -1)
+        gradient = np.vstack((gradient, gradient))
+        
+        # Set up the gradient colors (peachy sunset + blue streaks)
+        from matplotlib.colors import LinearSegmentedColormap
+        colors = ['#FF6B6B', '#4A90E2', '#FF8E53', '#5DADE2', '#FF6B35', '#F7931E', '#3498DB', '#FFB347', '#2E86AB', '#FFCF48']
+        n_bins = 256
+        cmap = LinearSegmentedColormap.from_list('sunset_with_blue', colors, N=n_bins)
+        
+        # Apply gradient background with 66% opacity over charcoal
+        ax.imshow(gradient, aspect='auto', cmap=cmap, extent=(-74.3, -73.7, 40.5, 40.92), alpha=0.66)
     
     # Plot NYC boundaries with crisp styling
     if geojson_data:
@@ -225,11 +226,12 @@ def create_constrained_voronoi_tessellation():
             color = borough_colors.get(borough, color)
         
         # Create and add CLIPPED polygon with crisp styling
+        alpha_value = 0.85 if not transparent_bg else 0.95
         polygon = MplPolygon(clipped_coords, 
                            facecolor=color, 
                            edgecolor='#1a237e', 
                            linewidth=0.8,
-                           alpha=0.85)
+                           alpha=alpha_value)
         ax.add_patch(polygon)
     
     # Plot camera points as small elegant dots
@@ -253,17 +255,23 @@ def create_constrained_voronoi_tessellation():
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     
     # Save the clean aesthetic map
-    plt.savefig('nyc_vibe_check_camera_map.png', 
+    transparent = transparent_bg
+    plt.savefig(output_filename, 
                 dpi=300, 
                 bbox_inches='tight',
                 pad_inches=0,
-                facecolor='none',
+                facecolor='none' if transparent else 'none',
                 edgecolor='none',
-                transparent=False)
+                transparent=transparent)
     
-    print(f"✅ Created aesthetic tessellation: {clipped_cells}/{total_cells} cells")
-    print("✅ Saved clean map asset: nyc_vibe_check_camera_map.png")
+    version_type = "transparent repo" if transparent_bg else "icon with blue streaks"
+    print(f"✅ Created {version_type} tessellation: {clipped_cells}/{total_cells} cells")
+    print(f"✅ Saved to: {output_filename}")
     plt.close()
 
 if __name__ == "__main__":
-    create_constrained_voronoi_tessellation() 
+    # Create icon version with gradient and blue streaks
+    create_constrained_voronoi_tessellation(transparent_bg=False, output_filename='nyc_vibe_check_camera_map.png')
+    
+    # Create transparent version for repo/link sharing
+    create_constrained_voronoi_tessellation(transparent_bg=True, output_filename='nyc_vibe_check_repo_image.png') 

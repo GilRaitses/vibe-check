@@ -1,6 +1,6 @@
 # 🗽 NYC Vibe-Check: Real-Time Traffic Safety AI
 
-![NYC Vibe-Check Camera Network](./nyc_vibe_check_camera_map.png)
+![NYC Vibe-Check Camera Network](./nyc_vibe_check_repo_image.png)
 
 > **AI-powered real-time monitoring of 907 camera zones across all 5 NYC boroughs using advanced computer vision and machine learning**
 
