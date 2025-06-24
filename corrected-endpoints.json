@@ -21,6 +21,7 @@
     "/dashboard/camera-zones",
     "/dashboard/map-zones",
     "/monitoring/status",
+    "/monitoring/timeseries/MN_001",
     "/ml-stats",
     "/ml-forecast/MN_001",
     "/ml-forecast/BK_042",

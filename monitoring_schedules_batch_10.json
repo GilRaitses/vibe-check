@@ -1,0 +1,233 @@
+[
+  {
+    "camera_id": "cam_qn_933",
+    "camera": {
+      "id": "cam_qn_933",
+      "name": "Cross Bay Blvd @ Wildlife Refuge",
+      "latitude": 40.88608,
+      "longitude": -73.896686,
+      "imageUrl": null,
+      "area": "QN",
+      "handle": "QNCBBWR",
+      "isOnline": true
+    },
+    "neighborhood": "QN",
+    "zone_id": "QN_933",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "frequency_color": "#32cd32",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "high_risk_reason": null,
+    "system_version": "restored_v1",
+    "auto_escalated": false,
+    "adaptive_scores_history": [],
+    "violation_history": [],
+    "original_camera_id": "933",
+    "original_handle": "QNCBBWR",
+    "coordinates": [
+      -73.896686,
+      40.88608
+    ]
+  },
+  {
+    "camera_id": "cam_qn_934",
+    "camera": {
+      "id": "cam_qn_934",
+      "name": "Beach Channel Dr @B 140 St",
+      "latitude": 40.729832,
+      "longitude": -74.010658,
+      "imageUrl": null,
+      "area": "QN",
+      "handle": "QNBCDB1S",
+      "isOnline": true
+    },
+    "neighborhood": "QN",
+    "zone_id": "QN_934",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "frequency_color": "#32cd32",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "high_risk_reason": null,
+    "system_version": "restored_v1",
+    "auto_escalated": false,
+    "adaptive_scores_history": [],
+    "violation_history": [],
+    "original_camera_id": "934",
+    "original_handle": "QNBCDB1S",
+    "coordinates": [
+      -74.010658,
+      40.729832
+    ]
+  },
+  {
+    "camera_id": "cam_bk_936",
+    "camera": {
+      "id": "cam_bk_936",
+      "name": "Atlantic Ave @ 111 St",
+      "latitude": 40.74759,
+      "longitude": -73.9708,
+      "imageUrl": null,
+      "area": "BK",
+      "handle": "BKAA1S",
+      "isOnline": true
+    },
+    "neighborhood": "BK",
+    "zone_id": "BK_936",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "frequency_color": "#32cd32",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "high_risk_reason": null,
+    "system_version": "restored_v1",
+    "auto_escalated": false,
+    "adaptive_scores_history": [],
+    "violation_history": [],
+    "original_camera_id": "936",
+    "original_handle": "BKAA1S",
+    "coordinates": [
+      -73.9708,
+      40.74759
+    ]
+  },
+  {
+    "camera_id": "cam_qn_937",
+    "camera": {
+      "id": "cam_qn_937",
+      "name": "Hutchhinson River Pkwy @ Bruckner Expy",
+      "latitude": 40.719655,
+      "longitude": -74.001842,
+      "imageUrl": null,
+      "area": "QN",
+      "handle": "QNHRPBE",
+      "isOnline": true
+    },
+    "neighborhood": "QN",
+    "zone_id": "QN_937",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "frequency_color": "#32cd32",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "high_risk_reason": null,
+    "system_version": "restored_v1",
+    "auto_escalated": false,
+    "adaptive_scores_history": [],
+    "violation_history": [],
+    "original_camera_id": "937",
+    "original_handle": "QNHRPBE",
+    "coordinates": [
+      -74.001842,
+      40.719655
+    ]
+  },
+  {
+    "camera_id": "cam_qn_938",
+    "camera": {
+      "id": "cam_qn_938",
+      "name": "Hutchhinson River Pkwy @ Waterbury Ave",
+      "latitude": 40.765534775125,
+      "longitude": -73.9800400250842,
+      "imageUrl": null,
+      "area": "QN",
+      "handle": "QNHRPWA",
+      "isOnline": true
+    },
+    "neighborhood": "QN",
+    "zone_id": "QN_938",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "frequency_color": "#32cd32",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "high_risk_reason": null,
+    "system_version": "restored_v1",
+    "auto_escalated": false,
+    "adaptive_scores_history": [],
+    "violation_history": [],
+    "original_camera_id": "938",
+    "original_handle": "QNHRPWA",
+    "coordinates": [
+      -73.9800400250842,
+      40.765534775125
+    ]
+  },
+  {
+    "camera_id": "cam_bx_939",
+    "camera": {
+      "id": "cam_bx_939",
+      "name": "2nd Camera North Bound BPU -148.52",
+      "latitude": 40.7521973661027,
+      "longitude": -73.9934562042021,
+      "imageUrl": null,
+      "area": "BX",
+      "handle": "BX2CNBB-",
+      "isOnline": true
+    },
+    "neighborhood": "BX",
+    "zone_id": "BX_939",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "frequency_color": "#32cd32",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "high_risk_reason": null,
+    "system_version": "restored_v1",
+    "auto_escalated": false,
+    "adaptive_scores_history": [],
+    "violation_history": [],
+    "original_camera_id": "939",
+    "original_handle": "BX2CNBB-",
+    "coordinates": [
+      -73.9934562042021,
+      40.7521973661027
+    ]
+  },
+  {
+    "camera_id": "cam_qn_940",
+    "camera": {
+      "id": "cam_qn_940",
+      "name": "Richmond Ave @ Arthur Kill Rd - quad - ptz - 141.131",
+      "latitude": 40.762967,
+      "longitude": -73.831958,
+      "imageUrl": null,
+      "area": "QN",
+      "handle": "QNRAAKR-",
+      "isOnline": true
+    },
+    "neighborhood": "QN",
+    "zone_id": "QN_940",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "frequency_color": "#32cd32",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "high_risk_reason": null,
+    "system_version": "restored_v1",
+    "auto_escalated": false,
+    "adaptive_scores_history": [],
+    "violation_history": [],
+    "original_camera_id": "940",
+    "original_handle": "QNRAAKR-",
+    "coordinates": [
+      -73.831958,
+      40.762967
+    ]
+  }
+]

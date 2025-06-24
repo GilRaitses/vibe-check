@@ -1,0 +1,65 @@
+[
+  {
+    "camera_id": "cam_mn_001",
+    "camera": {
+      "id": "cam_mn_001",
+      "name": "Broadway @ 46 Street",
+      "latitude": 40.761978792937,
+      "longitude": -74.0010637153985,
+      "imageUrl": null,
+      "area": "MN",
+      "isOnline": true
+    },
+    "neighborhood": "MN",
+    "zone_id": "MN_001",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "system_version": "restored_v1"
+  },
+  {
+    "camera_id": "cam_mn_002",
+    "camera": {
+      "id": "cam_mn_002",
+      "name": "Broadway @ 46 St- Quad South",
+      "latitude": 40.529434,
+      "longitude": -74.161351,
+      "imageUrl": null,
+      "area": "MN",
+      "isOnline": true
+    },
+    "neighborhood": "MN",
+    "zone_id": "MN_002",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "system_version": "restored_v1"
+  },
+  {
+    "camera_id": "cam_mn_003",
+    "camera": {
+      "id": "cam_mn_003",
+      "name": "Broadway @ 46 St- Quad East",
+      "latitude": 40.675787,
+      "longitude": -73.896898,
+      "imageUrl": null,
+      "area": "MN",
+      "isOnline": true
+    },
+    "neighborhood": "MN",
+    "zone_id": "MN_003",
+    "zone_classification": "neighborhood_baseline",
+    "current_score": 24,
+    "sampling_frequency_hours": 24,
+    "frequency_tier": "daily",
+    "is_baseline_camera": true,
+    "is_high_risk_zone": false,
+    "system_version": "restored_v1"
+  }
+]
