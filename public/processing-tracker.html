@@ -266,62 +266,79 @@
             }
         }
         
-        // Load camera locations and create Voronoi zones
+        // Load camera locations from API - NO FALLBACK
         async function loadCameraLocations() {
             try {
-                console.log('Loading real camera locations from zone data...');
+                console.log('Loading ALL real camera locations from API...');
                 
-                // Load from zone-lookup.json via API
-                const response = await fetch(`${API_BASE}/dashboard/camera-zones`);
+                const response = await fetch(`${API_BASE}/dashboard/nyc-cameras`);
                 const data = await response.json();
                 
-                if (data.success && data.zones) {
+                if (data.success && data.zones && data.zones.length > 0) {
                     cameras = data.zones;
-                    console.log(`Loaded ${cameras.length} real camera zones from API`);
+                    console.log(`✅ Loaded ${cameras.length} REAL camera zones from Firebase API`);
+                    
+                    // Update the cameras active stat
+                    document.getElementById('cameras-active').textContent = cameras.length;
                     
                     // Create Voronoi zones display
                     createVoronoiZones();
                     
-                    document.getElementById('vision-status').textContent = 'Camera Locations: Loaded ' + cameras.length + ' zones from real data';
+                    document.getElementById('vision-status').textContent = `✅ Loaded ${cameras.length} REAL zones from Firebase`;
                     document.getElementById('vision-status').className = 'status-online';
                     
                 } else {
-                    throw new Error('API returned unsuccessful response');
+                    throw new Error(`API returned ${data.zones?.length || 0} zones - insufficient data`);
                 }
                 
             } catch (error) {
-                console.error('Error loading camera locations:', error);
-                document.getElementById('vision-status').textContent = 'Failed to load camera locations: ' + error.message;
+                console.error('❌ CRITICAL: Failed to load real camera data:', error);
+                document.getElementById('vision-status').textContent = '❌ FAILED to load real camera data: ' + error.message;
                 document.getElementById('vision-status').className = 'status-offline';
                 
-                // Try alternative: load from data files
-                try {
-                    const fallbackResponse = await fetch('/data/zone-lookup.json');
-                    const zoneData = await fallbackResponse.json();
-                    
-                    cameras = Object.values(zoneData).map((zone) => ({
-                        zone_id: zone.zone_id,
-                        camera_name: zone.camera_name,
-                        handle: zone.handle,
-                        borough: zone.borough,
-                        latitude: zone.coordinates[1],
-                        longitude: zone.coordinates[0]
-                    }));
-                    
-                    console.log(`Loaded ${cameras.length} cameras from zone-lookup.json fallback`);
-                    createVoronoiZones();
-                    document.getElementById('vision-status').textContent = 'Camera Locations: Loaded ' + cameras.length + ' zones (fallback)';
-                    document.getElementById('vision-status').className = 'status-online';
-                    
-                } catch (fallbackError) {
-                    console.error('Fallback also failed:', fallbackError);
-                    document.getElementById('vision-status').textContent = 'Failed to load any camera data';
-                    document.getElementById('vision-status').className = 'status-offline';
-                }
+                // NO FALLBACK - Show error instead
+                updateStatusBanner('error', `CRITICAL: Cannot load real camera data - ${error.message}`);
             }
         }
         
-        // Create Voronoi zones display in territory map
+        // Load ALL 940 REAL NYC cameras from nyc-cameras-full.json
+        async function loadCameraLocations() {
+            try {
+                console.log('🎥 Loading ALL 940 REAL NYC cameras from nyc-cameras-full.json...');
+                
+                const response = await fetch(`${API_BASE}/dashboard/nyc-cameras`);
+                const data = await response.json();
+                
+                if (data.success && data.cameras && data.cameras.length > 0) {
+                    cameras = data.cameras;
+                    console.log(`✅ Loaded ${cameras.length} REAL NYC cameras from nyc-cameras-full.json`);
+                    console.log(`📊 Borough distribution:`, data.borough_distribution);
+                    
+                    // Update the cameras active stat with REAL count
+                    document.getElementById('cameras-active').textContent = cameras.length;
+                    
+                    // Create Voronoi zones display with ALL cameras
+                    createVoronoiZones();
+                    
+                    document.getElementById('vision-status').textContent = `✅ Loaded ${cameras.length} REAL NYC cameras (${data.data_source})`;
+                    document.getElementById('vision-status').className = 'status-online';
+                    
+                    updateStatusBanner('success', `✅ Loaded ${cameras.length} REAL NYC cameras with UUIDs`);
+                    
+                } else {
+                    throw new Error(`API returned ${data.cameras?.length || 0} cameras - insufficient data`);
+                }
+                
+            } catch (error) {
+                console.error('❌ CRITICAL: Failed to load REAL NYC cameras:', error);
+                document.getElementById('vision-status').textContent = '❌ FAILED to load REAL NYC cameras: ' + error.message;
+                document.getElementById('vision-status').className = 'status-offline';
+                
+                updateStatusBanner('error', `CRITICAL: Cannot load REAL NYC cameras - ${error.message}`);
+            }
+        }
+        
+        // Create Voronoi zones display - SHOW ALL CAMERAS, NOT JUST 50
         function createVoronoiZones() {
             const territoryMap = document.getElementById('territory-map');
             
@@ -329,31 +346,55 @@
             const existingZones = territoryMap.querySelectorAll('.voronoi-zone, .camera-dot');
             existingZones.forEach(zone => zone.remove());
             
-            // Add camera dots and small zones (simplified representation)
-            cameras.slice(0, 50).forEach((camera, index) => {
-                // Map coordinates to territory display (simplified mapping)
-                const x = Math.random() * 80 + 10; // 10-90%
-                const y = Math.random() * 80 + 10; // 10-90%
+            console.log(`🗺️ Creating zones for ${cameras.length} cameras...`);
+            
+            // Show ALL cameras, not just 50
+            cameras.forEach((camera, index) => {
+                // Map real coordinates to territory display 
+                let x, y;
                 
-                // Create Voronoi zone
+                // Map based on actual coordinates if available
+                if (camera.latitude && camera.longitude) {
+                    // Simple NYC coordinate mapping (rough approximation)
+                    // NYC bounds: lat 40.4-40.9, lng -74.3 to -73.7
+                    const latRange = 40.9 - 40.4;
+                    const lngRange = -73.7 - (-74.3);
+                    
+                    x = ((camera.longitude - (-74.3)) / lngRange) * 80 + 10;
+                    y = ((40.9 - camera.latitude) / latRange) * 80 + 10;
+                    
+                    // Ensure within bounds
+                    x = Math.max(10, Math.min(90, x));
+                    y = Math.max(10, Math.min(90, y));
+                } else {
+                    // Fallback to random if no coordinates
+                    x = Math.random() * 80 + 10;
+                    y = Math.random() * 80 + 10;
+                }
+                
+                // Create smaller zones for better visibility with many cameras
                 const zone = document.createElement('div');
                 zone.className = 'voronoi-zone';
                 zone.style.left = `${x}%`;
                 zone.style.top = `${y}%`;
-                zone.style.width = '3%';
-                zone.style.height = '4%';
-                zone.title = `${camera.zone_id} - ${camera.camera_name} (${camera.borough})`;
+                zone.style.width = '1%';
+                zone.style.height = '1.5%';
+                zone.title = `${camera.zone_id || camera.id} - ${camera.name || camera.camera_name} (${camera.neighborhood || camera.borough})`;
                 
                 // Create camera dot
                 const dot = document.createElement('div');
                 dot.className = 'camera-dot';
-                dot.style.left = `${x + 1}%`;
-                dot.style.top = `${y + 1.5}%`;
-                dot.title = camera.camera_name;
+                dot.style.left = `${x + 0.2}%`;
+                dot.style.top = `${y + 0.5}%`;
+                dot.style.width = '4px';
+                dot.style.height = '4px';
+                dot.title = camera.name || camera.camera_name;
                 
                 territoryMap.appendChild(zone);
                 territoryMap.appendChild(dot);
             });
+            
+            console.log(`✅ Created ${cameras.length} zone markers on map`);
         }
         
         // Update zone status based on processing data

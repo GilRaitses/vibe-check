@@ -4,6 +4,8 @@ import * as express from 'express';
 import * as cors from 'cors';
 import { Request, Response } from 'express';
 import { getCameraUuid, fetchNYCCameraImage, processImageWithVision, getCameraZoneInfo } from './camera-processing';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -302,177 +304,140 @@ app.get('/analytics/processing-queue', async (req: Request, res: Response) => {
 });
 
 // =====================================================
-// SIMPLE RESTORE ENDPOINT
+// DASHBOARD ENDPOINTS
 // =====================================================
 
-app.post('/restore-cameras', async (req: Request, res: Response) => {
+/**
+ * Camera Zones Dashboard Data
+ */
+app.get('/dashboard/camera-zones', async (req: Request, res: Response) => {
   try {
-    // Simple sample cameras for testing
-    const sampleCameras = [
-      {
-        camera_id: 'cam_mn_001',
-        camera: {
-          id: 'cam_mn_001',
-          name: 'Broadway @ 46 Street',
-          latitude: 40.761978792937,
-          longitude: -74.0010637153985,
-          area: 'MN',
-          handle: 'MNB4S',
-          isOnline: true
-        },
-        zone_id: 'MN_001',
-        current_score: 24,
-        created_at: admin.firestore.FieldValue.serverTimestamp()
-      },
-      {
-        camera_id: 'cam_bk_042',
-        camera: {
-          id: 'cam_bk_042',
-          name: 'Brooklyn Bridge Camera',
-          latitude: 40.706251,
-          longitude: -74.014347,
-          area: 'BK',
-          handle: 'BKTEST',
-          isOnline: true
-        },
-        zone_id: 'BK_042',
-        current_score: 24,
-        created_at: admin.firestore.FieldValue.serverTimestamp()
-      }
-    ];
+    console.log('🎛️ [DASHBOARD] Loading camera zone heatmap data...');
     
-    const batch = db.batch();
-    sampleCameras.forEach(camera => {
-      const docRef = db.collection('monitoring_schedules').doc(camera.camera_id);
-      batch.set(docRef, camera, { merge: true });
-    });
+    // Get all monitoring schedules
+    const schedulesSnapshot = await db.collection('monitoring_schedules').get();
+    const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
     
-    await batch.commit();
+    // Transform to dashboard format
+    const zones = schedules.map((schedule: any) => ({
+      id: schedule.camera_id,
+      name: schedule.camera?.name || 'Unknown Camera',
+      coordinates: schedule.coordinates || [0, 0],
+      latitude: schedule.camera?.latitude || 0,
+      longitude: schedule.camera?.longitude || 0,
+      zone_id: schedule.zone_id,
+      neighborhood: schedule.neighborhood,
+      frequency_tier: schedule.frequency_tier || 'daily',
+      frequency_color: schedule.frequency_color || '#32cd32',
+      sampling_hours: schedule.sampling_frequency_hours || 24,
+      is_high_risk: schedule.is_high_risk_zone || false,
+      current_score: schedule.current_score || 24,
+      camera_handle: schedule.original_handle,
+      system_version: schedule.system_version
+    }));
+    
+    const mapCenter = zones.length > 0 ? {
+      lat: zones.reduce((sum, zone) => sum + zone.latitude, 0) / zones.length,
+      lng: zones.reduce((sum, zone) => sum + zone.longitude, 0) / zones.length
+    } : { lat: 40.7831, lng: -73.9712 }; // Default to NYC
     
     return res.json({
       success: true,
-      message: `Restored ${sampleCameras.length} sample cameras`,
-      cameras_restored: sampleCameras.length
+      zones,
+      map_center: mapCenter,
+      total_cameras: zones.length,
+      frequency_distribution: {
+        hourly: zones.filter(z => z.sampling_hours <= 2).length,
+        daily: zones.filter(z => z.sampling_hours > 2 && z.sampling_hours <= 24).length,
+        weekly: zones.filter(z => z.sampling_hours > 24).length
+      }
     });
     
   } catch (error) {
+    console.error('❌ Dashboard camera zones failed:', error);
     return res.status(500).json({
-      error: 'Camera restoration failed',
+      error: 'Dashboard camera zones failed',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+/**
+ * ALL REAL NYC CAMERAS WITH ZONES - Load from enhanced zone-lookup.json
+ */
+app.get('/dashboard/nyc-cameras', async (req: Request, res: Response) => {
+  try {
+    console.log('🎥 [ENHANCED ZONES] Loading all 907 cameras with real NYC UUIDs and zones...');
+    
+    // Load enhanced zone-lookup.json with real NYC UUIDs
+    const dataPath = path.join(__dirname, '../../zone-lookup.json');
+    
+    if (!fs.existsSync(dataPath)) {
+      throw new Error('zone-lookup.json not found in functions directory');
+    }
+    
+    const zoneLookupData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    
+    console.log(`✅ Loaded enhanced zone lookup with ${Object.keys(zoneLookupData).length} zones`);
+    
+    // Transform zone lookup to camera format
+    const cameras = Object.values(zoneLookupData).map((zone: any) => ({
+      id: zone.id || zone.nyc_uuid, // Real NYC camera UUID
+      name: zone.camera_name,
+      latitude: zone.coordinates[1],
+      longitude: zone.coordinates[0],
+      coordinates: zone.coordinates,
+      area: zone.area || zone.borough,
+      borough: zone.borough,
+      zone_id: zone.zone_id,
+      camera_handle: zone.camera_handle,
+      nyc_uuid: zone.id || zone.nyc_uuid, // Real NYC UUID for API calls
+      image_url: zone.imageUrl,
+      is_online: zone.isOnline === 'true' || zone.isOnline === true || zone.isOnline === 'online',
+      frequency_tier: 'daily',
+      frequency_color: '#32cd32',
+      current_score: 24,
+      system_version: 'enhanced_zones_with_uuids',
+      data_source: 'data/zone-lookup.json'
+    }));
+    
+    // Calculate map center from all cameras
+    const mapCenter = {
+      lat: cameras.reduce((sum: number, camera: any) => sum + camera.latitude, 0) / cameras.length,
+      lng: cameras.reduce((sum: number, camera: any) => sum + camera.longitude, 0) / cameras.length
+    };
+    
+    // Borough distribution
+    const boroughCounts: any = {};
+    cameras.forEach((camera: any) => {
+      const borough = camera.borough || camera.area || 'Unknown';
+      boroughCounts[borough] = (boroughCounts[borough] || 0) + 1;
+    });
+    
+    return res.json({
+      success: true,
+      zones: cameras, // Use same field name for compatibility
+      cameras: cameras,
+      map_center: mapCenter,
+      total_cameras: cameras.length,
+      borough_distribution: boroughCounts,
+      data_source: 'data/zone-lookup.json',
+      real_nyc_cameras: true,
+      has_zone_mapping: true
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to load enhanced zone cameras:', error);
+    return res.status(500).json({
+      error: 'Failed to load enhanced zone cameras',
       details: error instanceof Error ? error.message : String(error)
     });
   }
 });
 
-// =====================================================
-// SCHEDULED PROCESSING FUNCTION
-// =====================================================
 
-export const scheduledCameraProcessing = functions.pubsub.schedule('every 60 minutes').onRun(async (context) => {
-  console.log('🕐 [SCHEDULED] Starting automated camera processing...');
-  
-  try {
-    // Get 5 random cameras to process
-    const camerasSnapshot = await db.collection('monitoring_schedules').limit(5).get();
-    const cameras = camerasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    console.log(`📸 [SCHEDULED] Processing ${cameras.length} cameras...`);
-    
-    const processingPromises = cameras.map(async (camera) => {
-      try {
-        const cameraData = camera as any;
-        
-        // Get zone info
-        const zoneInfo = await getCameraZoneInfo(cameraData);
-        
-        // Get NYC UUID
-        const nycUuid = await getCameraUuid(cameraData, db);
-        
-        if (!nycUuid) {
-          console.log(`⚠️ [SCHEDULED] No UUID for camera ${camera.id}`);
-          return;
-        }
-        
-        // Fetch and process image
-        const imageBuffer = await fetchNYCCameraImage(nycUuid);
-        const visionResults = await processImageWithVision(imageBuffer);
-        
-        // Calculate temperature score  
-        let temperature_score = 5.0;
-        let numerical_data: number[] = [];
-        
-        if (!visionResults.error && visionResults.numerical_data) {
-          try {
-            const { AdaptiveMonitoringEngine } = await import('./adaptiveMonitoringEngine');
-            const adaptiveScore = AdaptiveMonitoringEngine.calculateAdaptiveScore(
-              visionResults.numerical_data,
-              cameraData,
-              24
-            );
-            temperature_score = adaptiveScore.total_score;
-            numerical_data = visionResults.numerical_data;
-          } catch (error) {
-            numerical_data = Array.from({length: 17}, () => Math.floor(Math.random() * 3));
-          }
-        } else {
-          numerical_data = Array.from({length: 17}, () => Math.floor(Math.random() * 3));
-        }
-        
-        // Store analysis
-        const analysisRecord = {
-          camera_id: camera.id,
-          zone_id: zoneInfo.zone_id,
-          camera_name: zoneInfo.camera_name,
-          borough: zoneInfo.borough,
-          coordinates: zoneInfo.coordinates,
-          latitude: zoneInfo.latitude,
-          longitude: zoneInfo.longitude,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          temperature_score,
-          numerical_data,
-          cloud_vision_data: visionResults.cloud_vision_data || {
-            error: true,
-            error_message: visionResults.error_message || 'Scheduled processing',
-            pedestrian_count: Math.floor(Math.random() * 5),
-            bicycle_count: Math.floor(Math.random() * 3),
-            vehicle_count: Math.floor(Math.random() * 8),
-            safety_score: Math.floor(Math.random() * 10),
-            total_objects_detected: Math.floor(Math.random() * 15)
-          },
-          ml_confidence: visionResults.ml_confidence || Math.random() * 0.8 + 0.2,
-          data_source: visionResults.error ? 'scheduled_processing_fallback' : 'scheduled_live_nyc_camera',
-          processing_time_ms: Math.floor(Math.random() * 1000) + 200,
-          nyc_uuid: nycUuid,
-          image_size_bytes: imageBuffer?.length || Math.floor(Math.random() * 50000) + 10000,
-          processing_error: visionResults.error ? visionResults.error_message : null,
-          scheduled: true
-        };
-        
-        await db.collection('analyses').add(analysisRecord);
-        
-        // Update monitoring schedule
-        await db.collection('monitoring_schedules').doc(camera.id).update({
-          current_score: temperature_score,
-          last_analysis_time: admin.firestore.FieldValue.serverTimestamp()
-        });
-        
-        console.log(`✅ [SCHEDULED] Processed camera ${camera.id} - Score: ${temperature_score}`);
-        
-      } catch (error) {
-        console.error(`❌ [SCHEDULED] Failed to process camera ${camera.id}:`, error);
-      }
-    });
-    
-    await Promise.all(processingPromises);
-    
-    console.log(`🎉 [SCHEDULED] Completed automated processing for ${cameras.length} cameras`);
-    
-  } catch (error) {
-    console.error('❌ [SCHEDULED] Automated processing failed:', error);
-  }
-});
 
 // =====================================================
 // EXPORT SINGLE FUNCTION
 // =====================================================
 
-export const api = functions.https.onRequest(app); 
+export const api = functions.https.onRequest(app);
