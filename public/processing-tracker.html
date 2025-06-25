@@ -89,6 +89,7 @@
             <button class="btn" onclick="loadProcessingQueue()">Check Processing Queue</button>
             <button class="btn" onclick="startAutoRefresh()" id="auto-btn">Start Auto Refresh</button>
             <button class="btn btn-success" onclick="processRandomCamera()">Process Random Camera</button>
+            <button class="btn btn-warning" onclick="debugAPI()">🔧 Debug API</button>
             <div style="margin-left: auto;">
                 <span id="vision-status" class="status-online">Vision API Status: Checking...</span>
             </div>
@@ -266,75 +267,95 @@
             }
         }
         
-        // Load camera locations from API - NO FALLBACK
+        // Load ALL REAL NYC cameras with enhanced error handling and debugging
         async function loadCameraLocations() {
             try {
-                console.log('Loading ALL real camera locations from API...');
+                console.log('🎥 [DEBUG] Starting camera location load...');
+                updateStatusBanner('info', 'Loading NYC cameras from API...');
                 
                 const response = await fetch(`${API_BASE}/dashboard/nyc-cameras`);
-                const data = await response.json();
+                console.log('🎥 [DEBUG] Response status:', response.status);
                 
-                if (data.success && data.zones && data.zones.length > 0) {
-                    cameras = data.zones;
-                    console.log(`✅ Loaded ${cameras.length} REAL camera zones from Firebase API`);
-                    
-                    // Update the cameras active stat
-                    document.getElementById('cameras-active').textContent = cameras.length;
-                    
-                    // Create Voronoi zones display
-                    createVoronoiZones();
-                    
-                    document.getElementById('vision-status').textContent = `✅ Loaded ${cameras.length} REAL zones from Firebase`;
-                    document.getElementById('vision-status').className = 'status-online';
-                    
-                } else {
-                    throw new Error(`API returned ${data.zones?.length || 0} zones - insufficient data`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-            } catch (error) {
-                console.error('❌ CRITICAL: Failed to load real camera data:', error);
-                document.getElementById('vision-status').textContent = '❌ FAILED to load real camera data: ' + error.message;
-                document.getElementById('vision-status').className = 'status-offline';
-                
-                // NO FALLBACK - Show error instead
-                updateStatusBanner('error', `CRITICAL: Cannot load real camera data - ${error.message}`);
-            }
-        }
-        
-        // Load ALL 940 REAL NYC cameras from nyc-cameras-full.json
-        async function loadCameraLocations() {
-            try {
-                console.log('🎥 Loading ALL 940 REAL NYC cameras from nyc-cameras-full.json...');
-                
-                const response = await fetch(`${API_BASE}/dashboard/nyc-cameras`);
                 const data = await response.json();
+                console.log('🎥 [DEBUG] API Response:', {
+                    success: data.success,
+                    zones_count: data.zones?.length || 0,
+                    cameras_count: data.cameras?.length || 0,
+                    data_source: data.data_source,
+                    has_borough_distribution: !!data.borough_distribution
+                });
                 
-                if (data.success && data.cameras && data.cameras.length > 0) {
-                    cameras = data.cameras;
-                    console.log(`✅ Loaded ${cameras.length} REAL NYC cameras from nyc-cameras-full.json`);
-                    console.log(`📊 Borough distribution:`, data.borough_distribution);
-                    
-                    // Update the cameras active stat with REAL count
-                    document.getElementById('cameras-active').textContent = cameras.length;
-                    
-                    // Create Voronoi zones display with ALL cameras
-                    createVoronoiZones();
-                    
-                    document.getElementById('vision-status').textContent = `✅ Loaded ${cameras.length} REAL NYC cameras (${data.data_source})`;
-                    document.getElementById('vision-status').className = 'status-online';
-                    
-                    updateStatusBanner('success', `✅ Loaded ${cameras.length} REAL NYC cameras with UUIDs`);
-                    
-                } else {
-                    throw new Error(`API returned ${data.cameras?.length || 0} cameras - insufficient data`);
+                if (!data.success) {
+                    throw new Error(data.error || 'API returned success: false');
                 }
                 
+                // Handle both possible data structures
+                const cameraData = data.cameras || data.zones;
+                
+                if (!cameraData || cameraData.length === 0) {
+                    throw new Error(`No camera data received. API returned: zones=${data.zones?.length || 0}, cameras=${data.cameras?.length || 0}`);
+                }
+                
+                cameras = cameraData;
+                console.log(`✅ [SUCCESS] Loaded ${cameras.length} NYC cameras`);
+                console.log('📊 [DEBUG] Borough distribution:', data.borough_distribution);
+                console.log('🎯 [DEBUG] Sample camera:', cameras[0]);
+                
+                // Update the cameras active stat with REAL count
+                document.getElementById('cameras-active').textContent = cameras.length;
+                
+                // Create Voronoi zones display with ALL cameras
+                createVoronoiZones();
+                
+                document.getElementById('vision-status').textContent = `✅ Loaded ${cameras.length} REAL NYC cameras (${data.data_source || 'unknown source'})`;
+                document.getElementById('vision-status').className = 'status-online';
+                
+                updateStatusBanner('success', `✅ Loaded ${cameras.length} REAL NYC cameras with coordinates`);
+                
+                // Auto-load initial data
+                console.log('🔄 [AUTO-LOAD] Loading stored analyses...');
+                loadStoredAnalyses();
+                
             } catch (error) {
-                console.error('❌ CRITICAL: Failed to load REAL NYC cameras:', error);
-                document.getElementById('vision-status').textContent = '❌ FAILED to load REAL NYC cameras: ' + error.message;
+                console.error('❌ [CRITICAL ERROR] Camera loading failed:', error);
+                console.error('❌ [STACK TRACE]:', error.stack);
+                
+                // Detailed error reporting
+                const errorDetails = {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack,
+                    api_base: API_BASE,
+                    endpoint: `${API_BASE}/dashboard/nyc-cameras`,
+                    timestamp: new Date().toISOString()
+                };
+                console.error('❌ [ERROR DETAILS]:', errorDetails);
+                
+                document.getElementById('vision-status').textContent = `❌ FAILED: ${error.message}`;
                 document.getElementById('vision-status').className = 'status-offline';
                 
-                updateStatusBanner('error', `CRITICAL: Cannot load REAL NYC cameras - ${error.message}`);
+                updateStatusBanner('error', `CRITICAL: Cannot load NYC cameras - ${error.message}`);
+                
+                // Try to provide fallback information
+                try {
+                    console.log('🔄 [FALLBACK] Attempting to load Firestore cameras...');
+                    const fallbackResponse = await fetch(`${API_BASE}/dashboard/camera-zones`);
+                    const fallbackData = await fallbackResponse.json();
+                    
+                    if (fallbackData.success && fallbackData.zones?.length > 0) {
+                        cameras = fallbackData.zones;
+                        console.log(`🔄 [FALLBACK SUCCESS] Loaded ${cameras.length} cameras from Firestore`);
+                        document.getElementById('cameras-active').textContent = cameras.length;
+                        createVoronoiZones();
+                        updateStatusBanner('info', `Fallback: Loaded ${cameras.length} cameras from Firestore (limited data)`);
+                    }
+                } catch (fallbackError) {
+                    console.error('❌ [FALLBACK FAILED]:', fallbackError);
+                }
             }
         }
         
@@ -571,6 +592,112 @@
         // Show raw vision data
         function showRawVisionData() {
             alert('Raw vision data would be displayed in a modal or expanded view');
+        }
+        
+        // DEBUG: Test all API endpoints
+        async function debugAPI() {
+            updateStatusBanner('info', 'Running comprehensive API debug...');
+            console.log('🔧 [DEBUG API] Starting comprehensive API test...');
+            
+            const endpoints = [
+                { name: 'NYC Cameras', url: `${API_BASE}/dashboard/nyc-cameras` },
+                { name: 'Camera Zones', url: `${API_BASE}/dashboard/camera-zones` },
+                { name: 'Stored Analyses', url: `${API_BASE}/analytics/stored-analyses?limit=5` },
+                { name: 'Processing Queue', url: `${API_BASE}/analytics/processing-queue` },
+                { name: 'Health Check', url: `${API_BASE}/health` },
+                { name: 'Status Check', url: `${API_BASE}/status` }
+            ];
+            
+            console.log('🔧 [DEBUG] Testing endpoints:');
+            console.table(endpoints);
+            
+            const results = [];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    console.log(`🔧 [DEBUG] Testing: ${endpoint.name}`);
+                    const startTime = Date.now();
+                    
+                    const response = await fetch(endpoint.url);
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+                    
+                    console.log(`🔧 [DEBUG] ${endpoint.name} - Status: ${response.status}, Time: ${responseTime}ms`);
+                    
+                    let data = null;
+                    let dataSize = 0;
+                    
+                    if (response.ok) {
+                        const text = await response.text();
+                        dataSize = text.length;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (parseError) {
+                            console.error(`🔧 [DEBUG] JSON parse error for ${endpoint.name}:`, parseError);
+                            data = { error: 'Invalid JSON', raw: text.substring(0, 200) };
+                        }
+                    }
+                    
+                    const result = {
+                        name: endpoint.name,
+                        url: endpoint.url,
+                        status: response.status,
+                        statusText: response.statusText,
+                        ok: response.ok,
+                        responseTime: responseTime,
+                        dataSize: dataSize,
+                        success: data?.success,
+                        dataKeys: data ? Object.keys(data) : [],
+                        cameraCount: data?.cameras?.length || data?.zones?.length || 0,
+                        error: data?.error || null
+                    };
+                    
+                    results.push(result);
+                    console.log(`✅ [DEBUG] ${endpoint.name} completed:`, result);
+                    
+                } catch (error) {
+                    const result = {
+                        name: endpoint.name,
+                        url: endpoint.url,
+                        status: 'FAILED',
+                        error: error.message,
+                        stack: error.stack
+                    };
+                    results.push(result);
+                    console.error(`❌ [DEBUG] ${endpoint.name} failed:`, error);
+                }
+            }
+            
+            // Display comprehensive results
+            console.log('🔧 [DEBUG SUMMARY] All endpoint test results:');
+            console.table(results);
+            
+            // Show summary in UI
+            const summary = results.map(r => {
+                if (r.status === 'FAILED') {
+                    return `❌ ${r.name}: NETWORK ERROR - ${r.error}`;
+                } else if (!r.ok) {
+                    return `❌ ${r.name}: HTTP ${r.status} ${r.statusText}`;
+                } else if (r.success === false) {
+                    return `⚠️ ${r.name}: API Error - ${r.error || 'success: false'}`;
+                } else if (r.cameraCount > 0) {
+                    return `✅ ${r.name}: ${r.cameraCount} cameras (${r.responseTime}ms)`;
+                } else {
+                    return `✅ ${r.name}: OK (${r.responseTime}ms)`;
+                }
+            }).join('\n');
+            
+            alert(`API Debug Results:\n\n${summary}\n\nCheck console for detailed information.`);
+            
+            // Update status based on results
+            const criticalEndpoints = results.filter(r => r.name === 'NYC Cameras' || r.name === 'Camera Zones');
+            const workingCameraEndpoint = criticalEndpoints.find(r => r.ok && r.cameraCount > 0);
+            
+            if (workingCameraEndpoint) {
+                updateStatusBanner('success', `Debug complete: ${workingCameraEndpoint.name} working with ${workingCameraEndpoint.cameraCount} cameras`);
+            } else {
+                updateStatusBanner('error', 'Debug complete: No working camera endpoints found');
+            }
         }
         
         // Initialize on page load
