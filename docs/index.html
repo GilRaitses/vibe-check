@@ -262,7 +262,7 @@
             const container = document.querySelector('.demo-container');
             container.innerHTML = `
                 <div style="text-align: center; padding: 40px; color: #cc0000;">
-                    <h3>❌ DEMO LOAD FAILED</h3>
+                    <h3>DEMO LOAD FAILED</h3>
                     <p>Firebase Hosting Error: https://vibe-check-463816.web.app/demo-talk.html</p>
                     <p>Check Firebase deployment status</p>
                 </div>
@@ -285,14 +285,14 @@
                     errorDiv.style.background = 'rgba(0, 255, 0, 0.1)';
                     errorDiv.style.borderColor = 'rgba(0, 255, 0, 0.3)';
                     errorDiv.style.color = '#006600';
-                    errorDiv.textContent = `✅ API SUCCESS: ${JSON.stringify(data, null, 2)}`;
+                    errorDiv.textContent = `API SUCCESS: ${JSON.stringify(data, null, 2)}`;
                 })
                 .catch(error => {
                     errorDiv.style.display = 'block';
                     errorDiv.style.background = 'rgba(255, 0, 0, 0.1)';
                     errorDiv.style.borderColor = 'rgba(255, 0, 0, 0.3)';
                     errorDiv.style.color = '#cc0000';
-                    errorDiv.textContent = `❌ API ERROR: ${error.message}\nURL: ${link.href}`;
+                    errorDiv.textContent = `API ERROR: ${error.message}\nURL: ${link.href}`;
                 });
         }
 
@@ -313,20 +313,20 @@
                 try {
                     const response = await fetch(check.url);
                     if (response.ok) {
-                        statusHTML += `<p>✅ ${check.name}: ONLINE</p>`;
+                        statusHTML += `<p>ONLINE: ${check.name}</p>`;
                     } else {
-                        statusHTML += `<p>❌ ${check.name}: HTTP ${response.status} - ${response.statusText}</p>`;
+                        statusHTML += `<p>ERROR: ${check.name} - HTTP ${response.status} - ${response.statusText}</p>`;
                     }
                 } catch (error) {
-                    statusHTML += `<p>❌ ${check.name}: ${error.message}</p>`;
+                    statusHTML += `<p>ERROR: ${check.name} - ${error.message}</p>`;
                 }
             }
 
             // Add known broken endpoints
             statusHTML += '<br><strong>Known Issues:</strong>';
-            statusHTML += '<p>❌ Camera Images: All image endpoints return 404</p>';
-            statusHTML += '<p>❌ Territory Analysis: All territory endpoints return 500</p>';
-            statusHTML += '<p>✅ Zone Analytics: Working perfectly</p>';
+            statusHTML += '<p>ERROR: Camera Images - All image endpoints return 404</p>';
+            statusHTML += '<p>ERROR: Territory Analysis - All territory endpoints return 500</p>';
+            statusHTML += '<p>ONLINE: Zone Analytics - Working perfectly</p>';
 
             statusDiv.innerHTML = statusHTML;
         }
