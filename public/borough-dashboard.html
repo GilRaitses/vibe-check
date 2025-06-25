@@ -353,15 +353,50 @@
         // Load camera zone data
         async function loadCameraZones() {
             try {
-                const response = await fetch('http://localhost:3001/data/voronoi-tessellation-coastline.json');
-                cameraZones = await response.json();
-                console.log(`Loaded ${cameraZones.length} camera zones`);
-                console.log('Sample zone voronoi data:', cameraZones[0].voronoi_polygon);
+                // Load from real camera zones data file
+                const response = await fetch('/data/camera-zones-final.json');
+                const cameraZonesData = await response.json();
+                
+                if (Array.isArray(cameraZonesData)) {
+                    cameraZones = cameraZonesData;
+                } else {
+                    // If it's an object, convert to array
+                    cameraZones = Object.values(cameraZonesData);
+                }
+                
+                console.log(`Loaded ${cameraZones.length} real camera zones from camera-zones-final.json`);
                 renderZones();
             } catch (error) {
-                console.error('Error loading camera zones:', error);
-                console.error('Failed to fetch from /data/camera-zones-final.json');
-                document.getElementById('map').innerHTML = 'Error loading camera data: ' + error.message;
+                console.error('Error loading camera zones from data file:', error);
+                
+                // Try alternative: load from nyc-cameras-full.json
+                try {
+                    const response = await fetch('/data/nyc-cameras-full.json');
+                    const camerasData = await response.json();
+                    
+                    // Convert camera data to zone format
+                    cameraZones = camerasData.map(camera => ({
+                        handle: camera.id,
+                        name: camera.name,
+                        coordinates: [camera.longitude, camera.latitude],
+                        area: camera.area,
+                        image_url: camera.imageUrl,
+                        isOnline: camera.isOnline
+                    }));
+                    
+                    console.log(`Loaded ${cameraZones.length} cameras from nyc-cameras-full.json`);
+                    renderZones();
+                    
+                } catch (fallbackError) {
+                    console.error('Failed to load any camera data:', fallbackError);
+                    document.getElementById('map').innerHTML = `
+                        <div style="text-align: center; color: red; padding: 2rem;">
+                            <h3>Unable to Load Camera Data</h3>
+                            <p>Could not load from camera-zones-final.json or nyc-cameras-full.json</p>
+                            <p>Error: ${fallbackError.message}</p>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -478,8 +513,8 @@
             const cameraId = extractCameraId(zone.image_url);
             
             if (cameraId) {
-                // Use our proxy server to get the camera image
-                const proxyUrl = `http://localhost:3001/api/camera-image/${cameraId}`;
+                // Use the production API to get the camera image
+                const proxyUrl = `https://us-central1-vibe-check-463816.cloudfunctions.net/api/monitoring/camera-image/${cameraId}`;
                 const timestamp = Date.now();
                 
                 img.onerror = function() {

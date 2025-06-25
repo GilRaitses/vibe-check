@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Processing Tracker</title>
+    <style>
+        body { font-family: Arial; padding: 2rem; background: #f5f5f5; margin: 0; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 2rem; }
+        .header h1 { margin: 0; color: #333; }
+        .header p { color: #666; margin: 0.5rem 0; }
+        .controls { display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }
+        .btn { padding: 0.75rem 1.5rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: #000; }
+        .btn-danger { background: #dc3545; }
+        
+        .processing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card h3 { margin-top: 0; color: #333; }
+        
+        .status-banner { padding: 1rem; margin-bottom: 1rem; border-radius: 4px; text-align: center; }
+        .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        .territory-display { background: #1a1a1a; border-radius: 8px; height: 500px; position: relative; overflow: hidden; }
+        .borough-section { position: absolute; border: 2px solid #444; border-radius: 4px; }
+        .manhattan { background: rgba(255, 107, 107, 0.1); border-color: #ff6b6b; }
+        .brooklyn { background: rgba(78, 205, 196, 0.1); border-color: #4ecdc4; }
+        .queens { background: rgba(69, 183, 209, 0.1); border-color: #45b7d1; }
+        .bronx { background: rgba(249, 202, 36, 0.1); border-color: #f9ca24; }
+        .staten-island { background: rgba(108, 92, 231, 0.1); border-color: #6c5ce7; }
+        
+        .voronoi-zone { position: absolute; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,123,255,0.05); border-radius: 2px; }
+        .voronoi-zone.recently-processed { background: rgba(40,167,69,0.3); border-color: #28a745; }
+        .voronoi-zone.queued { background: rgba(255,193,7,0.3); border-color: #ffc107; }
+        .voronoi-zone.error { background: rgba(220,53,69,0.3); border-color: #dc3545; }
+        
+        .zone-label { position: absolute; color: white; font-size: 10px; text-shadow: 1px 1px 1px rgba(0,0,0,0.8); }
+        .camera-dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #007bff; }
+        .camera-dot.active { background: #28a745; box-shadow: 0 0 8px #28a745; }
+        .camera-dot.processing { background: #ffc107; animation: pulse 1s infinite; }
+        .camera-dot.error { background: #dc3545; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1rem; border-radius: 4px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-value { font-size: 2rem; font-weight: bold; color: #007bff; }
+        .stat-label { color: #666; font-size: 0.9rem; }
+        
+        .recent-analyses { max-height: 300px; overflow-y: auto; }
+        .analysis-item { padding: 0.75rem; border-bottom: 1px solid #eee; }
+        .analysis-item:last-child { border-bottom: none; }
+        .analysis-header { font-weight: bold; color: #333; }
+        .analysis-details { font-size: 0.9rem; color: #666; margin-top: 0.25rem; }
+        
+        .processing-queue { max-height: 200px; overflow-y: auto; }
+        .queue-item { padding: 0.5rem; border-bottom: 1px solid #eee; display: flex; justify-content: between; }
+        .queue-camera { font-weight: bold; }
+        .queue-status { color: #ffc107; }
+        
+        .image-display { text-align: center; margin: 1rem 0; }
+        .camera-image { max-width: 200px; max-height: 150px; border-radius: 4px; border: 2px solid #ddd; }
+        
+        .legend { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: white; padding: 1rem; border-radius: 4px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 0.5rem; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Live Processing Tracker</h1>
+            <p>Real-time camera analysis and Voronoi zone monitoring</p>
+        </div>
+        
+        <div id="status-banner" class="status-banner status-info">
+            Initializing system...
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="testVisionAPI()">Test Vision API</button>
+            <button class="btn" onclick="loadStoredAnalyses()">Load Stored Analyses</button>
+            <button class="btn" onclick="loadProcessingQueue()">Check Processing Queue</button>
+            <button class="btn" onclick="startAutoRefresh()" id="auto-btn">Start Auto Refresh</button>
+            <button class="btn btn-success" onclick="processRandomCamera()">Process Random Camera</button>
+            <div style="margin-left: auto;">
+                <span id="vision-status" class="status-online">Vision API Status: Checking...</span>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-processed">0</div>
+                <div class="stat-label">Total Processed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="success-rate">0%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avg-time">0</div>
+                <div class="stat-label">Avg Time (ms)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="cameras-active">918</div>
+                <div class="stat-label">Cameras Active</div>
+            </div>
+        </div>
+        
+        <div class="processing-grid">
+            <div class="card">
+                <h3>NYC Territory - Voronoi Zones</h3>
+                <div class="territory-display" id="territory-map">
+                    <!-- NYC Boroughs -->
+                    <div class="borough-section manhattan" style="left: 45%; top: 25%; width: 25%; height: 50%;">
+                        <div class="zone-label" style="top: 5px; left: 5px;">Manhattan</div>
+                    </div>
+                    <div class="borough-section brooklyn" style="left: 35%; top: 55%; width: 35%; height: 35%;">
+                        <div class="zone-label" style="top: 5px; left: 5px;">Brooklyn</div>
+                    </div>
+                    <div class="borough-section queens" style="left: 55%; top: 15%; width: 40%; height: 65%;">
+                        <div class="zone-label" style="top: 5px; left: 5px;">Queens</div>
+                    </div>
+                    <div class="borough-section bronx" style="left: 50%; top: 5%; width: 35%; height: 25%;">
+                        <div class="zone-label" style="top: 5px; left: 5px;">Bronx</div>
+                    </div>
+                    <div class="borough-section staten-island" style="left: 5%; top: 60%; width: 25%; height: 30%;">
+                        <div class="zone-label" style="top: 5px; left: 5px;">Staten Island</div>
+                    </div>
+                    
+                    <!-- Legend -->
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #28a745;"></div>
+                            <span>Recently Processed</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #ffc107;"></div>
+                            <span>Queued for Processing</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #007bff;"></div>
+                            <span>Active Camera</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #dc3545;"></div>
+                            <span>Processing Error</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Live Vision API Results</h3>
+                <div id="vision-results">
+                    <p>Click "Test Vision API" to run analysis</p>
+                </div>
+                
+                <div class="image-display">
+                    <h4>Analyzed Camera Image</h4>
+                    <p>Live NYC Traffic Camera Feed</p>
+                    <img id="camera-image" class="camera-image" style="display: none;" />
+                    <div id="no-image" style="padding: 2rem; background: #f8f9fa; border-radius: 4px; color: #666;">
+                        No image loaded yet
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="processing-grid">
+            <div class="card">
+                <h3>Recent Processing</h3>
+                <div id="recent-analyses" class="recent-analyses">
+                    <p>Click "Load Stored Analyses" to view recent processing results</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Processing Queue</h3>
+                <div id="processing-queue" class="processing-queue">
+                    <p>Click "Check Processing Queue" to see cameras awaiting analysis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let cameras = [];
+        let voronoiZones = [];
+        let recentAnalyses = [];
+        let isAutoActive = false;
+        let autoInterval;
+        
+        const API_BASE = 'https://us-central1-vibe-check-463816.cloudfunctions.net/api';
+        
+        // Test Vision API with a real camera
+        async function testVisionAPI() {
+            try {
+                updateStatusBanner('info', 'Testing Vision API with real camera...');
+                
+                const response = await fetch(`${API_BASE}/monitoring/camera-image/cam_mn_001`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayVisionResults(data);
+                    updateStatusBanner('success', 'Vision API test successful!');
+                } else {
+                    throw new Error(data.error_message || 'Vision API test failed');
+                }
+                
+            } catch (error) {
+                console.error('Vision API test failed:', error);
+                updateStatusBanner('error', 'Vision API test failed: ' + error.message);
+            }
+        }
+        
+        // Load stored analyses from Firestore
+        async function loadStoredAnalyses() {
+            try {
+                updateStatusBanner('info', 'Loading stored analyses...');
+                
+                const response = await fetch(`${API_BASE}/analytics/stored-analyses?limit=10`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    recentAnalyses = data.analyses;
+                    displayStoredAnalyses(data.analyses);
+                    updateStats(data.stats);
+                    updateStatusBanner('success', `Loaded ${data.analyses.length} stored analyses`);
+                } else {
+                    throw new Error(data.message || 'Failed to load analyses');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load stored analyses:', error);
+                document.getElementById('vision-status').textContent = 'Failed to load stored analyses: ' + error.message;
+                document.getElementById('vision-status').className = 'status-offline';
+                updateStatusBanner('error', 'Failed to load stored analyses: ' + error.message);
+            }
+        }
+        
+        // Load processing queue
+        async function loadProcessingQueue() {
+            try {
+                updateStatusBanner('info', 'Checking processing queue...');
+                
+                const response = await fetch(`${API_BASE}/analytics/processing-queue`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayProcessingQueue(data.queued_cameras);
+                    updateStatusBanner('success', `Found ${data.queued_cameras.length} cameras in queue`);
+                } else {
+                    throw new Error(data.message || 'Failed to load queue');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load processing queue:', error);
+                updateStatusBanner('error', 'Failed to load processing queue: ' + error.message);
+            }
+        }
+        
+        // Load camera locations and create Voronoi zones
+        async function loadCameraLocations() {
+            try {
+                console.log('Loading real camera locations from zone data...');
+                
+                // Load from zone-lookup.json via API
+                const response = await fetch(`${API_BASE}/dashboard/camera-zones`);
+                const data = await response.json();
+                
+                if (data.success && data.zones) {
+                    cameras = data.zones;
+                    console.log(`Loaded ${cameras.length} real camera zones from API`);
+                    
+                    // Create Voronoi zones display
+                    createVoronoiZones();
+                    
+                    document.getElementById('vision-status').textContent = 'Camera Locations: Loaded ' + cameras.length + ' zones from real data';
+                    document.getElementById('vision-status').className = 'status-online';
+                    
+                } else {
+                    throw new Error('API returned unsuccessful response');
+                }
+                
+            } catch (error) {
+                console.error('Error loading camera locations:', error);
+                document.getElementById('vision-status').textContent = 'Failed to load camera locations: ' + error.message;
+                document.getElementById('vision-status').className = 'status-offline';
+                
+                // Try alternative: load from data files
+                try {
+                    const fallbackResponse = await fetch('/data/zone-lookup.json');
+                    const zoneData = await fallbackResponse.json();
+                    
+                    cameras = Object.values(zoneData).map((zone) => ({
+                        zone_id: zone.zone_id,
+                        camera_name: zone.camera_name,
+                        handle: zone.handle,
+                        borough: zone.borough,
+                        latitude: zone.coordinates[1],
+                        longitude: zone.coordinates[0]
+                    }));
+                    
+                    console.log(`Loaded ${cameras.length} cameras from zone-lookup.json fallback`);
+                    createVoronoiZones();
+                    document.getElementById('vision-status').textContent = 'Camera Locations: Loaded ' + cameras.length + ' zones (fallback)';
+                    document.getElementById('vision-status').className = 'status-online';
+                    
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError);
+                    document.getElementById('vision-status').textContent = 'Failed to load any camera data';
+                    document.getElementById('vision-status').className = 'status-offline';
+                }
+            }
+        }
+        
+        // Create Voronoi zones display in territory map
+        function createVoronoiZones() {
+            const territoryMap = document.getElementById('territory-map');
+            
+            // Clear existing zones (keep borough sections)
+            const existingZones = territoryMap.querySelectorAll('.voronoi-zone, .camera-dot');
+            existingZones.forEach(zone => zone.remove());
+            
+            // Add camera dots and small zones (simplified representation)
+            cameras.slice(0, 50).forEach((camera, index) => {
+                // Map coordinates to territory display (simplified mapping)
+                const x = Math.random() * 80 + 10; // 10-90%
+                const y = Math.random() * 80 + 10; // 10-90%
+                
+                // Create Voronoi zone
+                const zone = document.createElement('div');
+                zone.className = 'voronoi-zone';
+                zone.style.left = `${x}%`;
+                zone.style.top = `${y}%`;
+                zone.style.width = '3%';
+                zone.style.height = '4%';
+                zone.title = `${camera.zone_id} - ${camera.camera_name} (${camera.borough})`;
+                
+                // Create camera dot
+                const dot = document.createElement('div');
+                dot.className = 'camera-dot';
+                dot.style.left = `${x + 1}%`;
+                dot.style.top = `${y + 1.5}%`;
+                dot.title = camera.camera_name;
+                
+                territoryMap.appendChild(zone);
+                territoryMap.appendChild(dot);
+            });
+        }
+        
+        // Update zone status based on processing data
+        function updateZoneStatuses() {
+            const zones = document.querySelectorAll('.voronoi-zone');
+            const dots = document.querySelectorAll('.camera-dot');
+            
+            // Reset all to default
+            zones.forEach(zone => {
+                zone.className = 'voronoi-zone';
+            });
+            dots.forEach(dot => {
+                dot.className = 'camera-dot';
+            });
+            
+            // Update based on recent analyses
+            recentAnalyses.slice(0, 10).forEach((analysis, index) => {
+                if (zones[index]) {
+                    if (analysis.processing_error) {
+                        zones[index].classList.add('error');
+                        dots[index].classList.add('error');
+                    } else {
+                        zones[index].classList.add('recently-processed');
+                        dots[index].classList.add('active');
+                    }
+                }
+            });
+        }
+        
+        // Display vision analysis results
+        function displayVisionResults(data) {
+            const resultsDiv = document.getElementById('vision-results');
+            
+            resultsDiv.innerHTML = `
+                <div class="analysis-header">${data.camera_id} Analysis Results</div>
+                <div class="analysis-details">
+                    <p><strong>Zone ID:</strong> ${data.debug_info?.zone_id || 'Loading...'}</p>
+                    <p><strong>Temperature Score:</strong> ${data.temperature_score}°</p>
+                    <p><strong>Processing Time:</strong> ${data.debug_info?.processing_time_ms}ms</p>
+                    <p><strong>Image Size:</strong> ${data.debug_info?.image_size_bytes} bytes</p>
+                    <p><strong>NYC UUID:</strong> ${data.debug_info?.nyc_uuid?.substring(0, 8)}...</p>
+                    <p><strong>Status:</strong> ${data.processing_error ? 'Error: ' + data.processing_error : 'Vision API Working'}</p>
+                    
+                    ${data.analysis_results?.cloud_vision_data && !data.processing_error ? `
+                        <h4>Vision Detection Results:</h4>
+                        <p><strong>Objects:</strong> ${data.analysis_results.cloud_vision_data.total_objects_detected} detected</p>
+                        <p><strong>Labels:</strong> ${data.analysis_results.cloud_vision_data.total_labels_detected || 0} recognized</p>
+                        <p><strong>ML Confidence:</strong> ${(data.analysis_results.ml_confidence * 100).toFixed(1)}%</p>
+                        <button class="btn" onclick="showRawVisionData()">Show Raw Vision Data</button>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Show camera image
+            if (data.debug_info?.nyc_uuid) {
+                const img = document.getElementById('camera-image');
+                const noImg = document.getElementById('no-image');
+                
+                img.src = `https://webcams.nyctmc.org/api/cameras/${data.debug_info.nyc_uuid}/image?${Date.now()}`;
+                img.style.display = 'block';
+                noImg.style.display = 'none';
+                
+                img.onerror = function() {
+                    img.style.display = 'none';
+                    noImg.style.display = 'block';
+                    noImg.textContent = 'Image failed to load';
+                };
+            }
+        }
+        
+        // Display stored analyses
+        function displayStoredAnalyses(analyses) {
+            const container = document.getElementById('recent-analyses');
+            
+            if (analyses.length === 0) {
+                container.innerHTML = '<p>No stored analyses found</p>';
+                return;
+            }
+            
+            container.innerHTML = analyses.map(analysis => `
+                <div class="analysis-item">
+                    <div class="analysis-header">${analysis.camera_id} - Zone ${analysis.zone_id || 'Unknown'}</div>
+                    <div class="analysis-details">
+                        Score: ${analysis.temperature_score}° | 
+                        ${analysis.camera_name || 'Unknown Camera'} (${analysis.borough || 'Unknown'}) |
+                        ${analysis.processing_error ? 'Error' : 'Success'} |
+                        ${new Date(analysis.timestamp?.seconds * 1000 || Date.now()).toLocaleTimeString()}
+                    </div>
+                </div>
+            `).join('');
+            
+            // Update zone statuses
+            updateZoneStatuses();
+        }
+        
+        // Display processing queue
+        function displayProcessingQueue(queuedCameras) {
+            const container = document.getElementById('processing-queue');
+            
+            if (queuedCameras.length === 0) {
+                container.innerHTML = '<p>No cameras in processing queue</p>';
+                return;
+            }
+            
+            container.innerHTML = queuedCameras.map(camera => `
+                <div class="queue-item">
+                    <span class="queue-camera">${camera.camera_id}</span>
+                    <span class="queue-status">Pending</span>
+                </div>
+            `).join('');
+        }
+        
+        // Update statistics
+        function updateStats(stats) {
+            document.getElementById('total-processed').textContent = stats.total_processed;
+            document.getElementById('success-rate').textContent = stats.success_rate + '%';
+            document.getElementById('avg-time').textContent = stats.avg_processing_time;
+        }
+        
+        // Process random camera
+        async function processRandomCamera() {
+            if (cameras.length === 0) {
+                await loadCameraLocations();
+            }
+            
+            const randomCamera = cameras[Math.floor(Math.random() * cameras.length)];
+            const cameraId = randomCamera.camera_handle || randomCamera.zone_id || 'cam_mn_001';
+            
+            updateStatusBanner('info', `Processing camera: ${cameraId}...`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/monitoring/camera-image/${cameraId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayVisionResults(data);
+                    updateStatusBanner('success', `Successfully processed camera: ${cameraId}`);
+                } else {
+                    throw new Error(data.error_message || 'Processing failed');
+                }
+            } catch (error) {
+                updateStatusBanner('error', `Failed to process camera: ${error.message}`);
+            }
+        }
+        
+        // Auto refresh toggle
+        function startAutoRefresh() {
+            const btn = document.getElementById('auto-btn');
+            
+            if (isAutoActive) {
+                clearInterval(autoInterval);
+                isAutoActive = false;
+                btn.textContent = 'Start Auto Refresh';
+                btn.className = 'btn';
+            } else {
+                isAutoActive = true;
+                btn.textContent = 'Stop Auto Refresh';
+                btn.className = 'btn btn-warning';
+                
+                autoInterval = setInterval(() => {
+                    loadStoredAnalyses();
+                    loadProcessingQueue();
+                }, 30000); // Every 30 seconds
+            }
+        }
+        
+        // Update status banner
+        function updateStatusBanner(type, message) {
+            const banner = document.getElementById('status-banner');
+            banner.className = `status-banner status-${type}`;
+            banner.textContent = message;
+        }
+        
+        // Show raw vision data
+        function showRawVisionData() {
+            alert('Raw vision data would be displayed in a modal or expanded view');
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatusBanner('info', 'Processing tracker initialized. Loading camera locations...');
+            loadCameraLocations();
+        });
+    </script>
+</body>
+</html>
