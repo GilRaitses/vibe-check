@@ -45,10 +45,36 @@ export async function getCameraUuid(cameraData: any, db?: admin.firestore.Firest
           }
         }
         
-        console.log(`No zone mapping found for camera: ${cameraId}`);
+        console.log(`No zone mapping found in zone-lookup for camera: ${cameraId}`);
       }
     } catch (error) {
       console.error('Error loading zone lookup data:', error);
+    }
+    
+    // Fallback: search nyc-cameras-full.json by name match
+    const camerasPath = path.join(__dirname, '../../data/nyc-cameras-full.json');
+    if (fs.existsSync(camerasPath)) {
+      const cameraList = JSON.parse(fs.readFileSync(camerasPath, 'utf8'));
+      // Match on approximate name (case-insensitive) or coordinates proximity
+      const targetName = cameraData.camera?.name?.toLowerCase();
+      if (targetName) {
+        const found = cameraList.find((c: any) => c.name.toLowerCase() === targetName);
+        if (found) {
+          console.log(`Found NYC camera uuid via name match: ${found.id}`);
+          return found.id;
+        }
+      }
+      // Coordinate matching within ~30 meters
+      const lat = cameraData.camera?.latitude;
+      const lng = cameraData.camera?.longitude;
+      if (lat && lng) {
+        const degRadius = 0.0003; // approx 30m
+        const found = cameraList.find((c: any) => Math.abs(c.latitude - lat) < degRadius && Math.abs(c.longitude - lng) < degRadius);
+        if (found) {
+          console.log(`Found NYC camera uuid via coordinate match: ${found.id}`);
+          return found.id;
+        }
+      }
     }
     
     // Fallback to hardcoded UUID for testing

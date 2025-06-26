@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import * as admin from 'firebase-admin';
 import { getCameraUuid, fetchNYCCameraImage, processImageWithVision } from '../camera-processing';
+import { insertZoneAnalysis } from '../bigquery';
 
 const router = Router();
 const db = admin.firestore();
@@ -141,6 +142,13 @@ router.get('/camera-image/:cameraId', async (req: Request, res: Response) => {
     
     // Store in analyses collection
     await db.collection('analyses').add(analysisRecord);
+    
+    // Store analysis in BigQuery for advanced analytics
+    try {
+      await insertZoneAnalysis(analysisRecord);
+    } catch (bqError) {
+      console.error('❌ [BIGQUERY] Failed to write analysis:', bqError);
+    }
     
     // Update monitoring schedule
     await db.collection('monitoring_schedules').doc(cameraId).update({

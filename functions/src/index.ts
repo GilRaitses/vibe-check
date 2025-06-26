@@ -6,6 +6,7 @@ import { Request, Response } from 'express';
 import { getCameraUuid, fetchNYCCameraImage, processImageWithVision, getCameraZoneInfo } from './camera-processing';
 import * as fs from 'fs';
 import * as path from 'path';
+import { insertZoneAnalysis } from './bigquery';
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -185,6 +186,13 @@ app.get('/monitoring/camera-image/:cameraId', async (req: Request, res: Response
     
     // Store in analyses collection
     await db.collection('analyses').add(analysisRecord);
+    
+    // Store in BigQuery dataset
+    try {
+      await insertZoneAnalysis(analysisRecord);
+    } catch (bqError) {
+      console.error('❌ [BIGQUERY] insert failed', bqError);
+    }
     
     // Update monitoring schedule
     await db.collection('monitoring_schedules').doc(cameraId).update({
