@@ -5,425 +5,149 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        body { 
-            font-family: Arial; 
-            margin: 0; 
-            padding: 0; 
-            background: #1a202c;
-        }
-        .container { 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column;
-        }
-        .header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; 
-            padding: 1rem; 
-            text-align: center;
-        }
-        .header h1 { margin: 0 0 0.5rem 0; }
-        .controls { 
-            background: #2d3748; 
-            padding: 1rem; 
-            display: flex; 
-            gap: 1rem; 
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .btn { 
-            padding: 0.5rem 1rem; 
-            background: #4299e1; 
-            color: white; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-        }
-        .btn.active { background: #38b2ac; }
-        .btn:hover { background: #3182ce; }
-        #map { 
-            flex: 1; 
-            background: #2d3748;
-        }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f2f5; }
+        #map { height: 100vh; }
         .info-panel {
             position: absolute;
-            top: 100px;
+            top: 20px;
             right: 20px;
-            background: rgba(255,255,255,0.95);
-            padding: 1rem;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
             border-radius: 8px;
-            min-width: 250px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             z-index: 1000;
             display: none;
+            max-width: 300px;
         }
-        .legend {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(255,255,255,0.95);
-            padding: 1rem;
-            border-radius: 8px;
-            z-index: 1000;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            margin-right: 0.5rem;
-            border-radius: 3px;
-        }
-        .proxy-status {
-            background: rgba(40, 44, 52, 0.9);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            margin-left: auto;
-        }
-        .status-online { color: #48bb78; }
-        .status-offline { color: #f56565; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🗽 NYC Voronoi Tessellation Map</h1>
-            <p>Geographic zones and camera proxy server visualization</p>
-        </div>
-        
-        <div class="controls">
-            <button class="btn active" onclick="toggleLayer('voronoi')">Voronoi Zones</button>
-            <button class="btn" onclick="toggleLayer('cameras')">Camera Points</button>
-            <button class="btn" onclick="toggleLayer('boundaries')">Borough Boundaries</button>
-            <button class="btn" onclick="toggleLayer('heatmap')">Temperature Heatmap</button>
-            <button class="btn" onclick="refreshProxyStatus()">🔄 Refresh Proxy</button>
-            
-            <div class="proxy-status">
-                Proxy Server: <span id="proxy-status" class="status-online">ONLINE</span> | 
-                Cameras: <span id="cameras-online">0</span>/940
-            </div>
-        </div>
-        
-        <div id="map"></div>
-        
-        <div id="info-panel" class="info-panel">
-            <h3 id="zone-title">Zone Information</h3>
-            <div id="zone-details"></div>
-        </div>
-        
-        <div class="legend">
-            <h4>Temperature Zones</h4>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #42a5f5;"></div>
-                <span>Cool (≤3°) - 1hr frequency</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ffa726;"></div>
-                <span>Warm (3-6°) - 30min frequency</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ff6b6b;"></div>
-                <span>Hot (>6°) - 15min frequency</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #666;"></div>
-                <span>No Data</span>
-            </div>
-        </div>
+    <div id="map"></div>
+    <div id="info-panel" class="info-panel">
+        <h3 id="zone-title">Zone Information</h3>
+        <div id="zone-details"></div>
     </div>
-    
+
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        let map;
-        let voronoiLayer, cameraLayer, boundaryLayer, heatmapLayer;
-        let activeLayers = { voronoi: true, cameras: false, boundaries: false, heatmap: false };
-        let currentZones = [];
-        
-        // Initialize map
-        function initMap() {
-            map = L.map('map').setView([40.7589, -73.9851], 11);
-            
-            // Dark tile layer for better contrast
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 19
-            }).addTo(map);
-            
-            // Initialize layers
-            voronoiLayer = L.layerGroup().addTo(map);
-            cameraLayer = L.layerGroup();
-            boundaryLayer = L.layerGroup();
-            heatmapLayer = L.layerGroup();
-            
-            loadVoronoiData();
-            loadCameraData();
-            loadBoroughBoundaries();
-            
-            // Click handler for zone selection
-            map.on('click', hideInfoPanel);
-        }
-        
-        async function loadVoronoiData() {
+        const map = L.map('map').setView([40.7128, -74.0060], 11); // Centered on NYC
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        let voronoiLayer = L.svg().addTo(map);
+
+        async function fetchCameraData() {
             try {
-                console.log('Loading real Voronoi tessellation data...');
-                
-                // Load from real complete_voronoi_zones.json file
-                const response = await fetch('/data/complete_voronoi_zones.json');
-                const voronoiData = await response.json();
-                
-                if (Array.isArray(voronoiData)) {
-                    currentZones = voronoiData;
-                } else {
-                    // If it's an object, convert to array
-                    currentZones = Object.values(voronoiData);
-                }
-                console.log(`Loaded ${currentZones.length} real Voronoi zones from complete_voronoi_zones.json`);
-                
+                const response = await fetch('/data/nyc-cameras-full.json');
+                const cameras = await response.json();
+                const points = cameras.filter(c => c.latitude && c.longitude);
+                console.log(`Loaded ${points.length} cameras with coordinates.`);
+                drawVoronoi(points);
             } catch (error) {
-                console.error('Error loading Voronoi data:', error);
-                
-                // Fallback to zone-lookup.json for basic zone data
-                try {
-                    const response = await fetch('/data/zone-lookup.json');
-                    const zoneData = await response.json();
-                    
-                    // Convert zone-lookup to basic zone format
-                    currentZones = Object.values(zoneData).map(zone => ({
-                        id: zone.zone_id,
-                        zone_id: zone.zone_id,
-                        camera_id: zone.camera_handle,
-                        latitude: zone.coordinates[1],
-                        longitude: zone.coordinates[0],
-                        neighborhood: zone.borough,
-                        camera_name: zone.camera_name
-                    }));
-                    
-                    console.log(`Loaded ${currentZones.length} zones from zone-lookup.json as fallback`);
-                } catch (fallbackError) {
-                    console.error('Failed to load any zone data:', fallbackError);
-                    currentZones = [];
-                }
+                console.error('Failed to load camera data:', error);
             }
-            
-            displayVoronoiZones();
         }
-        
-        async function loadCameraData() {
-            try {
-                // Load real camera data from nyc-cameras-full.json
-                const cameraResponse = await fetch('/data/nyc-cameras-full.json');
-                const cameraData = await cameraResponse.json();
-                
-                // Add camera markers to the map
-                cameraLayer.clearLayers();
-                cameraData.forEach(camera => {
-                    const marker = L.circleMarker([camera.latitude, camera.longitude], {
-                        radius: 3,
-                        fillColor: camera.isOnline === 'true' ? '#48bb78' : '#f56565',
-                        color: '#fff',
-                        weight: 1,
-                        opacity: 1,
-                        fillOpacity: 0.8
+
+        function drawVoronoi(points) {
+            // Remove any previous layer
+            if (window.voronoiGeoJsonLayer) {
+                map.removeLayer(window.voronoiGeoJsonLayer);
+            }
+
+            // Convert camera lat/lng to pixel coords in current map projection
+            const pixelPoints = points.map(p => {
+                const pt = map.latLngToLayerPoint([p.latitude, p.longitude]);
+                return [pt.x, pt.y];
+            });
+
+            // Build Delaunay & Voronoi using current map pixel bounds
+            const delaunay = d3.Delaunay.from(pixelPoints);
+            const bounds = map.getPixelBounds();
+            const voronoi = delaunay.voronoi([bounds.min.x, bounds.min.y, bounds.max.x, bounds.max.y]);
+
+            const polygons = points.map((d, i) => {
+                const cell = voronoi.cellPolygon(i);
+                if (!cell) return null;
+
+                const coords = cell.map(([x, y]) => {
+                    const latLng = map.layerPointToLatLng(L.point(x, y));
+                    return [latLng.lng, latLng.lat];
+                });
+
+                // Ensure polygon is closed
+                if (coords.length && (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1])) {
+                    coords.push(coords[0]);
+                }
+
+                return {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [coords]
+                    },
+                    properties: d
+                };
+            }).filter(Boolean);
+
+            // Add polygons to map
+            window.voronoiGeoJsonLayer = L.geoJSON(polygons, {
+                pane: 'overlayPane',
+                style: function () {
+                    return {
+                        color: '#9E9E9E',
+                        weight: 0.8,
+                        fillColor: '#42a5f5',
+                        fillOpacity: 0.15
+                    };
+                },
+                onEachFeature: function (feature, layer) {
+                    layer.on({
+                        mouseover: function (e) {
+                            e.target.setStyle({ fillColor: '#ff6b6b', fillOpacity: 0.45 });
+                        },
+                        mouseout: function (e) {
+                            window.voronoiGeoJsonLayer.resetStyle(e.target);
+                        },
+                        click: function () {
+                            showInfoPanel(feature.properties);
+                        }
                     });
-                    
-                    marker.bindTooltip(`
-                        Camera: ${camera.name}<br>
-                        ID: ${camera.id}<br>
-                        Area: ${camera.area}<br>
-                        Status: ${camera.isOnline === 'true' ? 'Online' : 'Offline'}
-                    `);
-                    
-                    cameraLayer.addLayer(marker);
-                });
-                
-                console.log(`Loaded ${cameraData.length} cameras from nyc-cameras-full.json`);
-                document.getElementById('cameras-online').textContent = cameraData.filter(c => c.isOnline === 'true').length;
-                
-            } catch (cameraError) {
-                console.error('Could not load camera data:', cameraError);
+                }
+            }).addTo(map);
+
+            // (Re)register a single handler to update polygons on map view changes
+            if (!window._voronoiListenerAttached) {
+                map.on('zoomend moveend', () => drawVoronoi(points));
+                window._voronoiListenerAttached = true;
             }
         }
         
-        function displayVoronoiZones() {
-            voronoiLayer.clearLayers();
-            
-            currentZones.forEach(zone => {
-                const tempScore = zone.current_score ? zone.current_score / 10 : Math.random() * 10;
-                const color = getTemperatureColor(tempScore);
-                
-                // Create polygon for Voronoi cell (simplified as circle for demo)
-                const circle = L.circle([zone.latitude, zone.longitude], {
-                    radius: 200 + Math.random() * 300,
-                    fillColor: color,
-                    color: color,
-                    weight: 2,
-                    opacity: 0.8,
-                    fillOpacity: 0.4
-                });
-                
-                circle.bindTooltip(`
-                    Zone: ${zone.zone_id || zone.id}<br>
-                    Temperature: ${tempScore.toFixed(1)}°<br>
-                    Camera: ${zone.camera_id || zone.id}<br>
-                    Borough: ${zone.neighborhood || 'Unknown'}
-                `);
-                
-                circle.on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    showZoneInfo(zone, tempScore);
-                });
-                
-                voronoiLayer.addLayer(circle);
-            });
+        function updateVoronoi(points) {
+            drawVoronoi(points);
         }
-        
-        function loadBoroughBoundaries() {
-            // Simplified borough boundaries (rectangles for demo)
-            const boroughs = [
-                { name: 'Manhattan', bounds: [[40.7, -74.02], [40.88, -73.9]], color: '#ff6b6b' },
-                { name: 'Brooklyn', bounds: [[40.57, -74.05], [40.74, -73.83]], color: '#4ecdc4' },
-                { name: 'Queens', bounds: [[40.54, -73.96], [40.8, -73.7]], color: '#45b7d1' },
-                { name: 'Bronx', bounds: [[40.78, -73.93], [40.92, -73.76]], color: '#f9ca24' },
-                { name: 'Staten Island', bounds: [[40.47, -74.26], [40.65, -74.05]], color: '#6c5ce7' }
-            ];
-            
-            boroughs.forEach(borough => {
-                const rectangle = L.rectangle(borough.bounds, {
-                    color: borough.color,
-                    weight: 3,
-                    opacity: 0.8,
-                    fillOpacity: 0.1
-                });
-                
-                rectangle.bindTooltip(borough.name);
-                boundaryLayer.addLayer(rectangle);
-            });
-        }
-        
-        function getTemperatureColor(temp) {
-            if (temp <= 3) return '#42a5f5';      // Cool - blue
-            if (temp <= 6) return '#ffa726';      // Warm - orange  
-            return '#ff6b6b';                     // Hot - red
-        }
-        
-        function toggleLayer(layerName) {
-            const button = event.target;
-            const isActive = activeLayers[layerName];
-            
-            activeLayers[layerName] = !isActive;
-            button.classList.toggle('active');
-            
-            switch(layerName) {
-                case 'voronoi':
-                    if (activeLayers[layerName]) {
-                        map.addLayer(voronoiLayer);
-                    } else {
-                        map.removeLayer(voronoiLayer);
-                    }
-                    break;
-                case 'cameras':
-                    if (activeLayers[layerName]) {
-                        map.addLayer(cameraLayer);
-                    } else {
-                        map.removeLayer(cameraLayer);
-                    }
-                    break;
-                case 'boundaries':
-                    if (activeLayers[layerName]) {
-                        map.addLayer(boundaryLayer);
-                    } else {
-                        map.removeLayer(boundaryLayer);
-                    }
-                    break;
-                case 'heatmap':
-                    if (activeLayers[layerName]) {
-                        createHeatmap();
-                        map.addLayer(heatmapLayer);
-                    } else {
-                        map.removeLayer(heatmapLayer);
-                    }
-                    break;
-            }
-        }
-        
-        function createHeatmap() {
-            heatmapLayer.clearLayers();
-            
-            currentZones.forEach(zone => {
-                const tempScore = zone.current_score ? zone.current_score / 10 : Math.random() * 10;
-                const intensity = tempScore / 10;
-                
-                const circle = L.circle([zone.latitude, zone.longitude], {
-                    radius: 150,
-                    fillColor: `rgba(255, 107, 107, ${intensity})`,
-                    color: 'transparent',
-                    fillOpacity: 0.6
-                });
-                
-                heatmapLayer.addLayer(circle);
-            });
-        }
-        
-        function showZoneInfo(zone, tempScore) {
-            const panel = document.getElementById('info-panel');
-            const title = document.getElementById('zone-title');
-            const details = document.getElementById('zone-details');
-            
-            title.textContent = `Zone ${zone.zone_id || zone.id}`;
-            details.innerHTML = `
-                <p><strong>Camera ID:</strong> ${zone.camera_id || zone.id}</p>
-                <p><strong>Temperature Score:</strong> ${tempScore.toFixed(1)}°</p>
-                <p><strong>Classification:</strong> ${tempScore <= 3 ? 'Cool Relief' : tempScore <= 6 ? 'Warm Tension' : 'Hot Stress'}</p>
-                <p><strong>Borough:</strong> ${zone.neighborhood || 'Unknown'}</p>
-                <p><strong>Sampling Frequency:</strong> ${zone.sampling_frequency_hours || 24} hours</p>
-                <p><strong>Coordinates:</strong> ${zone.latitude.toFixed(4)}, ${zone.longitude.toFixed(4)}</p>
-                <p><strong>Proxy Status:</strong> <span class="status-online">Active</span></p>
-                <hr>
-                <p><strong>Voronoi Cell:</strong> Tessellated boundary based on camera proximity</p>
-                <p><strong>Neighbors:</strong> ${Math.floor(Math.random() * 6) + 3} adjacent zones</p>
+
+        function showInfoPanel(props) {
+            const infoPanel = document.getElementById('info-panel');
+            document.getElementById('zone-title').textContent = props.name || props.camera_name || 'Camera Zone';
+            document.getElementById('zone-details').innerHTML = `
+                <p><strong>Zone ID:</strong> ${props.zone_id || props.handle || 'N/A'}</p>
+                <p><strong>Borough:</strong> ${props.borough || props.area || 'NYC'}</p>
+                <p><strong>Status:</strong> ${(props.isOnline === 'true' || props.isOnline === true) ? 'Online' : 'Offline'}</p>
             `;
-            
-            panel.style.display = 'block';
+            infoPanel.style.display = 'block';
         }
         
-        function hideInfoPanel() {
+        map.on('click', () => {
             document.getElementById('info-panel').style.display = 'none';
-        }
-        
-        async function refreshProxyStatus() {
-            console.log('Checking proxy server status...');
-            
-            // Simulate proxy status check
-            const isOnline = Math.random() > 0.1; // 90% uptime
-            const camerasOnline = Math.floor(Math.random() * 40) + 900;
-            
-            document.getElementById('proxy-status').textContent = isOnline ? 'ONLINE' : 'OFFLINE';
-            document.getElementById('proxy-status').className = isOnline ? 'status-online' : 'status-offline';
-            document.getElementById('cameras-online').textContent = camerasOnline;
-            
-            // Try to refresh data
-            try {
-                await loadVoronoiData();
-                console.log('Data refreshed from proxy server');
-            } catch (error) {
-                console.log('Using cached data');
-            }
-        }
-        
-        // Initialize everything
-        document.addEventListener('DOMContentLoaded', function() {
-            initMap();
-            
-            // Auto-refresh proxy status
-            setInterval(refreshProxyStatus, 30000);
-            
-            console.log('NYC Voronoi Tessellation Map initialized');
         });
+
+        fetchCameraData();
     </script>
 </body>
 </html> 
