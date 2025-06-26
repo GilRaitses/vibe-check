@@ -273,7 +273,8 @@
                 console.log('🎥 [DEBUG] Starting camera location load...');
                 updateStatusBanner('info', 'Loading NYC cameras from API...');
                 
-                const response = await fetch(`${API_BASE}/dashboard/nyc-cameras`);
+                // Use the working camera-zones endpoint instead of broken nyc-cameras
+                const response = await fetch(`${API_BASE}/dashboard/camera-zones`);
                 console.log('🎥 [DEBUG] Response status:', response.status);
                 
                 if (!response.ok) {
@@ -284,25 +285,24 @@
                 console.log('🎥 [DEBUG] API Response:', {
                     success: data.success,
                     zones_count: data.zones?.length || 0,
-                    cameras_count: data.cameras?.length || 0,
-                    data_source: data.data_source,
-                    has_borough_distribution: !!data.borough_distribution
+                    total_cameras: data.total_cameras,
+                    has_frequency_distribution: !!data.frequency_distribution
                 });
                 
                 if (!data.success) {
                     throw new Error(data.error || 'API returned success: false');
                 }
                 
-                // Handle both possible data structures
-                const cameraData = data.cameras || data.zones;
+                // Use zones data from camera-zones endpoint
+                const cameraData = data.zones;
                 
                 if (!cameraData || cameraData.length === 0) {
-                    throw new Error(`No camera data received. API returned: zones=${data.zones?.length || 0}, cameras=${data.cameras?.length || 0}`);
+                    throw new Error(`No camera data received. API returned: zones=${data.zones?.length || 0}, total_cameras=${data.total_cameras || 0}`);
                 }
                 
                 cameras = cameraData;
-                console.log(`✅ [SUCCESS] Loaded ${cameras.length} NYC cameras`);
-                console.log('📊 [DEBUG] Borough distribution:', data.borough_distribution);
+                console.log(`✅ [SUCCESS] Loaded ${cameras.length} NYC cameras from camera-zones endpoint`);
+                console.log('📊 [DEBUG] Frequency distribution:', data.frequency_distribution);
                 console.log('🎯 [DEBUG] Sample camera:', cameras[0]);
                 
                 // Update the cameras active stat with REAL count
@@ -311,10 +311,10 @@
                 // Create Voronoi zones display with ALL cameras
                 createVoronoiZones();
                 
-                document.getElementById('vision-status').textContent = `✅ Loaded ${cameras.length} REAL NYC cameras (${data.data_source || 'unknown source'})`;
+                document.getElementById('vision-status').textContent = `✅ Loaded ${cameras.length} cameras from monitoring schedules`;
                 document.getElementById('vision-status').className = 'status-online';
                 
-                updateStatusBanner('success', `✅ Loaded ${cameras.length} REAL NYC cameras with coordinates`);
+                updateStatusBanner('success', `✅ Loaded ${cameras.length} cameras with coordinates`);
                 
                 // Auto-load initial data
                 console.log('🔄 [AUTO-LOAD] Loading stored analyses...');
@@ -330,7 +330,7 @@
                     name: error.name,
                     stack: error.stack,
                     api_base: API_BASE,
-                    endpoint: `${API_BASE}/dashboard/nyc-cameras`,
+                    endpoint: `${API_BASE}/dashboard/camera-zones`,
                     timestamp: new Date().toISOString()
                 };
                 console.error('❌ [ERROR DETAILS]:', errorDetails);
@@ -339,23 +339,6 @@
                 document.getElementById('vision-status').className = 'status-offline';
                 
                 updateStatusBanner('error', `CRITICAL: Cannot load NYC cameras - ${error.message}`);
-                
-                // Try to provide fallback information
-                try {
-                    console.log('🔄 [FALLBACK] Attempting to load Firestore cameras...');
-                    const fallbackResponse = await fetch(`${API_BASE}/dashboard/camera-zones`);
-                    const fallbackData = await fallbackResponse.json();
-                    
-                    if (fallbackData.success && fallbackData.zones?.length > 0) {
-                        cameras = fallbackData.zones;
-                        console.log(`🔄 [FALLBACK SUCCESS] Loaded ${cameras.length} cameras from Firestore`);
-                        document.getElementById('cameras-active').textContent = cameras.length;
-                        createVoronoiZones();
-                        updateStatusBanner('info', `Fallback: Loaded ${cameras.length} cameras from Firestore (limited data)`);
-                    }
-                } catch (fallbackError) {
-                    console.error('❌ [FALLBACK FAILED]:', fallbackError);
-                }
             }
         }
         
@@ -600,7 +583,7 @@
             console.log('🔧 [DEBUG API] Starting comprehensive API test...');
             
             const endpoints = [
-                { name: 'NYC Cameras', url: `${API_BASE}/dashboard/nyc-cameras` },
+                { name: 'NYC Cameras', url: `${API_BASE}/dashboard/camera-zones` },
                 { name: 'Camera Zones', url: `${API_BASE}/dashboard/camera-zones` },
                 { name: 'Stored Analyses', url: `${API_BASE}/analytics/stored-analyses?limit=5` },
                 { name: 'Processing Queue', url: `${API_BASE}/analytics/processing-queue` },
