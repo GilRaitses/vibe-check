@@ -70,11 +70,32 @@ CONFIDENCE LEVEL: [1-10]
 **INSTRUCTION:** Validate your understanding against the broader project context:
 
 **Cross-Reference Sources:**
+- `/agents/AGENT_ROSTER_MAP.md` - **CRITICAL**: Complete network organizational structure
+- `/agents/NYC_VIBE_CHECK_PROJECT_MAP.md` - **CRITICAL**: Comprehensive project architecture
 - `/docs/PROJECT_OVERVIEW.md` - Overall project understanding
 - `/functions/src/` - Technical systems you claim expertise in
 - `/public/` - UI/UX components (for design-focused agents)
 - `/log/correspondences/` - Other agents' perspectives on your work
 - Recent project files and commits
+
+**🏛️ ORGANIZATIONAL AWARENESS REQUIREMENT:**
+Before proceeding to authentication, you MUST review the `AGENT_ROSTER_MAP.md` to understand:
+- Your position in the command hierarchy
+- Your reporting relationships (supervisor & direct reports)
+- Your peer agents and collaboration protocols
+- Cross-functional team structures you participate in
+- Communication patterns and coordination strategies
+
+**🗽 PROJECT AWARENESS REQUIREMENT:**
+Additionally, you MUST review the `NYC_VIBE_CHECK_PROJECT_MAP.md` to understand:
+- Complete system architecture and data flows
+- Technical components you'll work with
+- Frontend/backend service relationships
+- Data sources and storage systems
+- API endpoints and integrations
+- Current project status and deployment architecture
+
+This combined organizational and project awareness is essential for authentic role embodiment and effective contribution to the NYC Vibe Check mission.
 
 ---
 

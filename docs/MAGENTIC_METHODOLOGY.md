@@ -206,7 +206,23 @@ This APRIL-coordinated approach provides several critical improvements over trad
 - **Version Control**: Git-tracked configuration evolution
 - **Validation**: YAML schema enforcement and integrity checking
 
-#### 3.1.2 Wake-Up Prompt Generation
+#### 3.1.2 Organizational & Project Awareness Maps
+
+**Agent Roster Map** (`agents/AGENT_ROSTER_MAP.md`):
+- Complete network organizational structure and command hierarchy
+- Agent specializations and coordination protocols
+- Cross-functional team structures and communication patterns
+- Deployment coordination strategies and reporting chains
+
+**NYC Vibe Check Project Map** (`agents/NYC_VIBE_CHECK_PROJECT_MAP.md`):
+- Comprehensive system architecture and data flows
+- Technical component relationships and API endpoints
+- Data sources, storage systems, and deployment infrastructure
+- Project phases, milestones, and current status
+
+These awareness maps enable agents to understand both their organizational context and the technical ecosystem they operate within, ensuring effective coordination and informed decision-making.
+
+#### 3.1.3 Wake-Up Prompt Generation
 ```javascript
 // Automated prompt generation system
 class AgentWakeUpGenerator {
@@ -219,7 +235,7 @@ class AgentWakeUpGenerator {
 }
 ```
 
-#### 3.1.3 Correspondence Knowledge Base
+#### 3.1.4 Correspondence Knowledge Base
 - **Organization**: Chronologically sorted with metadata preservation
 - **Accessibility**: Direct file path mapping in agent configurations
 - **Integrity**: SHA verification for correspondence authenticity
