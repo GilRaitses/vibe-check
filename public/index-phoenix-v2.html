@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NYC Vibe-Check: Government-Grade Real-Time Safety AI</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="nyc-icon-192.png">
+    
+    <!-- Google Fonts - Government Grade Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Government-grade AI monitoring of 918 camera zones across NYC boroughs using advanced computer vision for real-time public safety">
+    <meta name="keywords" content="NYC, public safety, AI, computer vision, government technology, real-time monitoring">
+    <meta name="author" content="NYC Vibe-Check - Official Government Technology">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vibe-check-463816.web.app/">
+    <meta property="og:title" content="NYC Vibe-Check: Government-Grade Real-Time Safety AI">
+    <meta property="og:description" content="Official NYC government technology monitoring 918 camera zones with AI-powered real-time safety analysis">
+    <meta property="og:image" content="https://raw.githubusercontent.com/gilraitses/vibe-check/main/nyc_vibe_check_repo_image.png">
+    
+    <style>
+        /* 🎨 PHOENIX DESIGN SYSTEM V1.0 - EXTRACTED FROM DEMO-TALK.HTML */
+        :root {
+            /* Earl's Approved Color Palette */
+            --primary-bg: #0B1426;           /* Deep space blue - APPROVED! */
+            --secondary-bg: #1A1D29;         /* Government navy */
+            --card-bg: #2A2D3A;              /* Professional slate */
+            --accent-bg: #3A3D4A;            /* Container accents */
+            
+            --accent-cyan: #00D9FF;          /* Electric cyan - NYC ENERGY! */
+            --success-green: #39FF14;        /* Neon green - Success states */
+            --warning-orange: #FF8C00;       /* Amber orange - Attention */
+            --error-pink: #FF1493;           /* Hot pink - Engaging errors */
+            --info-blue: #0099CC;            /* Information blue */
+            
+            --text-primary: #FFFFFF;         /* High contrast white */
+            --text-secondary: #B0B3C1;       /* Medium contrast */
+            --text-muted: #8E9196;           /* Low contrast */
+            
+            /* Typography - Government Grade */
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            /* Spacing - 8px base unit */
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
+            
+            /* Shadows - Demo-talk sophistication */
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-xl: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --shadow-glow: 0 0 20px rgba(0, 217, 255, 0.3);
+            
+            /* Transitions */
+            --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Reset & Base */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: var(--font-primary);
+            background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Government Header */
+        .government-header {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--accent-cyan);
+            padding: var(--space-md) 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .government-seal {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-xl);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .seal-brand {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+        
+        .seal-brand::before {
+            content: '🗽';
+            font-size: 2rem;
+        }
+        
+        .government-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 0.875rem;
+            color: var(--success-green);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--space-2xl);
+        }
+        
+        /* Hero Section - Government Authority */
+        .hero {
+            text-align: center;
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-lg);
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(0, 217, 255, 0.05) 100%);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 20px;
+            color: var(--accent-cyan);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--success-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--space-lg);
+            letter-spacing: -0.025em;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-lg);
+            font-weight: 500;
+        }
+        
+        .hero-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0 auto var(--space-xl);
+            line-height: 1.8;
+        }
+        
+        /* Live Stats - Demo-talk sophistication */
+        .live-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-lg);
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            padding: var(--space-xl);
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--success-green));
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(0, 217, 255, 0.3);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+            line-height: 1;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Interface Grid - Glassmorphism */
+        .interface-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--space-xl);
+            margin-bottom: var(--space-2xl);
+        }
+        
+        .interface-category {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: var(--space-xl);
+            box-shadow: var(--shadow-xl);
+            transition: var(--transition-base);
+        }
+        
+        .interface-category:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .interface-category h3 {
+            font-size: 1.5rem;
+            margin-bottom: var(--space-lg);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .category-icon {
+            font-size: 2rem;
+        }
+        
+        .interface-links {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        /* Interface Link - Button Enhancement */
+        .interface-link {
+            display: flex;
+            align-items: center;
+            padding: var(--space-lg);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .interface-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 217, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .interface-link:hover::before {
+            left: 100%;
+        }
+        
+        .interface-link:hover {
+            border-color: var(--accent-cyan);
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(0, 217, 255, 0.05));
+            transform: scale(1.02);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        .link-icon {
+            margin-right: var(--space-md);
+            font-size: 1.5rem;
+            width: 32px;
+            text-align: center;
+            color: var(--accent-cyan);
+        }
+        
+        .link-content {
+            flex: 1;
+        }
+        
+        .link-title {
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+            color: var(--text-primary);
+        }
+        
+        .link-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        
+        /* Government Section */
+        .government-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: var(--space-2xl);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .government-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+        }
+        
+        .government-section h3 {
+            margin-bottom: var(--space-lg);
+            color: var(--accent-cyan);
+        }
+        
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+            justify-content: center;
+            margin-top: var(--space-lg);
+        }
+        
+        .tech-tag {
+            padding: var(--space-sm) var(--space-md);
+            background: rgba(0, 217, 255, 0.1);
+            color: var(--accent-cyan);
+            border-radius: 15px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            font-weight: 500;
+        }
+        
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-lg) var(--space-xl);
+            background: linear-gradient(135deg, var(--card-bg), var(--accent-bg));
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition-base);
+            margin-top: var(--space-lg);
+        }
+        
+        .github-link:hover {
+            background: linear-gradient(135deg, var(--accent-cyan), #0099CC);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container { padding: var(--space-lg); }
+            .hero h1 { font-size: 2.5rem; }
+            .hero-subtitle { font-size: 1.25rem; }
+            .interface-grid { grid-template-columns: 1fr; }
+            .live-stats { grid-template-columns: repeat(2, 1fr); }
+            
+            .government-seal {
+                flex-direction: column;
+                gap: var(--space-md);
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .live-stats { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Government Header -->
+    <header class="government-header">
+        <div class="government-seal">
+            <a href="#" class="seal-brand">NYC Vibe-Check</a>
+            <div class="government-status">
+                <div class="status-dot"></div>
+                Official Government Technology - Live System
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-badge">
+                <div class="status-dot"></div>
+                Government-Grade Public Safety Technology
+            </div>
+            
+            <h1>NYC Vibe-Check</h1>
+            <p class="hero-subtitle">Real-Time AI-Powered Public Safety Monitoring</p>
+            <p class="hero-description">
+                Official NYC government technology providing comprehensive real-time monitoring of public spaces across all five boroughs. 
+                Advanced computer vision and machine learning deliver actionable safety insights for government agencies and citizens.
+            </p>
+        </section>
+        
+        <!-- Live Statistics -->
+        <section class="live-stats fade-in">
+            <div class="stat-card">
+                <div class="stat-number">918</div>
+                <div class="stat-label">Camera Zones</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">5</div>
+                <div class="stat-label">NYC Boroughs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Live Monitoring</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">Real-time</div>
+                <div class="stat-label">AI Analysis</div>
+            </div>
+        </section>
+        
+        <!-- Interface Categories -->
+        <section class="interface-grid">
+            <!-- Live Processing & Monitoring -->
+            <div class="interface-category fade-in">
+                <h3>
+                    <span class="category-icon">📊</span>
+                    Live Processing & Monitoring
+                </h3>
+                <div class="interface-links">
+                    <a href="processing-tracker-v2.html" class="interface-link">
+                        <span class="link-icon">🔍</span>
+                        <div class="link-content">
+                            <div class="link-title">Processing Tracker V2.0</div>
+                            <div class="link-description">Modern real-time camera analysis with enhanced Voronoi zone visualization</div>
+                        </div>
+                    </a>
+                    <a href="dashboard.html" class="interface-link">
+                        <span class="link-icon">📈</span>
+                        <div class="link-content">
+                            <div class="link-title">System Dashboard</div>
+                            <div class="link-description">Comprehensive system overview and performance metrics for government users</div>
+                        </div>
+                    </a>
+                    <a href="demo-talk.html" class="interface-link">
+                        <span class="link-icon">🎤</span>
+                        <div class="link-content">
+                            <div class="link-title">Interactive Presentation</div>
+                            <div class="link-description">Comprehensive system demonstration with live data integration</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Geographic Visualization -->
+            <div class="interface-category fade-in">
+                <h3>
+                    <span class="category-icon">🗺️</span>
+                    Geographic Intelligence
+                </h3>
+                <div class="interface-links">
+                    <a href="voronoi-map.html" class="interface-link">
+                        <span class="link-icon">🔷</span>
+                        <div class="link-content">
+                            <div class="link-title">Voronoi Tessellation</div>
+                            <div class="link-description">Advanced geometric analysis of NYC camera coverage zones</div>
+                        </div>
+                    </a>
+                    <a href="borough-dashboard.html" class="interface-link">
+                        <span class="link-icon">🏙️</span>
+                        <div class="link-content">
+                            <div class="link-title">Borough Command Center</div>
+                            <div class="link-description">Government-grade borough-level analytics and operational control</div>
+                        </div>
+                    </a>
+                    <a href="camera-zone-map.html" class="interface-link">
+                        <span class="link-icon">📍</span>
+                        <div class="link-content">
+                            <div class="link-title">Live Camera Network</div>
+                            <div class="link-description">Interactive map of all 918 camera locations with real-time status</div>
+                        </div>
+                    </a>
+                    <a href="manhattan-territories.html" class="interface-link">
+                        <span class="link-icon">🏢</span>
+                        <div class="link-content">
+                            <div class="link-title">Manhattan Analysis</div>
+                            <div class="link-description">Detailed Manhattan zone analysis with territory optimization</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Analytics & Intelligence -->
+            <div class="interface-category fade-in">
+                <h3>
+                    <span class="category-icon">🧠</span>
+                    Analytics & Intelligence
+                </h3>
+                <div class="interface-links">
+                    <a href="heatmap-dashboard.html" class="interface-link">
+                        <span class="link-icon">🌡️</span>
+                        <div class="link-content">
+                            <div class="link-title">Temperature Heatmaps</div>
+                            <div class="link-description">Real-time emotional temperature analysis across NYC zones</div>
+                        </div>
+                    </a>
+                    <a href="camera-viewer.html" class="interface-link">
+                        <span class="link-icon">📹</span>
+                        <div class="link-content">
+                            <div class="link-title">Camera Operations</div>
+                            <div class="link-description">Live camera feeds with AI analysis and operational controls</div>
+                        </div>
+                    </a>
+                    <a href="manhattan-shape.html" class="interface-link">
+                        <span class="link-icon">📐</span>
+                        <div class="link-content">
+                            <div class="link-title">Geometric Analysis</div>
+                            <div class="link-description">Advanced geometric modeling and territory optimization algorithms</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Government Technology Section -->
+        <section class="government-section fade-in">
+            <h3>🏛️ Government-Grade Technology Platform</h3>
+            <p style="color: var(--text-secondary); margin-bottom: var(--space-lg);">
+                Built with enterprise-grade Google Cloud AI tools for maximum reliability, security, and scalability. 
+                Designed to meet government standards for public safety technology deployment.
+            </p>
+            
+            <a href="https://github.com/gilraitses/vibe-check" class="github-link" target="_blank">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                View Source Code & Documentation
+            </a>
+            
+            <div class="tech-stack">
+                <span class="tech-tag">Google Cloud Vision</span>
+                <span class="tech-tag">Firebase Functions</span>
+                <span class="tech-tag">Firestore Database</span>
+                <span class="tech-tag">BigQuery ML</span>
+                <span class="tech-tag">Gemini AI</span>
+                <span class="tech-tag">Real-time Processing</span>
+                <span class="tech-tag">Government-Grade Security</span>
+            </div>
+        </section>
+    </div>
+    
+    <script>
+        // Add smooth animations on load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate cards in sequence
+            const cards = document.querySelectorAll('.fade-in');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    card.style.transition = 'all 0.6s ease-out';
+                    
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 150);
+            });
+            
+            // Add click analytics
+            document.querySelectorAll('.interface-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    console.log('Interface accessed:', this.href);
+                });
+            });
+            
+            // Dynamic stats update simulation
+            setInterval(() => {
+                const statusDots = document.querySelectorAll('.status-dot');
+                statusDots.forEach(dot => {
+                    dot.style.animation = 'none';
+                    setTimeout(() => {
+                        dot.style.animation = 'pulse 2s infinite';
+                    }, 10);
+                });
+            }, 30000);
+        });
+    </script>
+</body>
+</html> 

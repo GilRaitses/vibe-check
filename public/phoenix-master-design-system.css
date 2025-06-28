@@ -1,0 +1,608 @@
+/* =========================================================================
+   🎨 PHOENIX MASTER DESIGN SYSTEM V1.0
+   Agent: ZARA_PIXEL_PHOENIX
+   Commissioned by: EARL@DISPATCH_COMMAND
+   Foundation: Extracted from demo-talk.html sophistication
+   Color Palette: Earl's approved Deep Space Blue + Electric Cyan
+   Typography: Inter + JetBrains Mono (Government-grade)
+   Date: 2025-01-27
+   Status: GOVERNMENT-WORTHY INTERFACE FOUNDATION
+   ========================================================================= */
+
+/* ===== CSS CUSTOM PROPERTIES - DESIGN TOKENS ===== */
+:root {
+    /* 🎨 COLOR SYSTEM - Earl's Approved Palette */
+    --primary-bg: #0B1426;                    /* Deep space blue - APPROVED by Earl */
+    --secondary-bg: #1A1D29;                  /* Government navy */
+    --card-bg: #2A2D3A;                       /* Professional slate */
+    --accent-bg: #3A3D4A;                     /* Container accents */
+    
+    --accent-cyan: #00D9FF;                   /* Electric cyan - NYC ENERGY! */
+    --success-green: #39FF14;                 /* Neon green - Success states */
+    --warning-orange: #FF8C00;                /* Amber orange - Attention */
+    --error-pink: #FF1493;                    /* Hot pink - Errors (engaging) */
+    --info-blue: #0099CC;                     /* Information blue */
+    
+    --text-primary: #FFFFFF;                  /* High contrast white */
+    --text-secondary: #B0B3C1;                /* Medium contrast */
+    --text-muted: #8E9196;                    /* Low contrast */
+    
+    /* 🔤 TYPOGRAPHY SYSTEM - Government Grade */
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Monaco', 'Cascadia Code', 'Courier New', monospace;
+    
+    /* 📏 SPACING SYSTEM - 8px Base Unit */
+    --space-xs: 0.25rem;     /* 4px */
+    --space-sm: 0.5rem;      /* 8px */
+    --space-md: 1rem;        /* 16px */
+    --space-lg: 1.5rem;      /* 24px */
+    --space-xl: 2rem;        /* 32px */
+    --space-2xl: 3rem;       /* 48px */
+    --space-3xl: 4rem;       /* 64px */
+    --space-4xl: 6rem;       /* 96px */
+    
+    /* 🔘 BORDER RADIUS SYSTEM */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 50%;
+    
+    /* 🌟 SHADOW SYSTEM - Extracted from demo-talk.html */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 10px 30px rgba(0, 0, 0, 0.1);   /* Demo-talk sophistication */
+    --shadow-glow: 0 0 20px rgba(0, 217, 255, 0.3); /* Cyan glow effect */
+    
+    /* ⚡ ANIMATION SYSTEM */
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* 📱 BREAKPOINTS */
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+    --breakpoint-2xl: 1536px;
+}
+
+/* ===== RESET & BASE STYLES ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-primary);
+    background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== TYPOGRAPHY SYSTEM ===== */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: var(--space-lg);
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--success-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.025em;
+}
+
+h2 {
+    font-size: 2rem;
+    color: var(--text-primary);
+}
+
+h3 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
+h4 {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+}
+
+p {
+    margin-bottom: var(--space-md);
+    color: var(--text-secondary);
+}
+
+.text-mono {
+    font-family: var(--font-mono);
+}
+
+/* ===== LAYOUT COMPONENTS - CSS GRID MASTERY ===== */
+.phoenix-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: var(--space-xl);
+}
+
+.phoenix-grid {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+.phoenix-grid-2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.phoenix-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.phoenix-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.phoenix-grid-auto {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+/* ===== CARD COMPONENTS - Demo-talk.html Sophistication ===== */
+.phoenix-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition-base);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.phoenix-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+}
+
+.phoenix-card:hover {
+    border-color: rgba(0, 217, 255, 0.3);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+}
+
+/* Glassmorphism Card - Demo-talk.html Pattern */
+.phoenix-card-glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    box-shadow: var(--shadow-xl);
+    transition: var(--transition-base);
+}
+
+.phoenix-card-glass:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+}
+
+/* ===== BUTTON SYSTEM - Extracted & Enhanced ===== */
+.phoenix-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: var(--font-primary);
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition-base);
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    outline: none;
+}
+
+/* Shimmer effect from demo-talk.html */
+.phoenix-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.phoenix-btn:hover::before {
+    left: 100%;
+}
+
+.phoenix-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+}
+
+/* Button Variants */
+.phoenix-btn-primary {
+    background: linear-gradient(135deg, var(--accent-cyan), #0099CC);
+    color: var(--text-primary);
+    border-color: var(--accent-cyan);
+}
+
+.phoenix-btn-success {
+    background: linear-gradient(135deg, var(--success-green), #2ECC40);
+    color: var(--primary-bg);
+    border-color: var(--success-green);
+}
+
+.phoenix-btn-warning {
+    background: linear-gradient(135deg, var(--warning-orange), #FF6B35);
+    color: var(--text-primary);
+    border-color: var(--warning-orange);
+}
+
+.phoenix-btn-secondary {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== STATUS INDICATORS - Government Grade ===== */
+.phoenix-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-md);
+}
+
+.phoenix-status-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    text-align: center;
+    color: var(--primary-bg);
+    border-left: 4px solid var(--accent-cyan);
+    transition: var(--transition-base);
+}
+
+.phoenix-status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.phoenix-status-online {
+    border-left-color: var(--success-green);
+}
+
+.phoenix-status-warning {
+    border-left-color: var(--warning-orange);
+}
+
+.phoenix-status-error {
+    border-left-color: var(--error-pink);
+}
+
+/* ===== METRIC CARDS - Professional Data Display ===== */
+.phoenix-metric-card {
+    background: var(--card-bg);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition-base);
+    position: relative;
+}
+
+.phoenix-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--success-green));
+}
+
+.phoenix-metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(0, 217, 255, 0.3);
+}
+
+.phoenix-metric-value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: var(--space-xs);
+    font-family: var(--font-mono);
+    line-height: 1;
+}
+
+.phoenix-metric-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ===== NAVIGATION SYSTEM ===== */
+.phoenix-nav {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: var(--space-md) 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.phoenix-nav-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 var(--space-xl);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.phoenix-nav-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-decoration: none;
+}
+
+.phoenix-nav-links {
+    display: flex;
+    gap: var(--space-lg);
+    list-style: none;
+}
+
+.phoenix-nav-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition-base);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+}
+
+.phoenix-nav-link:hover {
+    color: var(--accent-cyan);
+    background: rgba(0, 217, 255, 0.1);
+}
+
+/* ===== FORM COMPONENTS ===== */
+.phoenix-input {
+    width: 100%;
+    padding: var(--space-md);
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-primary);
+    font-size: 1rem;
+    transition: var(--transition-base);
+}
+
+.phoenix-input:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+}
+
+.phoenix-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ===== ALERT SYSTEM ===== */
+.phoenix-alert {
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+    border-left: 4px solid var(--accent-cyan);
+}
+
+.phoenix-alert-info {
+    background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(0, 217, 255, 0.05) 100%);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+
+.phoenix-alert-success {
+    background: linear-gradient(135deg, rgba(57, 255, 20, 0.1) 0%, rgba(57, 255, 20, 0.05) 100%);
+    border-color: var(--success-green);
+    color: var(--success-green);
+}
+
+.phoenix-alert-warning {
+    background: linear-gradient(135deg, rgba(255, 140, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%);
+    border-color: var(--warning-orange);
+    color: var(--warning-orange);
+}
+
+.phoenix-alert-error {
+    background: linear-gradient(135deg, rgba(255, 20, 147, 0.1) 0%, rgba(255, 20, 147, 0.05) 100%);
+    border-color: var(--error-pink);
+    color: var(--error-pink);
+}
+
+/* ===== LOADING ANIMATIONS ===== */
+@keyframes phoenix-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes phoenix-glow {
+    0%, 100% { box-shadow: 0 0 5px var(--accent-cyan); }
+    50% { box-shadow: 0 0 20px var(--accent-cyan); }
+}
+
+@keyframes phoenix-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.phoenix-loading {
+    animation: phoenix-pulse 2s infinite;
+}
+
+.phoenix-processing {
+    animation: phoenix-glow 1.5s infinite;
+}
+
+.phoenix-fade-in {
+    animation: phoenix-slide-up 0.5s ease-out;
+}
+
+/* ===== RESPONSIVE DESIGN - Mobile First ===== */
+@media (max-width: 768px) {
+    .phoenix-container {
+        padding: var(--space-md);
+    }
+    
+    .phoenix-grid-2,
+    .phoenix-grid-3,
+    .phoenix-grid-4 {
+        grid-template-columns: 1fr;
+    }
+    
+    .phoenix-nav-container {
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+    
+    .phoenix-nav-links {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* ===== ACCESSIBILITY ENHANCEMENTS ===== */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus indicators for keyboard navigation */
+.phoenix-btn:focus-visible,
+.phoenix-input:focus-visible,
+.phoenix-nav-link:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --text-primary: #FFFFFF;
+        --text-secondary: #FFFFFF;
+        --accent-cyan: #00FFFF;
+    }
+}
+
+/* ===== UTILITY CLASSES ===== */
+.phoenix-text-center { text-align: center; }
+.phoenix-text-left { text-align: left; }
+.phoenix-text-right { text-align: right; }
+
+.phoenix-hidden { display: none; }
+.phoenix-visible { display: block; }
+
+.phoenix-mb-0 { margin-bottom: 0; }
+.phoenix-mb-sm { margin-bottom: var(--space-sm); }
+.phoenix-mb-md { margin-bottom: var(--space-md); }
+.phoenix-mb-lg { margin-bottom: var(--space-lg); }
+.phoenix-mb-xl { margin-bottom: var(--space-xl); }
+
+.phoenix-mt-0 { margin-top: 0; }
+.phoenix-mt-sm { margin-top: var(--space-sm); }
+.phoenix-mt-md { margin-top: var(--space-md); }
+.phoenix-mt-lg { margin-top: var(--space-lg); }
+.phoenix-mt-xl { margin-top: var(--space-xl); }
+
+/* ===== GOVERNMENT-GRADE PROFESSIONAL STYLING ===== */
+.phoenix-government-header {
+    background: var(--primary-bg);
+    padding: var(--space-lg) 0;
+    border-bottom: 2px solid var(--accent-cyan);
+}
+
+.phoenix-government-seal {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+.phoenix-government-seal::before {
+    content: '🗽';
+    font-size: 2rem;
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .phoenix-nav,
+    .phoenix-btn {
+        display: none;
+    }
+    
+    .phoenix-card {
+        border: 1px solid #000;
+        box-shadow: none;
+    }
+    
+    body {
+        background: white;
+        color: black;
+    }
+}
+
+/* =========================================================================
+   END PHOENIX MASTER DESIGN SYSTEM V1.0
+   🎨 Government-worthy sophistication extracted and enhanced
+   ⚡ Ready for legendary interface transformation
+   👑 Earl-approved aesthetic excellence
+   ========================================================================= */ 

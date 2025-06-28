@@ -1,0 +1,203 @@
+/* 🎨 PHOENIX MASTER DESIGN SYSTEM V1.0 - EXTRACTED FROM DEMO-TALK.HTML SOPHISTICATION */
+
+:root {
+    /* Earl's Approved Color Palette */
+    --primary-bg: #0B1426;           /* Deep space blue */
+    --secondary-bg: #1A1D29;         /* Government navy */
+    --card-bg: #2A2D3A;              /* Professional slate */
+    --accent-cyan: #00D9FF;          /* NYC energy - APPROVED! */
+    --success-green: #39FF14;        /* Neon green */
+    --warning-orange: #FF8C00;       /* Amber orange */
+    --error-pink: #FF1493;           /* Hot pink */
+    --text-primary: #FFFFFF;
+    --text-secondary: #B0B3C1;
+    
+    /* Typography - Government Grade */
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Spacing - 8px base unit */
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    
+    /* Shadows - Demo-talk sophistication */
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 20px rgba(0, 217, 255, 0.3);
+    
+    /* Transitions */
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base Styles */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-primary);
+    background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Typography */
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--success-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--space-lg);
+}
+
+h2 { font-size: 2rem; margin-bottom: var(--space-lg); }
+h3 { font-size: 1.5rem; margin-bottom: var(--space-md); }
+
+/* Card System - Demo-talk sophistication */
+.phoenix-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: var(--space-xl);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+    position: relative;
+    box-shadow: var(--shadow-md);
+}
+
+.phoenix-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+}
+
+.phoenix-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(0, 217, 255, 0.3);
+}
+
+/* Glassmorphism - Demo-talk pattern */
+.phoenix-glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: var(--space-xl);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* Button System */
+.phoenix-btn {
+    padding: var(--space-md) var(--space-lg);
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-primary);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.phoenix-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.phoenix-btn:hover::before { left: 100%; }
+
+.phoenix-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+}
+
+.phoenix-btn-primary {
+    background: linear-gradient(135deg, var(--accent-cyan), #0099CC);
+    color: white;
+}
+
+.phoenix-btn-success {
+    background: linear-gradient(135deg, var(--success-green), #2ECC40);
+    color: var(--primary-bg);
+}
+
+/* Grid System */
+.phoenix-grid {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+.phoenix-grid-2 { grid-template-columns: 1fr 1fr; }
+.phoenix-grid-auto { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+
+/* Status Cards */
+.phoenix-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-md);
+}
+
+.phoenix-status-card {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-bg);
+    padding: var(--space-lg);
+    border-radius: 8px;
+    text-align: center;
+    border-left: 4px solid var(--accent-cyan);
+}
+
+/* Metric Cards */
+.phoenix-metric-card {
+    background: var(--card-bg);
+    padding: var(--space-lg);
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+    position: relative;
+}
+
+.phoenix-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--success-green));
+}
+
+.phoenix-metric-value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    line-height: 1;
+}
+
+.phoenix-metric-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .phoenix-grid-2 { grid-template-columns: 1fr; }
+    h1 { font-size: 2rem; }
+} 
