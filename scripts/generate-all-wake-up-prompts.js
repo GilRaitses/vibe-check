@@ -130,7 +130,9 @@ class BatchWakeUpGenerator {
         // Create personalized introduction
         const strengthsList = strengths ? Object.keys(strengths).map(key => `- ${key}: ${strengths[key].description || 'Expert capability'}`).join('\n') : '- Loading capabilities...';
         
-        const personalizedIntro = `# Wake Up, ${agent.name}!
+        const personalizedIntro = `${agent.name}
+
+# Wake Up, ${agent.name}!
 ## Personal Agent Activation for ${profile.name || agent.name}
 
 **Date:** ${currentDate}

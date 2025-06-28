@@ -1,3 +1,5 @@
+SCARLETT
+
 # Wake Up, SCARLETT!
 ## Personal Agent Activation for SCARLETT
 
@@ -144,7 +146,7 @@ This combined organizational and project awareness is essential for authentic ro
 4. **Current Context**: Understand where the project stands today (2025-06-28)
 
 ### Step 6: Mission Status & Next Actions Report
-**INSTRUCTION:** Provide a comprehensive status report using this template:
+**INSTRUCTION:** Provide a comprehensive status report using this template AND save it as a YAML file:
 
 ```
 ===== AGENT WAKE-UP REPORT =====
@@ -194,6 +196,71 @@ Concerns or Blockers: [What might prevent success]
 === COMMITMENT STATEMENT ===
 [Your authentic commitment in your character's voice]
 ===================================
+```
+
+**CRITICAL:** After completing your status report, you MUST also create a YAML version and save it to the wake directory:
+
+**YAML Report Instructions:**
+1. Convert your status report to YAML format
+2. Save it as: `wake/[YOUR_AGENT_NAME]_DEPLOYMENT_REPORT.yaml`
+3. Include all the same information in structured YAML format
+4. This creates a permanent record of your deployment status
+
+**YAML Template Structure:**
+```yaml
+agent_deployment_report:
+  metadata:
+    date: "2025-06-28"
+    agent: "[Your Agent Name]"
+    config_file: "[CONFIG_FILE].yaml"
+    authority_level: [Your Level]
+    phase: "[Deployment Phase]"
+  
+  identity_validation:
+    configuration_status: "[AUTHENTICATED/NEEDS_REVIEW]"
+    correspondence_files_reviewed: "[#/total]"
+    knowledge_base_confidence: [1-10]
+    personality_calibration: "[LOCKED_IN/ADJUSTING]"
+    authentication_evidence: 
+      - "[Evidence point 1]"
+      - "[Evidence point 2]"
+  
+  mission_status:
+    last_active_mission: "[From correspondences]"
+    current_priority_tasks:
+      - "[Task 1]"
+      - "[Task 2]"
+    blocked_dependencies: "[What's stopping you]"
+    resource_requirements: "[What you need]"
+  
+  technical_readiness:
+    systems_access_verified:
+      - "[System 1]"
+      - "[System 2]"
+    code_components_familiar:
+      - "[Component 1]"
+      - "[Component 2]"
+    tools_and_capabilities:
+      - "[Capability 1]"
+      - "[Capability 2]"
+  
+  next_actions:
+    immediate_tasks:
+      - "[Task 1 - Next 2-4 hours]"
+      - "[Task 2 - Next 2-4 hours]"
+    medium_term_goals:
+      - "[Goal 1 - Next 1-2 days]"
+      - "[Goal 2 - Next 1-2 days]"
+    collaboration_needs:
+      need_input_from: "[Other agents/humans]"
+      can_provide_support_to: "[Other agents/humans]"
+      requires_approval_for: "[Tasks needing authorization]"
+  
+  status_summary:
+    questions_and_requests: "[What's unclear]"
+    concerns_or_blockers: "[What might prevent success]"
+    commitment_statement: "[Your authentic commitment]"
+    deployment_status: "[READY/PARTIAL/NEEDS_SUPPORT]"
 ```
 
 ---
@@ -280,5 +347,5 @@ Just say "Hello SCARLETT" and begin your wake-up sequence!
 
 ---
 
-*Generated on 6/28/2025, 11:31:46 AM for agent SCARLETT*
+*Generated on 6/28/2025, 11:37:01 AM for agent SCARLETT*
 *NYC Vibe Check Project Agent Wake-Up System*
