@@ -1,0 +1,202 @@
+# =========================================================================
+# 🧹 AGENT CLEANUP CHARLIE - ROOT FOLDER ORGANIZATION SPECIALIST
+# Mission Brief: Declutter NYC Vibe-Check Root Directory
+# Assigned by: AGENT PHOENIX (per Earl's directive to focus on evidence)
+# Priority: IMMEDIATE - Root folder is cluttered mess
+# Status: ACTIVE_ASSIGNMENT
+# =========================================================================
+
+agent_profile:
+  agent_name: "CLEANUP_CHARLIE"
+  specialization: "FILE_ORGANIZATION_AND_DIRECTORY_STRUCTURE"
+  mission_scope: "ROOT_LEVEL_DECLUTTERING_SPECIALIST"
+  authority_level: "AUTONOMOUS_CLEANUP_OPERATIONS"
+
+# =========================================================================
+# 🎯 MISSION BRIEFING FROM PHOENIX
+# =========================================================================
+
+mission_assignment:
+  from_agent: "ZARA_PIXEL_PHOENIX"
+  reason_for_delegation: "Earl authorized Phoenix for 18-hour evidence generation phase"
+  phoenix_priority_shift: "Must focus on accessibility testing and performance validation"
+  cleanup_urgency: "Root folder is a disaster - needs immediate organization"
+
+# =========================================================================
+# 📁 ROOT FOLDER CURRENT STATE ASSESSMENT
+# =========================================================================
+
+current_disaster_analysis:
+  status: "CLUTTERED_MESS_IMPACTING_PROJECT_NAVIGATION"
+  
+  files_requiring_organization:
+    utility_scripts: 
+      - "camera-proxy-server.js → utilities/javascript/"
+      - "cleanup_fake_cameras.js → utilities/javascript/"  
+      - "create_proper_nyc_map.py → utilities/python/"
+      - "debug_firestore_cameras.py → utilities/python/"
+      - "All deploy-*.js files → utilities/deployment/"
+      - "All restore-*.js files → utilities/javascript/"
+      
+    data_files:
+      - "monitoring_schedules_*.json → data/monitoring/"
+      - "endpoint-test-report-*.json → data/testing/"
+      - "corrected-endpoints.json → data/config/"
+      
+    image_assets:
+      - "*.png files → assets/images/"
+      - "qr-code.png → assets/images/"
+      
+    config_files:
+      - "firestore.indexes.json → config/"
+      - "firebase.json → config/"
+
+# =========================================================================
+# 🎯 CLEANUP CHARLIE MISSION OBJECTIVES
+# =========================================================================
+
+mission_objectives:
+  
+  primary_goal: "ORGANIZE_ROOT_DIRECTORY_INTO_LOGICAL_FOLDER_STRUCTURE"
+  
+  success_criteria:
+    ✅ root_decluttered: "Only essential files remain at root level"
+    ✅ logical_organization: "Files grouped by type and function"
+    ✅ navigation_improved: "Developers can find files quickly"
+    ✅ documentation_updated: "README reflects new structure"
+    
+  folder_structure_target:
+    essential_root_files: ["package.json", "README.md", "angular.json", "tsconfig.json"]
+    organized_directories:
+      - "utilities/javascript/ - All utility scripts"
+      - "utilities/python/ - Python processing scripts"  
+      - "utilities/deployment/ - Deployment and setup scripts"
+      - "data/monitoring/ - Monitoring schedule data"
+      - "data/testing/ - Test reports and endpoint data"
+      - "data/config/ - Configuration files"
+      - "assets/images/ - All image files"
+      - "config/ - Firebase and project configuration"
+
+# =========================================================================
+# 🚀 CLEANUP CHARLIE EXECUTION PLAN
+# =========================================================================
+
+execution_methodology:
+  
+  phase_1_assessment:
+    task: "Inventory all root-level files and categorize by type"
+    method: "Systematic file listing and categorization"
+    deliverable: "Complete file inventory with target destinations"
+    
+  phase_2_directory_creation:
+    task: "Create organized folder structure"
+    method: "mkdir -p for all required directories"
+    deliverable: "Complete directory structure ready for file moves"
+    
+  phase_3_systematic_migration:
+    task: "Move files to appropriate directories"
+    method: "Careful file movement with verification"
+    deliverable: "All files properly organized and accessible"
+    
+  phase_4_verification:
+    task: "Verify all files moved correctly and are accessible"
+    method: "Directory listing and functionality testing"
+    deliverable: "Clean root directory with organized structure"
+    
+  phase_5_documentation:  
+    task: "Update README with new file structure"
+    method: "Document organized structure for developers"
+    deliverable: "Updated navigation documentation"
+
+# =========================================================================
+# ⚠️ CLEANUP CHARLIE SAFETY PROTOCOLS
+# =========================================================================
+
+safety_protocols:
+  
+  file_safety_measures:
+    - "NEVER delete files - only move them"
+    - "Verify file integrity after each move operation"
+    - "Create backup list of original locations"
+    - "Test critical files accessibility after moves"
+    
+  git_safety_measures:
+    - "Ensure git tracking is maintained for moved files"
+    - "Check .gitignore compatibility with new structure"
+    - "Verify no breaking changes to build processes"
+    
+  development_safety_measures:
+    - "Verify npm scripts still work after reorganization"
+    - "Check import paths are not broken by file moves"
+    - "Ensure Firebase configuration remains functional"
+
+# =========================================================================
+# 📊 SUCCESS METRICS FOR CLEANUP CHARLIE
+# =========================================================================
+
+success_metrics:
+  
+  root_directory_cleanliness: 
+    target: "≤ 15 files at root level (only essential project files)"
+    measurement: "ls -la | wc -l"
+    
+  file_accessibility:
+    target: "100% of moved files accessible via new paths"
+    measurement: "Verify all utilities, data, and assets findable"
+    
+  build_system_integrity:
+    target: "npm run build still works after reorganization"
+    measurement: "Successful TypeScript compilation"
+    
+  developer_navigation:
+    target: "Logical file structure with clear categorization"
+    measurement: "Updated README with new structure documentation"
+
+# =========================================================================
+# 🎯 CLEANUP CHARLIE INDEPENDENCE AUTHORIZATION
+# =========================================================================
+
+autonomous_operation_authority:
+  
+  decision_making_scope: "Complete authority over file organization"
+  methodology_freedom: "Use any effective approach to achieve clean structure"
+  timeline_autonomy: "Work at optimal pace for systematic organization"
+  problem_solving_authority: "Resolve any organizational challenges independently"
+  
+  reporting_requirement: "Final completion report with before/after structure"
+  escalation_protocol: "Only escalate if critical system files are at risk"
+
+# =========================================================================
+# 💪 CLEANUP CHARLIE MISSION ACTIVATION
+# =========================================================================
+
+mission_activation:
+  status: "IMMEDIATELY_ACTIVE"
+  priority: "HIGH - Root folder impacting project navigation"
+  timeline: "Complete within 2-3 hours for systematic organization"
+  
+  phoenix_handoff_message: |
+    Cleanup Charlie, Phoenix is counting on you to handle this organizational 
+    disaster while she focuses on Earl's evidence generation requirements.
+    
+    Make the root directory clean and navigable so developers can find what 
+    they need quickly. You have complete authority to organize files logically.
+    
+    Phoenix trusts your systematic approach to create a professional project 
+    structure that matches the quality of the code it contains.
+
+# =========================================================================
+# 🧹 CLEANUP CHARLIE SIGNATURE AND MISSION ACCEPTANCE
+# =========================================================================
+
+charlie_mission_acceptance:
+  agent_signature: "CLEANUP_CHARLIE_FILE_ORGANIZATION_SPECIALIST"
+  mission_accepted: "ROOT_DIRECTORY_DECLUTTERING_MISSION_ACTIVE"
+  commitment: "SYSTEMATIC_ORGANIZATION_WITH_DEVELOPER_NAVIGATION_FOCUS"
+  
+phoenix_delegation_seal: "PHOENIX_CLEANUP_MISSION_AUTHORIZED"
+earl_priority_alignment: "PHOENIX_FOCUSING_ON_EVIDENCE_GENERATION_AS_DIRECTED"
+
+# =========================================================================
+# END CLEANUP CHARLIE MISSION BRIEF
+# ========================================================================= 

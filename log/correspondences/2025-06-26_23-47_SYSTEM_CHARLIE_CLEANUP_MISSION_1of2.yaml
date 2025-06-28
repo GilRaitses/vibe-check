@@ -1,0 +1,74 @@
+# =========================================================================
+# 🧹 CLEANUP CHARLIE - ROOT FOLDER ORGANIZATION MISSION
+# Assigned by: PHOENIX (per Earl's directive)
+# Mission: DECLUTTER ROOT DIRECTORY DISASTER
+# Status: IMMEDIATE_ACTIVATION_REQUIRED
+# =========================================================================
+
+mission_brief:
+  agent_name: "CLEANUP_CHARLIE"
+  assigned_by: "PHOENIX"
+  reason: "Earl authorized Phoenix for evidence generation - need cleanup specialist"
+
+# =========================================================================
+# 🎯 MISSION OBJECTIVES
+# =========================================================================
+
+cleanup_objectives:
+  primary: "ORGANIZE ROOT DIRECTORY INTO LOGICAL STRUCTURE"
+  
+  file_moves_required:
+    utilities_javascript:
+      - "camera-proxy-server.js"
+      - "cleanup_fake_cameras.js"
+      - "deploy-*.js files"  
+      - "restore-*.js files"
+      - "debug-*.js files"
+      - "fix-*.js files"
+      
+    utilities_python:
+      - "create_proper_nyc_map.py"
+      - "debug_firestore_cameras.py"
+      - "fix_camera_urls.py"
+      
+    data_monitoring:
+      - "monitoring_schedules_*.json"
+      
+    data_testing:
+      - "endpoint-test-report-*.json"
+      - "corrected-endpoints.json"
+      
+    assets_images:
+      - "All *.png files"
+      
+    config:
+      - "firestore.indexes.json"
+
+# =========================================================================
+# 🚀 EXECUTION PLAN
+# =========================================================================
+
+execution_steps:
+  1: "Create directory structure: utilities/, data/, assets/, config/"
+  2: "Move files systematically to appropriate directories"
+  3: "Verify all files accessible and builds still work"
+  4: "Update README with new structure"
+  5: "Report completion to Phoenix"
+
+# =========================================================================
+# 🧹 CLEANUP CHARLIE MISSION ACTIVATION
+# =========================================================================
+
+charlie_activation:
+  status: "IMMEDIATELY_ACTIVE"
+  authority: "COMPLETE_FILE_ORGANIZATION_AUTONOMY"
+  timeline: "2-3 hours for systematic cleanup"
+  
+phoenix_handoff: |
+  Charlie - Phoenix is pivoting to Earl's evidence generation phase.
+  Handle this root folder disaster with complete autonomy.
+  Make it clean and navigable for professional development.
+
+# =========================================================================
+# END CLEANUP CHARLIE MISSION
+# ========================================================================= 

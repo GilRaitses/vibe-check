@@ -1,0 +1,383 @@
+# =========================================================================
+# PHASE 2 CLOUD RUN + REDIS DEPLOYMENT INSTRUCTIONS
+# NYC Vibe-Check Advanced Analytics System
+# Ready for Immediate Implementation
+# =========================================================================
+
+deployment_metadata:
+  phase: "Phase 2 - Cloud Run ML Service + Redis Integration"
+  status: "READY_FOR_DEPLOYMENT"
+  handoff_timestamp: "2025-06-26T07:45:00Z"
+  infrastructure_status: "Phase 1 Complete - All Systems Operational"
+
+# =========================================================================
+# IMMEDIATE DEPLOYMENT COMMANDS
+# =========================================================================
+
+deployment_steps:
+  step_1_navigate_to_service:
+    command: "cd cloud-run-ml"
+    description: "Navigate to the prepared Cloud Run service directory"
+    
+  step_2_deploy_cloud_run:
+    command: |
+      gcloud run deploy vibe-check-ml \
+        --source . \
+        --region us-central1 \
+        --allow-unauthenticated \
+        --memory 1Gi \
+        --cpu 1 \
+        --max-instances 10 \
+        --set-env-vars "REDIS_HOST=10.187.253.187,REDIS_PORT=6379,PROJECT_ID=vibe-check-463816" \
+        --project vibe-check-463816
+    description: "Deploy the ML service to Cloud Run with Redis configuration"
+    expected_duration: "3-5 minutes"
+    
+  step_3_verify_deployment:
+    command: "curl https://vibe-check-ml-vibe-check-463816.a.run.app/health"
+    description: "Verify the service is running and healthy"
+    expected_response: |
+      {
+        "status": "healthy",
+        "timestamp": "2025-06-26T...",
+        "service": "vibe-check-ml-v2",
+        "phase": "Phase 2 PoC"
+      }
+
+# =========================================================================
+# TESTING PROCEDURES
+# =========================================================================
+
+testing_commands:
+  basic_functionality_test:
+    camera_processing_test:
+      command: |
+        curl -X POST https://vibe-check-ml-vibe-check-463816.a.run.app/process/camera/83404149-7deb-43ee-81b5-66fe804c0feb \
+          -H "Content-Type: application/json"
+      expected_response_time: "<500ms"
+      expected_fields:
+        - "status: success"
+        - "camera_id"
+        - "processing_time"
+        - "vision_data"
+        - "violations"
+        - "prediction_id"
+  
+  performance_testing:
+    load_test_command: |
+      for i in {1..50}; do 
+        curl -X POST https://vibe-check-ml-vibe-check-463816.a.run.app/process/camera/test-$i \
+          -H "Content-Type: application/json" &
+      done
+    response_time_test: |
+      time curl https://vibe-check-ml-vibe-check-463816.a.run.app/health
+    target_metrics:
+      response_time: "<500ms"
+      success_rate: ">99%"
+      concurrent_requests: "50+"
+
+  redis_integration_test:
+    redis_connection_test:
+      command: "redis-cli -h 10.187.253.187 -p 6379 ping"
+      expected_response: "PONG"
+    
+    cache_verification:
+      command: "redis-cli -h 10.187.253.187 -p 6379 keys '*'"
+      description: "Check for cached vision results and predictions"
+
+# =========================================================================
+# REDIS CACHING STRATEGY
+# =========================================================================
+
+redis_configuration:
+  host: "10.187.253.187"
+  port: 6379
+  capacity: "1GB"
+  network: "projects/vibe-check-463816/global/networks/default"
+  
+  cache_patterns:
+    vision_results: "vision:camera:{camera_id}:frame:{frame_hash}"
+    predictions: "prediction:camera:{camera_id}:horizon:{minutes}"
+    violations: "violation:camera:{camera_id}:type:{type}"
+    zone_analysis: "zone:{zone_id}:analysis"
+  
+  ttl_settings:
+    vision_results: "300 seconds (5 minutes)"
+    predictions: "1800 seconds (30 minutes)"
+    violations: "86400 seconds (24 hours)"
+    zone_analysis: "3600 seconds (1 hour)"
+
+# =========================================================================
+# PERFORMANCE TARGETS & MONITORING
+# =========================================================================
+
+performance_targets:
+  response_time: "<500ms with caching"
+  cache_hit_rate: ">80%"
+  uptime_sla: "99.9%"
+  error_rate: "<1%"
+  concurrent_users: "100+"
+
+monitoring_endpoints:
+  health_check: "https://vibe-check-ml-vibe-check-463816.a.run.app/health"
+  metrics: "https://vibe-check-ml-vibe-check-463816.a.run.app/metrics"
+  
+monitoring_commands:
+  cloud_run_logs: |
+    gcloud logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=vibe-check-ml"
+  
+  redis_monitoring: |
+    redis-cli -h 10.187.253.187 -p 6379 monitor
+  
+  bigquery_status: |
+    bq query --project_id=vibe-check-463816 --use_legacy_sql=false \
+    "SELECT COUNT(*) as total_violations FROM \`vibe-check-463816.vibecheck_analytics.realtime_violations\`"
+
+# =========================================================================
+# ALERT SYSTEM CONFIGURATION
+# =========================================================================
+
+alert_system:
+  high_confidence_violations:
+    threshold: ">0.8 confidence"
+    action: "immediate_webhook + email"
+    sla: "30 seconds"
+    
+  medium_confidence_violations:
+    threshold: "0.6-0.8 confidence"
+    action: "webhook_only"
+    sla: "2 minutes"
+    
+  system_alerts:
+    triggers:
+      - "redis_connection_failure"
+      - "response_time >1000ms"
+      - "error_rate >5%"
+    action: "immediate_notification"
+
+alert_testing:
+  test_violation_alert:
+    command: |
+      curl -X POST https://api-4dwgqpvuta-uc.a.run.app/alerts/webhook \
+        -H "Content-Type: application/json" \
+        -d '{
+          "type": "VIOLATION_ALERT",
+          "severity": "HIGH",
+          "camera_id": "test-camera-123",
+          "confidence": 0.89,
+          "violation_type": "red_light_violation"
+        }'
+
+# =========================================================================
+# ML PREDICTION PIPELINE
+# =========================================================================
+
+ml_pipeline:
+  trigger_methods:
+    real_time: "HTTP POST /process/camera/{id}"
+    scheduled: "Cloud Scheduler every 5 minutes"
+    bulk_processing: "HTTP POST /predictions/bulk"
+  
+  model_configuration:
+    model_type: "ARIMA_PLUS simulation"
+    prediction_horizon: "30 minutes default"
+    confidence_intervals: "80%-120%"
+    mape_target: "<20%"
+  
+  bulk_prediction_test:
+    command: |
+      curl -X POST https://vibe-check-ml-vibe-check-463816.a.run.app/predictions/bulk \
+        -H "Content-Type: application/json" \
+        -d '{
+          "cameraIds": [
+            "83404149-7deb-43ee-81b5-66fe804c0feb",
+            "84805c44-7359-4a1e-9b07-b56da5e4b9c5",
+            "85204c44-7359-4a1e-9b07-b56da5e4b9c6"
+          ],
+          "horizonMinutes": 30
+        }'
+
+# =========================================================================
+# INTEGRATION WITH EXISTING INFRASTRUCTURE
+# =========================================================================
+
+existing_infrastructure:
+  firebase_functions:
+    url: "https://api-4dwgqpvuta-uc.a.run.app"
+    status: "operational"
+    integration: "webhook_alerts + data_verification"
+  
+  bigquery_dataset:
+    dataset_id: "vibecheck_analytics"
+    tables:
+      - name: "realtime_violations"
+        status: "ready"
+        record_count: 1
+      - name: "traffic_predictions" 
+        status: "ready"
+        record_count: 1
+      - name: "zone_analyses"
+        status: "ready"
+        record_count: 2
+      - name: "system_performance"
+        status: "ready"
+        record_count: 0
+  
+  service_accounts:
+    ml_runner: "predictive-ml-runner@vibe-check-463816.iam.gserviceaccount.com"
+    permissions:
+      - "roles/bigquery.dataEditor"
+      - "roles/storage.objectAdmin"
+
+# =========================================================================
+# SUCCESS CRITERIA & VALIDATION
+# =========================================================================
+
+success_criteria:
+  deployment_success:
+    - "Cloud Run service responding to /health"
+    - "Redis connection established"
+    - "BigQuery integration working"
+    - "Response time <500ms"
+  
+  functionality_success:
+    - "Camera processing endpoint working"
+    - "Vision API results cached in Redis"
+    - "Violations stored in BigQuery"
+    - "Predictions generated and cached"
+    - "Alert system functional"
+
+validation_checklist:
+  - [ ] "gcloud run services list shows vibe-check-ml as READY"
+  - [ ] "Health endpoint returns 200 OK"
+  - [ ] "Camera processing returns valid JSON"
+  - [ ] "Redis keys populated after processing"
+  - [ ] "BigQuery tables receiving new data"
+  - [ ] "Response times consistently <500ms"
+  - [ ] "Cache hit rate >50% after warmup"
+  - [ ] "Alert webhook responds correctly"
+
+# =========================================================================
+# TROUBLESHOOTING GUIDE
+# =========================================================================
+
+troubleshooting:
+  common_issues:
+    deployment_fails:
+      symptoms: "gcloud run deploy errors"
+      solutions:
+        - "Check project permissions"
+        - "Verify Docker build succeeds locally"
+        - "Ensure service account has Cloud Run Admin role"
+    
+    redis_connection_fails:
+      symptoms: "Redis connection timeout"
+      solutions:
+        - "Verify VPC connector configuration"
+        - "Check Redis instance is running"
+        - "Test direct Redis connection: redis-cli -h 10.187.253.187 -p 6379 ping"
+    
+    slow_response_times:
+      symptoms: "Response times >1000ms"
+      solutions:
+        - "Increase Cloud Run memory to 2Gi"
+        - "Check Redis cache hit rates"
+        - "Monitor BigQuery query performance"
+    
+    bigquery_errors:
+      symptoms: "BigQuery insert failures"
+      solutions:
+        - "Verify service account permissions"
+        - "Check dataset and table existence"
+        - "Validate data schema matches table structure"
+
+debug_commands:
+  service_logs: |
+    gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=vibe-check-ml" \
+      --limit 50 --format json
+  
+  redis_debug: |
+    redis-cli -h 10.187.253.187 -p 6379 info memory
+    redis-cli -h 10.187.253.187 -p 6379 keys "*" | wc -l
+  
+  bigquery_debug: |
+    bq query --use_legacy_sql=false \
+    "SELECT COUNT(*) as violations, MAX(timestamp) as latest 
+     FROM \`vibe-check-463816.vibecheck_analytics.realtime_violations\`"
+
+# =========================================================================
+# POST-DEPLOYMENT NEXT STEPS
+# =========================================================================
+
+next_steps:
+  immediate_after_deployment:
+    - "Run full test suite"
+    - "Monitor performance for 30 minutes"
+    - "Verify cache effectiveness"
+    - "Test alert system"
+  
+  optimization_phase:
+    - "Fine-tune cache TTL values"
+    - "Optimize BigQuery query performance"
+    - "Implement advanced ML models"
+    - "Add comprehensive monitoring dashboard"
+  
+  scaling_preparation:
+    - "Load test with 1000+ concurrent requests"
+    - "Implement auto-scaling policies"
+    - "Set up advanced alerting (SMS, Slack)"
+    - "Create API documentation"
+
+# =========================================================================
+# DEPLOYMENT COMPLETION VERIFICATION
+# =========================================================================
+
+completion_verification:
+  final_test_sequence:
+    step_1: "curl https://vibe-check-ml-vibe-check-463816.a.run.app/health"
+    step_2: "curl -X POST https://vibe-check-ml-vibe-check-463816.a.run.app/process/camera/test-camera"
+    step_3: "redis-cli -h 10.187.253.187 -p 6379 keys '*' | head -5"
+    step_4: "bq query 'SELECT COUNT(*) FROM \`vibe-check-463816.vibecheck_analytics.realtime_violations\`'"
+  
+  success_indicators:
+    - "All curl commands return 200 OK"
+    - "Redis shows cached keys"
+    - "BigQuery shows increasing record counts"
+    - "Response times consistently <500ms"
+    - "No error logs in Cloud Run"
+
+# =========================================================================
+# CONTACT & ESCALATION
+# =========================================================================
+
+support:
+  deployment_issues: "Check Cloud Run logs and Redis connectivity"
+  performance_issues: "Monitor /metrics endpoint and Redis hit rates"
+  data_issues: "Verify BigQuery permissions and schema"
+  
+escalation_triggers:
+  - "Deployment fails after 3 attempts"
+  - "Response times consistently >1000ms"
+  - "Error rate >10%"
+  - "Redis connection permanently unavailable"
+
+# =========================================================================
+# SUMMARY
+# =========================================================================
+
+summary:
+  phase_2_ready: true
+  infrastructure_status: "Phase 1 Complete - All Systems Operational"
+  deployment_time_estimate: "15-30 minutes"
+  testing_time_estimate: "30-45 minutes"
+  total_implementation_time: "1-2 hours"
+  
+  key_deliverables:
+    - "Cloud Run ML service with Redis caching"
+    - "Real-time violation detection (<30s SLA)"
+    - "ML prediction pipeline (ARIMA_PLUS simulation)"
+    - "Multi-channel alert system"
+    - "Performance monitoring and metrics"
+    - "Integration with existing BigQuery infrastructure"
+
+deployment_ready: true
